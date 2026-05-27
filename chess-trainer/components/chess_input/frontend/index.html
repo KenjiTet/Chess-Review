@@ -84,29 +84,56 @@
 </div>
 
 <script>
-  // Args injected by Python as window.__CHESS_ARGS__ before this script runs.
-  var P    = window.__CHESS_ARGS__;
+  // Inline Streamlit component protocol shim.
+  // Streamlit 1.57 dispatches by event.source — no isStreamlitMessage flag needed.
+  var Streamlit = (function () {
+    var _listeners = {};
+
+    window.addEventListener("message", function (e) {
+      if (!e.data || e.data.type !== "streamlit:render") {
+        return;
+      }
+      var cbs = _listeners["streamlit:render"] || [];
+      for (var i = 0; i < cbs.length; i++) {
+        cbs[i](e);
+      }
+    });
+
+    return {
+      RENDER_EVENT: "streamlit:render",
+      events: {
+        addEventListener: function (name, cb) {
+          if (!_listeners[name]) {
+            _listeners[name] = [];
+          }
+          _listeners[name].push(cb);
+        },
+      },
+      setComponentReady: function () {
+        window.parent.postMessage(
+          { type: "streamlit:componentReady", apiVersion: 1 },
+          "*"
+        );
+      },
+      setFrameHeight: function (h) {
+        window.parent.postMessage(
+          { type: "streamlit:setFrameHeight", height: h },
+          "*"
+        );
+      },
+      setComponentValue: function (value) {
+        window.parent.postMessage(
+          { type: "streamlit:setComponentValue", value: value, dataType: "json" },
+          "*"
+        );
+      },
+    };
+  }());
+
+  var P     = null;
   var board = null;
   var game  = null;
   var BOARD_SIZE = 560;
-
-  // ── Move bridge ───────────────────────────────────────────────────────────────
-  // Writes the UCI string into the hidden Streamlit text input in the parent frame.
-
-  function sendMove(uci) {
-    var label  = "move_input_" + P.key;
-    var inputs = window.parent.document.querySelectorAll('input[type="text"]');
-    for (var i = 0; i < inputs.length; i++) {
-      if (inputs[i].getAttribute("aria-label") === label) {
-        var setter = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype, "value"
-        ).set;
-        setter.call(inputs[i], uci);
-        inputs[i].dispatchEvent(new Event("input", { bubbles: true }));
-        return;
-      }
-    }
-  }
 
   // ── Eval bar ──────────────────────────────────────────────────────────────────
 
@@ -192,7 +219,7 @@
     if (!P.showArrows) {
       return;
     }
-    // Draw back-to-front so the green best-move arrow sits on top.
+    // Draw back-to-front so green best-move arrow sits on top.
     if (P.blunderMove && P.blunderMove.length >= 4) {
       drawArrow(ctx, P.blunderMove.slice(0, 2), P.blunderMove.slice(2, 4),
                 "rgba(220,0,0,0.85)", 7);
@@ -211,7 +238,6 @@
 
   function initBoard() {
     updateEvalBar();
-
     game = new Chess(P.fen);
 
     var config = {
@@ -219,12 +245,12 @@
       orientation: P.orientation,
       pieceTheme:  "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
       draggable:   P.interactive,
-      onDrop: function(source, target) {
+      onDrop: function (source, target) {
         var move = game.move({ from: source, to: target, promotion: "q" });
         if (move === null) {
           return "snapback";
         }
-        sendMove(source + target);
+        Streamlit.setComponentValue(source + target);
       },
     };
 
@@ -238,27 +264,43 @@
     if (P.autoplayMove && P.autoplayMove.length >= 4) {
       var overlay = document.getElementById("sf-overlay");
       overlay.style.display = "block";
-      setTimeout(function() {
-        var from   = P.autoplayMove.slice(0, 2);
-        var to     = P.autoplayMove.slice(2, 4);
-        var promo  = P.autoplayMove.length === 5 ? P.autoplayMove[4] : "q";
+      setTimeout(function () {
+        var from  = P.autoplayMove.slice(0, 2);
+        var to    = P.autoplayMove.slice(2, 4);
+        var promo = P.autoplayMove.length === 5 ? P.autoplayMove[4] : "q";
         var result = game.move({ from: from, to: to, promotion: promo });
         if (result !== null) {
           board.position(game.fen(), true);
         }
-        setTimeout(function() {
+        setTimeout(function () {
           overlay.style.display = "none";
         }, 600);
       }, 400);
     }
   }
 
-  // ── Entry point ───────────────────────────────────────────────────────────────
-  // $(document).ready ensures jQuery and chessboard.js are available before init.
+  // ── Streamlit lifecycle ───────────────────────────────────────────────────────
 
-  $(document).ready(function() {
-    initBoard();
-  });
+  function onRender(event) {
+    if (!event.data.args) {
+      return;
+    }
+    P = event.data.args;
+    // Poll every 100ms until jQuery, chessboard.js, and chess.js are all loaded.
+    function tryInit() {
+      if (typeof $ === "undefined" || typeof Chessboard === "undefined" || typeof Chess === "undefined") {
+        setTimeout(tryInit, 100);
+        return;
+      }
+      initBoard();
+    }
+    tryInit();
+  }
+
+  // Register listener before setComponentReady so the render event is never missed.
+  Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+  Streamlit.setFrameHeight(580);
+  Streamlit.setComponentReady();
 </script>
 
 </body>
