@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet"
+  href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; overflow: hidden; }
+
+  .white-1e1d7 { background-color: #f0d9b5 !important; }
+  .black-3c85d { background-color: #b58863 !important; }
+
+  #wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 4px;
+  }
+
+  #eval-bar {
+    width: 40px;
+    height: 560px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: 1px solid #555;
+    flex-shrink: 0;
+  }
+  #eval-black { background: #1a1a1a; transition: height 0.4s ease; height: 50%; }
+  #eval-white { background: #f0f0f0; flex: 1; }
+  #eval-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: bold;
+    pointer-events: none;
+  }
+
+  #board-container { position: relative; width: 560px; height: 560px; }
+  #board { width: 560px; }
+
+  #sf-overlay {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    padding: 8px;
+    z-index: 20;
+    border-radius: 0 0 4px 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="wrapper">
+  <div id="eval-bar">
+    <div id="eval-black"></div>
+    <div id="eval-white"></div>
+    <div id="eval-label"></div>
+  </div>
+  <div id="board-container">
+    <div id="board" style="width:560px"></div>
+    <canvas id="arrow-canvas" width="560" height="560"
+      style="position:absolute;top:0;left:0;pointer-events:none;z-index:10">
+    </canvas>
+    <div id="sf-overlay">&#9823; Stockfish is responding...</div>
+  </div>
+</div>
+
+<script>
+  // Args injected by Python as window.__CHESS_ARGS__ before this script runs.
+  var P    = window.__CHESS_ARGS__;
+  var board = null;
+  var game  = null;
+  var BOARD_SIZE = 560;
+
+  // ── Move bridge ───────────────────────────────────────────────────────────────
+  // Writes the UCI string into the hidden Streamlit text input in the parent frame.
+
+  function sendMove(uci) {
+    var label  = "move_input_" + P.key;
+    var inputs = window.parent.document.querySelectorAll('input[type="text"]');
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].getAttribute("aria-label") === label) {
+        var setter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype, "value"
+        ).set;
+        setter.call(inputs[i], uci);
+        inputs[i].dispatchEvent(new Event("input", { bubbles: true }));
+        return;
+      }
+    }
+  }
+
+  // ── Eval bar ──────────────────────────────────────────────────────────────────
+
+  function updateEvalBar() {
+    var capped   = Math.max(-500, Math.min(500, P.cpScore));
+    var whitePct = Math.max(5, Math.min(95, (capped + 500) / 1000 * 100));
+    var blackPct = 100 - whitePct;
+    document.getElementById("eval-black").style.height = blackPct + "%";
+
+    var scoreText;
+    if (Math.abs(P.cpScore) >= 900) {
+      scoreText = "M";
+    } else if (P.cpScore > 0) {
+      scoreText = "+" + (P.cpScore / 100).toFixed(1);
+    } else {
+      scoreText = (P.cpScore / 100).toFixed(1);
+    }
+
+    var labelEl = document.getElementById("eval-label");
+    labelEl.textContent = scoreText;
+    labelEl.style.color = blackPct > 50 ? "#fff" : "#000";
+  }
+
+  // ── Arrow drawing ─────────────────────────────────────────────────────────────
+
+  function squareToXY(sq) {
+    var col    = sq.charCodeAt(0) - 97;
+    var row    = parseInt(sq[1]) - 1;
+    var sqSize = BOARD_SIZE / 8;
+    var x, y;
+    if (P.orientation === "white") {
+      x = col * sqSize + sqSize / 2;
+      y = (7 - row) * sqSize + sqSize / 2;
+    } else {
+      x = (7 - col) * sqSize + sqSize / 2;
+      y = row * sqSize + sqSize / 2;
+    }
+    return { x: x, y: y };
+  }
+
+  function drawArrow(ctx, fromSq, toSq, color, lineWidth) {
+    var f        = squareToXY(fromSq);
+    var t        = squareToXY(toSq);
+    var dx       = t.x - f.x;
+    var dy       = t.y - f.y;
+    var angle    = Math.atan2(dy, dx);
+    var headLen  = 18;
+    var len      = Math.sqrt(dx * dx + dy * dy);
+    var shortenBy = headLen * 0.7;
+    var shaftEndX = f.x + Math.cos(angle) * (len - shortenBy);
+    var shaftEndY = f.y + Math.sin(angle) * (len - shortenBy);
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle   = color;
+    ctx.lineWidth   = lineWidth;
+    ctx.lineCap     = "round";
+    ctx.globalAlpha = 0.82;
+
+    ctx.beginPath();
+    ctx.moveTo(f.x, f.y);
+    ctx.lineTo(shaftEndX, shaftEndY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(t.x - headLen * Math.cos(angle - Math.PI / 6),
+               t.y - headLen * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(t.x - headLen * Math.cos(angle + Math.PI / 6),
+               t.y - headLen * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawArrows() {
+    var canvas = document.getElementById("arrow-canvas");
+    if (!canvas) {
+      return;
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+    if (!P.showArrows) {
+      return;
+    }
+    // Draw back-to-front so the green best-move arrow sits on top.
+    if (P.blunderMove && P.blunderMove.length >= 4) {
+      drawArrow(ctx, P.blunderMove.slice(0, 2), P.blunderMove.slice(2, 4),
+                "rgba(220,0,0,0.85)", 7);
+    }
+    if (P.bestMoves.length > 1) {
+      drawArrow(ctx, P.bestMoves[1].slice(0, 2), P.bestMoves[1].slice(2, 4),
+                "rgba(0,100,255,0.75)", 5);
+    }
+    if (P.bestMoves.length > 0) {
+      drawArrow(ctx, P.bestMoves[0].slice(0, 2), P.bestMoves[0].slice(2, 4),
+                "rgba(0,200,0,0.85)", 7);
+    }
+  }
+
+  // ── Board initialisation ──────────────────────────────────────────────────────
+
+  function initBoard() {
+    updateEvalBar();
+
+    game = new Chess(P.fen);
+
+    var config = {
+      position:    P.fen,
+      orientation: P.orientation,
+      pieceTheme:  "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+      draggable:   P.interactive,
+      onDrop: function(source, target) {
+        var move = game.move({ from: source, to: target, promotion: "q" });
+        if (move === null) {
+          return "snapback";
+        }
+        sendMove(source + target);
+      },
+    };
+
+    if (board) {
+      board.destroy();
+    }
+    board = Chessboard("board", config);
+
+    setTimeout(drawArrows, 250);
+
+    if (P.autoplayMove && P.autoplayMove.length >= 4) {
+      var overlay = document.getElementById("sf-overlay");
+      overlay.style.display = "block";
+      setTimeout(function() {
+        var from   = P.autoplayMove.slice(0, 2);
+        var to     = P.autoplayMove.slice(2, 4);
+        var promo  = P.autoplayMove.length === 5 ? P.autoplayMove[4] : "q";
+        var result = game.move({ from: from, to: to, promotion: promo });
+        if (result !== null) {
+          board.position(game.fen(), true);
+        }
+        setTimeout(function() {
+          overlay.style.display = "none";
+        }, 600);
+      }, 400);
+    }
+  }
+
+  // ── Entry point ───────────────────────────────────────────────────────────────
+  // $(document).ready ensures jQuery and chessboard.js are available before init.
+
+  $(document).ready(function() {
+    initBoard();
+  });
+</script>
+
+</body>
+</html>
