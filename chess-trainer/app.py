@@ -83,7 +83,7 @@ def _build_css(dark: bool) -> str:
     shadow_card = ("0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)"
                    if dark else
                    "0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)")
-    settings_bg = "#0e1117" if dark else "#ffffff"
+    settings_bg = "#131820" if dark else "#e8e2d4"
     settings_border = "rgba(226,160,63,0.18)" if dark else "rgba(0,0,0,0.13)"
     settings_shadow = (
         "0 0 0 1px rgba(226,160,63,0.10), "
@@ -420,13 +420,14 @@ div[data-testid="stStatusWidget"] {{
 }}
 .screen-fade {{ animation: fadeIn 0.3s ease; }}
 
-/* ── Setup form card (override Streamlit's flat border) ── */
-/* ── Setup form card (override Streamlit's flat border) ── */
-[data-testid="stApp"] [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stApp"] [data-testid="stVerticalBlockBorderWrapper"] > div,
-[data-testid="stApp"] [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{
-  background-color: {settings_bg} !important;
+/* ── Setup form card ── */
+.st-key-setup_card {{
+  background: {settings_bg} !important;
+  border: 1px solid {settings_border} !important;
   border-radius: 20px !important;
+  padding: 2rem 2.5rem !important;
+  box-shadow: {settings_shadow} !important;
+  margin-bottom: 1.5rem !important;
 }}
 
 /* ── Form section headings ──────────────────────────── */
@@ -599,7 +600,7 @@ def screen_setup() -> None:
 
     default_username: str = st.session_state.get("username", "OrangeMutante")
 
-    with st.container(border=True):
+    with st.container(key="setup_card"):
         st.markdown('<div class="form-section-header">Player</div>', unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
