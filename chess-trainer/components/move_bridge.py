@@ -50,3 +50,8 @@ def read_and_clear_move() -> str | None:
         _move_store["move"] = None
         return move
     return None
+
+
+def clear_pending_move() -> None:
+    """Discard any move currently sitting in the bridge without returning it."""
+    _move_store["move"] = None

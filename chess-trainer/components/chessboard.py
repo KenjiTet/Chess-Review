@@ -1,15 +1,24 @@
 """Interactive chessboard rendered via st.components.v1.html() with HTTP move bridge."""
 
 import json
+import streamlit as st
 import streamlit.components.v1 as components
-from components.move_bridge import start_bridge, read_and_clear_move
+from components.move_bridge import start_bridge, read_and_clear_move, clear_pending_move
+
+
+@st.fragment(run_every=0.5)
+def _poll_bridge_fragment() -> None:
+    """Auto-rerun every 0.5 s; trigger a full app rerun the moment a move arrives."""
+    move = read_and_clear_move()
+    if move:
+        st.session_state["_board_captured_move"] = move
+        st.rerun(scope="app")
 
 
 def render_chess_component(
     fen: str,
     orientation: str,
     best_moves: list[str],
-    blunder_move: str,
     cp_score: int,
     key: str = "chessboard",
     interactive: bool = True,
@@ -24,26 +33,26 @@ def render_chess_component(
     start_bridge()
 
     if not interactive:
-        _render_board_html(fen, orientation, best_moves, blunder_move,
-                           cp_score, show_arrows, autoplay_move, key,
-                           interactive=False)
+        _render_board_html(fen, orientation, best_moves,
+                           cp_score, show_arrows, None, key, interactive=False)
         return None
 
-    # Check for a captured move from the bridge
-    move = read_and_clear_move()
+    # Consume any move that the polling fragment captured on a previous fragment rerun.
+    move: str | None = st.session_state.pop("_board_captured_move", None)
 
-    _render_board_html(fen, orientation, best_moves, blunder_move,
-                       cp_score, show_arrows, autoplay_move, key,
-                       interactive=True)
+    _render_board_html(fen, orientation, best_moves,
+                       cp_score, show_arrows, autoplay_move, key, interactive=True)
 
-    return move if move else None
+    # Polling fragment: auto-reruns every 0.5 s so a drag is noticed within half a second.
+    _poll_bridge_fragment()
+
+    return move
 
 
 def _render_board_html(
     fen: str,
     orientation: str,
     best_moves: list[str],
-    blunder_move: str | None,
     cp_score: int,
     show_arrows: bool,
     autoplay_move: str | None,
@@ -51,7 +60,6 @@ def _render_board_html(
     interactive: bool,
 ) -> None:
     """Build and inject the board HTML into the Streamlit page."""
-    # Compute eval bar values
     capped = max(-500, min(500, cp_score))
     white_pct = max(5, min(95, (capped + 500) / 1000 * 100))
     black_pct = 100 - white_pct
@@ -69,7 +77,6 @@ def _render_board_html(
         "fen": fen,
         "orientation": orientation,
         "bestMoves": best_moves,
-        "blunderMove": blunder_move or "",
         "showArrows": show_arrows,
         "autoplayMove": autoplay_move or "",
         "interactive": interactive,
@@ -86,17 +93,17 @@ def _render_board_html(
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{ background: transparent; overflow: hidden; }}
-.white-1e1d7 {{ background-color: #f0d9b5 !important; }}
-.black-3c85d {{ background-color: #b58863 !important; }}
+.white-1e1d7 {{ background-color: #e8c99a !important; }}
+.black-3c85d {{ background-color: #9c6932 !important; }}
 #wrapper {{ display: flex; flex-direction: row; align-items: flex-start; gap: 6px; padding: 4px; }}
-#eval-bar {{ width: 40px; height: 560px; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid #555; flex-shrink: 0; }}
-#eval-black {{ background: #1a1a1a; height: {black_pct:.1f}%; transition: height 0.4s ease; }}
-#eval-white {{ background: #f0f0f0; flex: 1; }}
+#eval-bar {{ width: 40px; height: 640px; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid #334155; flex-shrink: 0; }}
+#eval-black {{ background: #1d3557; height: {black_pct:.1f}%; transition: height 0.4s ease; }}
+#eval-white {{ background: #f1f5f9; flex: 1; }}
 #eval-label {{ position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: bold; color: {label_color}; pointer-events: none; }}
-#board-container {{ position: relative; width: 560px; height: 560px; }}
-#board {{ width: 560px; }}
+#board-container {{ position: relative; width: 640px; height: 640px; }}
+#board {{ width: 640px; }}
 #arrow-canvas {{ position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }}
-#sf-overlay {{ display: none; position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #fff; font-size: 14px; font-weight: bold; text-align: center; padding: 8px; z-index: 20; border-radius: 0 0 4px 4px; }}
+#sf-overlay {{ display: none; position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.92); color: #f1c46d; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; z-index: 20; border-radius: 0 0 4px 4px; border-top: 1px solid rgba(226,160,63,0.3); letter-spacing: 0.03em; }}
 </style>
 </head>
 <body>
@@ -107,8 +114,8 @@ body {{ background: transparent; overflow: hidden; }}
     <div id="eval-label">{score_text}</div>
   </div>
   <div id="board-container">
-    <div id="board" style="width:560px"></div>
-    <canvas id="arrow-canvas" width="560" height="560"></canvas>
+    <div id="board" style="width:640px"></div>
+    <canvas id="arrow-canvas" width="640" height="640"></canvas>
     <div id="sf-overlay">&#9823; Stockfish is responding...</div>
   </div>
 </div>
@@ -116,7 +123,7 @@ body {{ background: transparent; overflow: hidden; }}
 var P = {params};
 var board = null;
 var game = null;
-var BOARD_SIZE = 560;
+var BOARD_SIZE = 640;
 
 function squareToXY(sq) {{
   var col = sq.charCodeAt(0) - 97;
@@ -133,16 +140,15 @@ function squareToXY(sq) {{
   return {{x: x, y: y}};
 }}
 
-function drawArrow(ctx, from, to, color, width) {{
+function drawArrow(ctx, from, to, color, width, headLen) {{
   var f = squareToXY(from), t = squareToXY(to);
   var dx = t.x - f.x, dy = t.y - f.y;
   var angle = Math.atan2(dy, dx);
-  var headLen = 18;
   var len = Math.sqrt(dx*dx + dy*dy);
   var sx = f.x + Math.cos(angle)*(len - headLen*0.7);
   var sy = f.y + Math.sin(angle)*(len - headLen*0.7);
   ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color;
-  ctx.lineWidth = width; ctx.lineCap = "round"; ctx.globalAlpha = 0.82;
+  ctx.lineWidth = width; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(sx, sy); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(t.x, t.y);
   ctx.lineTo(t.x - headLen*Math.cos(angle-Math.PI/6), t.y - headLen*Math.sin(angle-Math.PI/6));
@@ -155,12 +161,17 @@ function drawArrows() {{
   var ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
   if (!P.showArrows) return;
-  if (P.blunderMove && P.blunderMove.length >= 4)
-    drawArrow(ctx, P.blunderMove.slice(0,2), P.blunderMove.slice(2,4), "rgba(220,0,0,0.85)", 7);
-  if (P.bestMoves.length > 1)
-    drawArrow(ctx, P.bestMoves[1].slice(0,2), P.bestMoves[1].slice(2,4), "rgba(0,100,255,0.75)", 5);
-  if (P.bestMoves.length > 0)
-    drawArrow(ctx, P.bestMoves[0].slice(0,2), P.bestMoves[0].slice(2,4), "rgba(0,200,0,0.85)", 7);
+  var widths   = [20, 16, 12, 9, 6];
+  var alphas   = [0.90, 0.78, 0.65, 0.52, 0.40];
+  var headLens = [36, 32, 26, 22, 18];
+  var limit = Math.min(P.bestMoves.length, 5);
+  for (var i = 0; i < limit; i++) {{
+    var move = P.bestMoves[i];
+    if (move && move.length >= 4) {{
+      var color = "rgba(59,130,246," + alphas[i] + ")";
+      drawArrow(ctx, move.slice(0,2), move.slice(2,4), color, widths[i], headLens[i]);
+    }}
+  }}
 }}
 
 function sendMove(uci) {{
@@ -203,4 +214,4 @@ $(document).ready(function() {{
 </body>
 </html>"""
 
-    components.html(html, height=590, scrolling=False)
+    components.html(html, height=670, scrolling=False)

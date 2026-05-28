@@ -20,9 +20,9 @@ DEPTH: int = 15
 # Losses exceeding the "mistake" bound are classified as blunders.
 THRESHOLDS: dict[str, int] = {
     "best": 10,
-    "good": 25,
-    "inaccuracy": 50,
-    "mistake": 100,
+    "good": 30,
+    "inaccuracy": 100,
+    "mistake": 200,
 }
 
 # Sentinel value passed to score() so mate sequences return a finite centipawn value.
@@ -206,6 +206,139 @@ def get_response_and_eval(fen: str, depth: int = 10) -> tuple[str | None, int]:
         info = engine.analyse(board, chess.engine.Limit(depth=depth))
         cp: int = info["score"].white().score(mate_score=_MATE_SCORE)
         return (sf_move, cp)
+
+    finally:
+        engine.quit()
+
+
+def evaluate_move_quality(fen_before: str, uci_move: str, depth: int = 10) -> tuple[int, str, int]:
+    """Evaluate the quality of a single move against Stockfish's assessment.
+
+    Compares the position eval before and after the move to compute centipawn
+    loss from the mover's perspective.
+
+    Args:
+        fen_before: FEN of the position before the move.
+        uci_move: UCI string of the move (e.g. "e2e4").
+        depth: Stockfish search depth for both evals.
+
+    Returns:
+        Tuple (cp_loss, classification, eval_after_white_pov) where:
+            cp_loss              — centipawns lost by the mover (0 = best possible)
+            classification       — best / good / inaccuracy / mistake / blunder
+            eval_after_white_pov — eval after the move from white's POV (for the eval bar)
+    """
+    board = chess.Board(fen_before)
+
+    if board.is_game_over():
+        return (0, "best", 0)
+
+    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+
+    try:
+        # Eval before from the mover's perspective.
+        info_before = engine.analyse(board, chess.engine.Limit(depth=depth))
+        score_before: int = info_before["score"].relative.score(mate_score=_MATE_SCORE)
+
+        board.push(chess.Move.from_uci(uci_move))
+
+        if board.is_game_over():
+            eval_white: int = _MATE_SCORE if board.result() == "1-0" else -_MATE_SCORE
+            return (0, "best", eval_white)
+
+        # After the move board.turn has flipped to the opponent.
+        # .relative is from the opponent's POV — negate to stay with the mover.
+        info_after = engine.analyse(board, chess.engine.Limit(depth=depth))
+        score_after: int = -info_after["score"].relative.score(mate_score=_MATE_SCORE)
+        eval_white: int = info_after["score"].white().score(mate_score=_MATE_SCORE)
+
+        cp_loss: int = max(0, score_before - score_after)
+        return (cp_loss, classify_move(cp_loss), eval_white)
+
+    finally:
+        engine.quit()
+
+
+def evaluate_position(fen: str, depth: int = 10) -> int:
+    """Return Stockfish evaluation from white's POV for the given position.
+
+    Args:
+        fen: FEN string of the position.
+        depth: Stockfish search depth.
+
+    Returns:
+        Centipawn score from white's perspective (positive = white winning).
+    """
+    board = chess.Board(fen)
+
+    if board.is_game_over():
+        result = board.result()
+        if result == "1-0":
+            return _MATE_SCORE
+        if result == "0-1":
+            return -_MATE_SCORE
+        return 0
+
+    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+
+    try:
+        info = engine.analyse(board, chess.engine.Limit(depth=depth))
+        cp: int = info["score"].white().score(mate_score=_MATE_SCORE)
+        return cp
+    finally:
+        engine.quit()
+
+
+def get_best_moves_for_fen(fen: str, n_best: int = 5, depth: int = 10) -> list[str]:
+    """Return up to n_best quality moves for the given FEN position.
+
+    Runs a MultiPV analysis and filters to moves whose centipawn loss vs the
+    best move is within the "good" threshold (≤ 25 cp). Moves are ordered best
+    first. Returns an empty list if the position is game-over.
+
+    Args:
+        fen: FEN string of the position to analyse.
+        n_best: Maximum number of moves to return (default 5).
+        depth: Stockfish search depth.
+
+    Returns:
+        List of UCI strings for best/good moves only.
+    """
+    board = chess.Board(fen)
+
+    if board.is_game_over():
+        return []
+
+    engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+
+    try:
+        infos = engine.analyse(board, chess.engine.Limit(depth=depth), multipv=n_best)
+
+        if isinstance(infos, dict):
+            infos = [infos]
+
+        moves_with_scores: list[tuple[str, int]] = []
+
+        for info in infos:
+            pv = info.get("pv")
+            score_obj = info.get("score")
+            if pv and score_obj:
+                cp = score_obj.relative.score(mate_score=_MATE_SCORE)
+                if cp is not None:
+                    moves_with_scores.append((pv[0].uci(), cp))
+
+        if not moves_with_scores:
+            return []
+
+        best_score: int = moves_with_scores[0][1]
+        good_moves: list[str] = []
+
+        for uci, cp in moves_with_scores:
+            cp_loss: int = max(0, best_score - cp)
+            if cp_loss <= THRESHOLDS["good"]:
+                good_moves.append(uci)
+
+        return good_moves
 
     finally:
         engine.quit()

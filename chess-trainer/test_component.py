@@ -21,8 +21,7 @@ st.title("Component test")
 move: str | None = render_chess_component(
     fen="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
     orientation="black",
-    best_moves=["e7e5", "c7c5"],
-    blunder_move="d7d5",
+    best_moves=["e7e5", "c7c5", "d7d6"],
     cp_score=-60,
     key="test",
     interactive=True,
