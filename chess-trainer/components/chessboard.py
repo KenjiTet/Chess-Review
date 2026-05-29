@@ -71,7 +71,7 @@ def _render_board_html(
     else:
         score_text = f"{cp_score/100:.1f}"
 
-    label_color = "#fff" if black_pct > 50 else "#000"
+    label_color = "#f0ebe0" if black_pct > 50 else "#2a2520"
 
     params = json.dumps({
         "fen": fen,
@@ -95,13 +95,13 @@ def _render_board_html(
 body {{ background: transparent; overflow: hidden; }}
 .white-1e1d7 {{ background-color: #e8c99a !important; }}
 .black-3c85d {{ background-color: #9c6932 !important; }}
-#wrapper {{ display: flex; flex-direction: row; align-items: flex-start; gap: 6px; padding: 4px; }}
-#eval-bar {{ width: 40px; height: 640px; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid #334155; flex-shrink: 0; }}
-#eval-black {{ background: #1d3557; height: {black_pct:.1f}%; transition: height 0.4s ease; }}
-#eval-white {{ background: #f1f5f9; flex: 1; }}
-#eval-label {{ position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: bold; color: {label_color}; pointer-events: none; }}
-#board-container {{ position: relative; width: 640px; height: 640px; }}
-#board {{ width: 640px; }}
+#wrapper {{ display: flex; flex-direction: row; align-items: flex-start; justify-content: center; gap: 6px; padding: 4px; }}
+#eval-bar {{ width: 28px; height: 560px; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; position: relative; border: 1px solid rgba(0,0,0,0.12); flex-shrink: 0; }}
+#eval-black {{ background: #2a2520; height: {black_pct:.1f}%; transition: height 0.4s ease; }}
+#eval-white {{ background: #f0ebe0; flex: 1; }}
+#eval-label {{ position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: bold; color: {label_color}; pointer-events: none; }}
+#board-container {{ position: relative; width: 560px; height: 560px; }}
+#board {{ width: 560px; }}
 #arrow-canvas {{ position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }}
 #sf-overlay {{ display: none; position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.92); color: #f1c46d; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; z-index: 20; border-radius: 0 0 4px 4px; border-top: 1px solid rgba(226,160,63,0.3); letter-spacing: 0.03em; }}
 </style>
@@ -114,8 +114,8 @@ body {{ background: transparent; overflow: hidden; }}
     <div id="eval-label">{score_text}</div>
   </div>
   <div id="board-container">
-    <div id="board" style="width:640px"></div>
-    <canvas id="arrow-canvas" width="640" height="640"></canvas>
+    <div id="board" style="width:560px"></div>
+    <canvas id="arrow-canvas" width="560" height="560"></canvas>
     <div id="sf-overlay">&#9823; Stockfish is responding...</div>
   </div>
 </div>
@@ -123,7 +123,7 @@ body {{ background: transparent; overflow: hidden; }}
 var P = {params};
 var board = null;
 var game = null;
-var BOARD_SIZE = 640;
+var BOARD_SIZE = 560;
 
 function squareToXY(sq) {{
   var col = sq.charCodeAt(0) - 97;
@@ -161,9 +161,9 @@ function drawArrows() {{
   var ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
   if (!P.showArrows) return;
-  var widths   = [20, 16, 12, 9, 6];
+  var widths   = [18, 14, 11, 8, 6];
   var alphas   = [0.90, 0.78, 0.65, 0.52, 0.40];
-  var headLens = [36, 32, 26, 22, 18];
+  var headLens = [32, 28, 23, 20, 16];
   var limit = Math.min(P.bestMoves.length, 5);
   for (var i = 0; i < limit; i++) {{
     var move = P.bestMoves[i];
@@ -214,4 +214,4 @@ $(document).ready(function() {{
 </body>
 </html>"""
 
-    components.html(html, height=670, scrolling=False)
+    components.html(html, height=582, scrolling=False)

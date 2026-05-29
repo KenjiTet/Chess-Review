@@ -8,6 +8,8 @@ Five screens driven by st.session_state["screen"]:
   summary  → end-of-session statistics
 """
 
+import base64
+from pathlib import Path
 from typing import Any
 
 import chess
@@ -64,6 +66,7 @@ _QUALITY_BG: dict[str, str] = {
 def _build_css(dark: bool) -> str:
     """Return full CSS for the given theme mode."""
     bg          = "#1a1f2e"       if dark else "#f4f0e8"
+    input_bg    = "#2a3146"       if dark else "#ffffff"
     surface     = "#242b3d"       if dark else "#ffffff"
     border      = "#3a4460"       if dark else "rgba(0,0,0,0.1)"
     text        = "#e8e6e0"       if dark else "#1a1612"
@@ -80,9 +83,11 @@ def _build_css(dark: bool) -> str:
     shadow      = ("0 2px 12px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.25)"
                    if dark else
                    "0 2px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)")
-    shadow_card = ("0 16px 48px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)"
+    shadow_card = ("0 8px 40px rgba(0,0,0,0.5)"
                    if dark else
-                   "0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)")
+                   "0 8px 40px rgba(0,0,0,0.10)")
+    trainer_panel_bg     = "rgba(28,35,50,0.92)"         if dark else "rgba(255,255,255,0.90)"
+    trainer_panel_border = "1px solid rgba(255,255,255,0.07)" if dark else "1px solid rgba(0,0,0,0.08)"
     settings_bg = "#131820" if dark else "#e8e2d4"
     settings_border = "rgba(226,160,63,0.18)" if dark else "rgba(0,0,0,0.13)"
     settings_shadow = (
@@ -107,25 +112,69 @@ def _build_css(dark: bool) -> str:
     error_c     = "#ef4444"       if dark else "#dc2626"
     error_s     = "#fca5a5"       if dark else "#991b1b"
 
+    card_bg      = "rgba(30,37,53,0.85)"            if dark else "rgba(255,255,255,0.92)"
+    card_border  = "1px solid rgba(255,255,255,0.07)" if dark else "1px solid rgba(0,0,0,0.08)"
+    overlay      = "rgba(13,17,28,0.74)"             if dark else "rgba(244,240,232,0.62)"
+    slider_track = "rgba(255,255,255,0.12)"          if dark else "rgba(0,0,0,0.12)"
+
+    bg_img_css = ""
+    try:
+        _img_dir = Path(__file__).parent / "images"
+        _img_file = _img_dir / ("bg dark.png" if dark else "bg light.png")
+        if _img_file.exists():
+            with open(_img_file, "rb") as _fh:
+                _b64 = base64.b64encode(_fh.read()).decode()
+            bg_img_css = f"url(data:image/png;base64,{_b64})"
+    except Exception:
+        bg_img_css = ""
+
+    bg_img_rule = f"background-image: {bg_img_css} !important;" if bg_img_css else ""
+
     return f"""
 /* ── Global ─────────────────────────────── */
 #MainMenu {{ visibility: hidden; }}
 footer {{ visibility: hidden; }}
-html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"],
+[data-testid="stAppViewContainer"], [data-testid="stApp"],
 [data-testid="stMain"], [data-testid="stAppViewBlockContainer"] {{
-  background-color: {bg} !important;
+  background-color: transparent !important;
   color: {text} !important;
 }}
 [data-testid="stHeader"] {{
-  background-color: {bg} !important;
-  border-bottom: 1px solid {divider};
+  background-color: transparent !important;
+  border-bottom: none;
 }}
+
+/* ── Background image on body (most reliable root) ── */
+html, body {{
+  background-color: {bg} !important;
+  color: {text} !important;
+  {bg_img_rule}
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: scroll !important;
+  min-height: 100vh !important;
+}}
+
+/* ── Overlay via fixed pseudo-element ────── */
+body::before {{
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: {overlay} !important;
+}}
+
 div.block-container {{
-  padding-top: 3.5rem !important;
-  padding-bottom: 3rem !important;
-  padding-left: 2.5rem !important;
-  padding-right: 2.5rem !important;
-  max-width: 1200px !important;
+  position: relative;
+  z-index: 1;
+  padding-top: 1rem !important;
+  padding-bottom: 2rem !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  max-width: 1100px !important;
+  margin: 0 auto !important;
 }}
 
 /* ── Primary buttons ─────────────────────── */
@@ -188,26 +237,27 @@ div[data-testid="stStatusWidget"] {{
 /* ── Custom components ───────────────────── */
 .chess-hero {{
   text-align: center;
-  padding: 1.5rem 1rem 0.75rem;
+  padding: 0.5rem 1rem 0.35rem;
 }}
 .chess-hero-icon {{
-  font-size: 3.5rem;
+  font-size: 3rem;
   line-height: 1;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   display: block;
-  filter: drop-shadow(0 4px 20px rgba(226,160,63,0.5));
+  filter: drop-shadow(0 0 18px rgba(226,160,63,0.5));
   transition: filter 0.3s ease;
+  color: {gold};
 }}
 .chess-hero-title {{
   font-size: 2.2rem;
   font-weight: 800;
-  background: linear-gradient(135deg, {gold}, {gold_lt});
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.4rem;
+  color: {text};
+  margin-bottom: 0.25rem;
 }}
-.chess-hero-sub {{ color: {muted}; font-size: 1rem; }}
+.chess-hero-title .gold-word {{
+  color: {gold};
+}}
+.chess-hero-sub {{ color: {muted}; font-size: 0.9rem; }}
 
 .chess-card {{
   background: {surface};
@@ -422,24 +472,35 @@ div[data-testid="stStatusWidget"] {{
 
 /* ── Setup form card ── */
 .st-key-setup_card {{
-  background: {settings_bg} !important;
-  border: 1px solid {settings_border} !important;
-  border-radius: 20px !important;
-  padding: 2rem 2.5rem !important;
-  box-shadow: {settings_shadow} !important;
-  margin-bottom: 1.5rem !important;
+  background: {card_bg} !important;
+  border: {card_border} !important;
+  border-radius: 24px !important;
+  padding: 1.25rem 1.75rem !important;
+  box-shadow: {shadow_card} !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  margin-bottom: 0.75rem !important;
+  max-width: 700px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }}
 
 /* ── Form section headings ──────────────────────────── */
 .form-section-header {{
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: {muted};
-  margin: 1.5rem 0 0.6rem;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid {divider};
+  color: {hdr_color};
+  margin: 0.75rem 0 0.4rem;
+  padding-bottom: 0.35rem;
+}}
+.form-section-header .hdr-icon {{
+  color: {gold};
+  font-size: 0.9rem;
 }}
 
 /* ── Settings summary chips (loading screen) ─────────── */
@@ -461,6 +522,119 @@ div[data-testid="stStatusWidget"] {{
   font-size: 0.83rem;
   color: {text};
   font-weight: 500;
+}}
+
+/* ── Input fields ────────────────────────── */
+[data-testid="stTextInput"] input {{
+  background: {input_bg} !important;
+  border: 1px solid {border} !important;
+  border-radius: 10px !important;
+  color: {text} !important;
+}}
+[data-testid="stSelectbox"] > div {{
+  background: {input_bg} !important;
+  border: 1px solid {border} !important;
+  border-radius: 10px !important;
+}}
+
+/* ── Slider track ────────────────────────── */
+div[data-testid="stSlider"] > div > div > div {{
+  background: {slider_track} !important;
+}}
+
+/* ── Widget labels (sliders, inputs) ────── */
+[data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] p {{
+  color: {text} !important;
+}}
+
+/* ── Slider tick labels ──────────────────── */
+.slider-ticks {{
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-top: -0.4rem;
+  margin-bottom: 0.5rem;
+}}
+.slider-ticks span {{
+  color: {muted};
+  font-size: 0.72rem;
+}}
+
+/* ── Footer tagline ──────────────────────── */
+.footer-tagline {{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}}
+.footer-tagline span {{ color: {muted}; font-size: 0.82rem; }}
+.footer-tagline .sep {{ color: {divider}; }}
+
+/* ── Theme toggle (fixed circle, bottom-right) ────────────────────────── */
+.st-key-_theme_toggle {{
+  position: fixed !important;
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+  z-index: 9999 !important;
+  width: auto !important;
+}}
+.st-key-_theme_toggle button {{
+  width: 2.6rem !important;
+  height: 2.6rem !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
+  min-height: unset !important;
+  border: 1px solid {border} !important;
+  background: {surface} !important;
+  color: {text} !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+}}
+
+/* ── Primary button padding (setup CTA) ───── */
+[data-testid="stButton"] button[kind="primary"] {{
+  padding-top: 0.7rem !important;
+  padding-bottom: 0.7rem !important;
+  font-size: 1.05rem !important;
+  border-radius: 14px !important;
+}}
+
+/* ── Trainer sidebar panel ───────────────── */
+.st-key-trainer_panel {{
+  background: {trainer_panel_bg} !important;
+  border: {trainer_panel_border} !important;
+  border-radius: 12px !important;
+  padding: 0.6rem 0.55rem !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: {shadow} !important;
+  font-size: 0.75rem !important;
+}}
+.st-key-trainer_panel .panel-header {{
+  font-size: 0.6rem !important;
+  margin: 0.5rem 0 0.3rem !important;
+  padding-bottom: 0.25rem !important;
+}}
+.st-key-trainer_panel button {{
+  padding-top: 0.18rem !important;
+  padding-bottom: 0.18rem !important;
+  font-size: 0.74rem !important;
+  min-height: unset !important;
+  line-height: 1.3 !important;
+  border-radius: 7px !important;
+}}
+.st-key-trainer_panel [data-testid="stWidgetLabel"] p {{
+  font-size: 0.72rem !important;
+  color: {muted} !important;
+}}
+/* icon-only nav buttons */
+.st-key-hdr_menu_btn button,
+.st-key-hdr_mode_btn button {{
+  font-size: 1rem !important;
+  padding: 0.2rem 0 !important;
+  letter-spacing: 0 !important;
 }}
 """
 
@@ -587,7 +761,7 @@ def screen_setup() -> None:
     st.markdown("""
     <div class="chess-hero screen-fade">
       <span class="chess-hero-icon">♚</span>
-      <div class="chess-hero-title">Chess Blunder Trainer</div>
+      <div class="chess-hero-title">Chess <span class="gold-word">Blunder</span> Trainer</div>
       <div class="chess-hero-sub">Sharpen your tactics — one blunder at a time</div>
     </div>
     """, unsafe_allow_html=True)
@@ -601,26 +775,50 @@ def screen_setup() -> None:
     default_username: str = st.session_state.get("username", "OrangeMutante")
 
     with st.container(key="setup_card"):
-        st.markdown('<div class="form-section-header">Player</div>', unsafe_allow_html=True)
-
         col1, col2 = st.columns(2)
 
         with col1:
-            username: str = st.text_input("Chess.com username", value=default_username, disabled=setup_loading)
+            st.markdown(
+                '<div class="form-section-header"><span class="hdr-icon">♟</span> Player</div>',
+                unsafe_allow_html=True,
+            )
+            username: str = st.text_input("Chess.com username", value=default_username, disabled=setup_loading, label_visibility="collapsed")
 
         with col2:
-            time_class: str = st.selectbox("Time control", ["rapid", "blitz", "bullet", "daily"], disabled=setup_loading)
+            st.markdown(
+                '<div class="form-section-header"><span class="hdr-icon">⏱</span> Time Control</div>',
+                unsafe_allow_html=True,
+            )
+            time_class: str = st.selectbox(
+                "Time control",
+                ["rapid", "blitz", "bullet", "daily"],
+                disabled=setup_loading,
+                label_visibility="collapsed",
+            )
 
-        st.markdown('<div class="form-section-header">Analysis</div>', unsafe_allow_html=True)
-        n_games: int = st.slider("Number of games to analyse", min_value=1, max_value=20, value=5, disabled=setup_loading)
+        st.markdown(
+            '<div class="form-section-header"><span class="hdr-icon">◈</span> Analysis</div>',
+            unsafe_allow_html=True,
+        )
+
+        n_games: int = st.slider("Number of games to analyse", min_value=1, max_value=50, value=5, disabled=setup_loading)
+        st.markdown(
+            '<div class="slider-ticks"><span>1</span><span>25</span><span>50</span></div>',
+            unsafe_allow_html=True,
+        )
+
         threshold: int = st.slider(
             "Blunder threshold (centipawn loss)",
-            min_value=50,
-            max_value=300,
+            min_value=25,
+            max_value=500,
             value=100,
             step=25,
             help="Moves with cp loss above this value are shown as blunders",
             disabled=setup_loading,
+        )
+        st.markdown(
+            '<div class="slider-ticks"><span>25</span><span>100</span><span>500</span></div>',
+            unsafe_allow_html=True,
         )
 
         _cache = load_cache()
@@ -629,7 +827,7 @@ def screen_setup() -> None:
             st.markdown(
                 f'<div style="margin-top:0.75rem">'
                 f'<span class="cache-pill">'
-                f'💾 {_stats["total_games"]} games cached'
+                f'◎ {_stats["total_games"]} games cached'
                 f' &nbsp;·&nbsp; {_stats["total_size_kb"]:.1f} KB'
                 f' &nbsp;·&nbsp; last analysed {_stats["newest_entry"][:10]}'
                 f'</span></div>',
@@ -637,16 +835,17 @@ def screen_setup() -> None:
             )
 
     if not setup_loading:
-        st.markdown('<div style="height:0.75rem"></div>', unsafe_allow_html=True)
-        _, col_btn, _ = st.columns([1, 2, 1])
+        st.markdown('<div style="height:0.25rem"></div>', unsafe_allow_html=True)
+        _, col_btn, _ = st.columns([1, 3, 1])
         with col_btn:
-            if st.button("Start Training →", type="primary", use_container_width=True):
+            if st.button("Start Training", type="primary", use_container_width=True):
                 st.session_state["username"] = username
                 st.session_state["time_class"] = time_class
                 st.session_state["n_games"] = n_games
                 st.session_state["threshold"] = threshold
                 st.session_state["setup_loading"] = True
                 st.rerun()
+
 
     if setup_loading:
         _do_setup_loading(loading_slot)
@@ -814,7 +1013,7 @@ def screen_trainer(dark: bool) -> None:
     cp_display: str = _cap_cp_loss(blunder["cp_loss"])
     st.markdown(
         f'<div class="blunder-alert">'
-        f'<span class="blunder-alert-icon">⚠️</span>'
+        f'<span class="blunder-alert-icon">▲</span>'
         f'<span class="blunder-alert-text">'
         f'In this game you played <strong>{blunder["move_san"]}</strong> — '
         f'a blunder (cp loss: {cp_display}). '
@@ -824,62 +1023,52 @@ def screen_trainer(dark: bool) -> None:
         unsafe_allow_html=True,
     )
 
-    col_board, col_buttons = st.columns([4, 1])
+    col_board, col_buttons = st.columns([5, 1.2])
 
     with col_buttons:
-        # Navigation controls at the top of the sidebar
-        st.markdown('<div class="panel-header">Navigation</div>', unsafe_allow_html=True)
-        c_menu, c_mode = st.columns(2)
-        with c_menu:
-            if st.button("← Menu", use_container_width=True, key="hdr_menu_btn"):
-                _go_setup(keep_username=True)
-        with c_mode:
-            mode_label: str = "Analysis" if bot_mode else "vs Bot"
-            if st.button(mode_label, use_container_width=True, key="hdr_mode_btn"):
-                st.session_state["bot_mode"] = not bot_mode
+        with st.container(key="trainer_panel"):
+            # Navigation controls at the top of the sidebar
+            st.markdown('<div class="panel-header">Navigation</div>', unsafe_allow_html=True)
+            c_menu, c_mode = st.columns(2)
+            with c_menu:
+                if st.button("⌂", use_container_width=True, key="hdr_menu_btn", help="Back to menu"):
+                    _go_setup(keep_username=True)
+            with c_mode:
+                mode_icon: str = "◈" if bot_mode else "♟"
+                mode_help: str = "Switch to analysis" if bot_mode else "Play vs bot"
+                if st.button(mode_icon, use_container_width=True, key="hdr_mode_btn", help=mode_help):
+                    st.session_state["bot_mode"] = not bot_mode
+                    st.rerun()
+
+            # Move log — analysis mode only
+            if not bot_mode:
+                move_log: list[dict] = st.session_state.get(move_log_key, [])
+                st.markdown(_render_move_log_html(move_log, dark), unsafe_allow_html=True)
+                st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
+
+            st.markdown('<div class="panel-header">Options</div>', unsafe_allow_html=True)
+            arrow_label: str = "Hide Arrows" if show_arrows else "Show Arrows"
+            if st.button(arrow_label, use_container_width=True):
+                st.session_state["show_arrows"] = not show_arrows
                 st.rerun()
 
-        sf_depth: int = st.slider(
-            "Depth",
-            min_value=5,
-            max_value=20,
-            value=10,
-            step=1,
-            key="sf_response_depth",
-            help="Stockfish search depth — 10 is fast, 15 matches game analysis",
-        )
+            if st.button("Reset Position", use_container_width=True):
+                _clean_trainer_state(current, comp_idx)
+                st.rerun()
 
-        st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
-
-        # Move log — analysis mode only
-        if not bot_mode:
-            move_log: list[dict] = st.session_state.get(move_log_key, [])
-            st.markdown(_render_move_log_html(move_log, dark), unsafe_allow_html=True)
             st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
 
-        st.markdown('<div class="panel-header">Options</div>', unsafe_allow_html=True)
-        arrow_label: str = "Hide Arrows" if show_arrows else "Show Arrows"
-        if st.button(arrow_label, use_container_width=True):
-            st.session_state["show_arrows"] = not show_arrows
-            st.rerun()
-
-        if st.button("Reset Position", use_container_width=True):
-            _clean_trainer_state(current, comp_idx)
-            st.rerun()
-
-        st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
-
-        st.markdown('<div class="panel-header">Actions</div>', unsafe_allow_html=True)
-        if first_move is None:
-            if st.button("Skip →", use_container_width=True):
-                session["current_position"] += 1
-                _clean_trainer_state(current, comp_idx)
-                st.rerun()
-        else:
-            if st.button("Next →", type="primary", use_container_width=True):
-                submit_attempt(session, first_move)
-                _clean_trainer_state(current, comp_idx)
-                st.rerun()
+            st.markdown('<div class="panel-header">Actions</div>', unsafe_allow_html=True)
+            if first_move is None:
+                if st.button("Skip →", use_container_width=True):
+                    session["current_position"] += 1
+                    _clean_trainer_state(current, comp_idx)
+                    st.rerun()
+            else:
+                if st.button("Next →", type="primary", use_container_width=True):
+                    submit_attempt(session, first_move)
+                    _clean_trainer_state(current, comp_idx)
+                    st.rerun()
 
     # Hide arrows during bot-move animation to avoid stale arrow positions.
     in_bot_animation: bool = bot_mode and pending_sf is not None
@@ -898,6 +1087,7 @@ def screen_trainer(dark: bool) -> None:
         )
 
     pending_eval: dict | None = st.session_state.get(pending_eval_key)
+    sf_depth = 10
     if pending_eval and not bot_mode:
         cp_loss, classification, eval_white = evaluate_move_quality(
             pending_eval["fen_before"], pending_eval["uci"], depth=sf_depth
@@ -1171,13 +1361,11 @@ def main() -> None:
     if "screen" not in st.session_state:
         st.session_state["screen"] = "setup"
 
-    # Theme toggle — top-right pill button
-    _, tcol = st.columns([22, 2])
-    with tcol:
-        toggle_label: str = "☀️ Light" if dark_mode else "🌙 Dark"
-        if st.button(toggle_label, key="_theme_toggle", use_container_width=True):
-            st.session_state["dark_mode"] = not dark_mode
-            st.rerun()
+    # Theme toggle — fixed circle button (bottom-right via CSS)
+    toggle_label: str = "☼" if dark_mode else "☾"
+    if st.button(toggle_label, key="_theme_toggle"):
+        st.session_state["dark_mode"] = not dark_mode
+        st.rerun()
 
     screen: str = st.session_state["screen"]
 
