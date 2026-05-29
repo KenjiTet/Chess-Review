@@ -887,7 +887,8 @@ def _trainer_state_keys(current: int) -> tuple[str, str, str, str]:
 def _clean_trainer_state(current: int, comp_idx: int) -> None:
     """Remove all per-blunder state for the given position."""
     fen_key, eval_key, first_move_key, comp_idx_key = _trainer_state_keys(current)
-    for k in (fen_key, eval_key, first_move_key, comp_idx_key):
+    last_move_key: str = f"trainer_last_move_{current}"
+    for k in (fen_key, eval_key, first_move_key, comp_idx_key, last_move_key):
         st.session_state.pop(k, None)
     st.session_state.pop(f"move_input_trainer_{current}_{comp_idx}", None)
     st.session_state.pop(f"trainer_pending_sf_{current}", None)
@@ -951,29 +952,41 @@ def screen_trainer(dark: bool) -> None:
     pending_eval_key: str = f"trainer_pending_eval_{current}"
     move_log_key: str     = f"trainer_move_log_{current}"
     arrow_moves_key: str  = f"trainer_arrow_moves_{current}"
+    last_move_key: str    = f"trainer_last_move_{current}"
 
     bot_mode: bool = st.session_state.get("bot_mode", False)
 
-    if fen_key not in st.session_state:
+    is_first_render: bool = fen_key not in st.session_state
+    if is_first_render:
         initial_cp: int = evaluate_position(blunder["fen_before"])
-        st.session_state[fen_key]         = blunder["fen_before"]
-        st.session_state[eval_key]        = initial_cp
-        st.session_state[first_move_key]  = None
-        st.session_state[comp_idx_key]    = 0
-        st.session_state[arrow_moves_key] = blunder["best_moves"]
+        st.session_state[fen_key]          = blunder["fen_before"]
+        st.session_state[eval_key]         = initial_cp
+        st.session_state[first_move_key]   = None
+        st.session_state[comp_idx_key]     = 0
+        st.session_state[arrow_moves_key]  = blunder["best_moves"]
+        # Seed last_move_key with the opponent's move so subsequent renders
+        # keep the source-square highlight even after the intro animation is gone.
+        st.session_state[last_move_key] = blunder.get("prev_move_uci")
 
     current_fen: str       = st.session_state[fen_key]
     current_eval: int      = st.session_state[eval_key]
     comp_idx: int          = st.session_state[comp_idx_key]
     first_move: str | None = st.session_state[first_move_key]
     show_arrows: bool = st.session_state.get("show_arrows", False)
+    last_move_uci: str | None = st.session_state.get(last_move_key)
+
+    # Intro params: only pass on first render so the animation fires exactly once.
+    intro_move: str | None = blunder.get("prev_move_uci") if is_first_render else None
+    intro_fen: str | None  = blunder.get("prev_fen")      if is_first_render else None
 
     pending_sf: str | None = st.session_state.get(pending_sf_key)
     if pending_sf:
         board_tmp = chess.Board(current_fen)
         board_tmp.push(chess.Move.from_uci(pending_sf))
         st.session_state.pop(pending_sf_key, None)
-        st.session_state[fen_key] = board_tmp.fen()
+        st.session_state[fen_key]       = board_tmp.fen()
+        # Record bot's move as the last played so its source square gets highlighted.
+        st.session_state[last_move_key] = pending_sf
 
     # ── Header row: branding only ─────────────────────────────────────────────────
     muted_hdr: str    = "#8a96aa" if dark else "#7a6e5e"
@@ -1084,6 +1097,9 @@ def screen_trainer(dark: bool) -> None:
             interactive=True,
             show_arrows=show_now,
             autoplay_move=pending_sf if bot_mode else None,
+            last_move_uci=last_move_uci,
+            intro_move=intro_move,
+            intro_fen=intro_fen,
         )
 
     pending_eval: dict | None = st.session_state.get(pending_eval_key)
@@ -1138,6 +1154,7 @@ def screen_trainer(dark: bool) -> None:
             st.session_state[fen_key]         = fen_after_user
             st.session_state[eval_key]        = new_eval
             st.session_state[pending_sf_key]  = sf_move
+            st.session_state[last_move_key]   = user_move
             st.session_state.pop(f"move_input_trainer_{current}_{comp_idx}", None)
             st.session_state[comp_idx_key]    = comp_idx + 1
             st.rerun()
@@ -1150,13 +1167,14 @@ def screen_trainer(dark: bool) -> None:
                 "classification": None,
                 "fen_before": current_fen,
             })
-            st.session_state[move_log_key]    = log
+            st.session_state[move_log_key]     = log
             st.session_state[pending_eval_key] = {
                 "uci": user_move,
                 "san": san,
                 "fen_before": current_fen,
             }
             st.session_state[fen_key]       = fen_after_user
+            st.session_state[last_move_key] = user_move
             st.session_state.pop(f"move_input_trainer_{current}_{comp_idx}", None)
             st.session_state[comp_idx_key]  = comp_idx + 1
             st.rerun()

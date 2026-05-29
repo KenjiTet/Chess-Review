@@ -24,24 +24,40 @@ def render_chess_component(
     interactive: bool = True,
     show_arrows: bool = False,
     autoplay_move: str | None = None,
+    last_move_uci: str | None = None,
+    intro_move: str | None = None,
+    intro_fen: str | None = None,
 ) -> str | None:
     """Render an interactive chessboard.
 
     When interactive=True, returns the UCI move string once the user drags a
     piece; returns None until then. When interactive=False, always returns None.
+
+    intro_move / intro_fen: when set on the first render of a new position,
+    the board snaps to intro_fen and then animates to fen after 500 ms so the
+    opponent's last move plays out visually before the user can interact.
+    last_move_uci: UCI of the last move played — its source square is highlighted.
     """
     start_bridge()
 
     if not interactive:
-        _render_board_html(fen, orientation, best_moves,
-                           cp_score, show_arrows, None, key, interactive=False)
+        _render_board_html(
+            fen, orientation, best_moves, cp_score, show_arrows,
+            None, key, interactive=False,
+            last_move_uci=last_move_uci,
+        )
         return None
 
     # Consume any move that the polling fragment captured on a previous fragment rerun.
     move: str | None = st.session_state.pop("_board_captured_move", None)
 
-    _render_board_html(fen, orientation, best_moves,
-                       cp_score, show_arrows, autoplay_move, key, interactive=True)
+    _render_board_html(
+        fen, orientation, best_moves, cp_score, show_arrows,
+        autoplay_move, key, interactive=True,
+        last_move_uci=last_move_uci,
+        intro_move=intro_move,
+        intro_fen=intro_fen,
+    )
 
     # Polling fragment: auto-reruns every 0.5 s so a drag is noticed within half a second.
     _poll_bridge_fragment()
@@ -58,6 +74,9 @@ def _render_board_html(
     autoplay_move: str | None,
     key: str,
     interactive: bool,
+    last_move_uci: str | None = None,
+    intro_move: str | None = None,
+    intro_fen: str | None = None,
 ) -> None:
     """Build and inject the board HTML into the Streamlit page."""
     capped = max(-500, min(500, cp_score))
@@ -80,6 +99,9 @@ def _render_board_html(
         "showArrows": show_arrows,
         "autoplayMove": autoplay_move or "",
         "interactive": interactive,
+        "lastMoveUci": last_move_uci or "",
+        "introMove": intro_move or "",
+        "introFen": intro_fen or "",
     })
 
     html = f"""<!DOCTYPE html>
@@ -104,6 +126,8 @@ body {{ background: transparent; overflow: hidden; }}
 #board {{ width: 560px; }}
 #arrow-canvas {{ position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }}
 #sf-overlay {{ display: none; position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.92); color: #f1c46d; font-size: 13px; font-weight: 700; text-align: center; padding: 8px; z-index: 20; border-radius: 0 0 4px 4px; border-top: 1px solid rgba(226,160,63,0.3); letter-spacing: 0.03em; }}
+/* Yellow glow on the source square of the last played move */
+.highlight-source {{ background: rgba(255, 210, 0, 0.50) !important; box-shadow: inset 0 0 16px 5px rgba(255, 210, 0, 0.55) !important; }}
 </style>
 </head>
 <body>
@@ -124,6 +148,19 @@ var P = {params};
 var board = null;
 var game = null;
 var BOARD_SIZE = 560;
+// Blocks user drags during the intro animation window.
+var introPlaying = false;
+
+function highlightSourceSquare(sq) {{
+  document.querySelectorAll('.highlight-source').forEach(function(el) {{
+    el.classList.remove('highlight-source');
+  }});
+  if (!sq) return;
+  var el = document.querySelector('[data-square="' + sq + '"]');
+  if (el) {{
+    el.classList.add('highlight-source');
+  }}
+}}
 
 function squareToXY(sq) {{
   var col = sq.charCodeAt(0) - 97;
@@ -184,30 +221,63 @@ function sendMove(uci) {{
 
 $(document).ready(function() {{
   game = new Chess(P.fen);
+
+  // When intro is active, start board at introFen so the animation begins
+  // from the correct position and there is no flash of the blunder position.
+  var startPos = (P.introMove && P.introFen) ? P.introFen : P.fen;
+
   var config = {{
-    position: P.fen,
+    position: startPos,
     orientation: P.orientation,
     pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{{piece}}.png",
     draggable: P.interactive,
     onDrop: function(source, target) {{
+      if (introPlaying) return "snapback";
       var move = game.move({{from: source, to: target, promotion: "q"}});
       if (move === null) return "snapback";
+      highlightSourceSquare(source);
       sendMove(source + target);
     }}
   }};
   board = Chessboard("board", config);
   setTimeout(drawArrows, 250);
 
+  // Static source-square highlight — shown only when no intro animation is pending.
+  if (P.lastMoveUci && P.lastMoveUci.length >= 4 && !P.introMove) {{
+    setTimeout(function() {{
+      highlightSourceSquare(P.lastMoveUci.slice(0, 2));
+    }}, 80);
+  }}
+
+  // Bot autoplay (Stockfish response in bot mode).
   if (P.autoplayMove && P.autoplayMove.length >= 4) {{
     var overlay = document.getElementById("sf-overlay");
     overlay.style.display = "block";
     setTimeout(function() {{
-      var from = P.autoplayMove.slice(0,2);
-      var to = P.autoplayMove.slice(2,4);
+      var from = P.autoplayMove.slice(0, 2);
+      var to   = P.autoplayMove.slice(2, 4);
       var result = game.move({{from: from, to: to, promotion: "q"}});
-      if (result) board.position(game.fen(), true);
+      if (result) {{
+        board.position(game.fen(), true);
+        highlightSourceSquare(from);
+      }}
       setTimeout(function() {{ overlay.style.display = "none"; }}, 600);
     }}, 400);
+  }}
+
+  // Intro animation: replay the opponent's last move before the blunder.
+  // The board was initialised at introFen; after the delay it animates to fen.
+  if (P.introMove && P.introMove.length >= 4 && P.introFen) {{
+    introPlaying = true;
+    var introFrom = P.introMove.slice(0, 2);
+    setTimeout(function() {{
+      board.position(P.fen, true);
+      // Highlight source once the piece animation completes (~200 ms).
+      setTimeout(function() {{
+        highlightSourceSquare(introFrom);
+        introPlaying = false;
+      }}, 250);
+    }}, 500);
   }}
 }});
 </script>

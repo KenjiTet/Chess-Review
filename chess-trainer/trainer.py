@@ -80,6 +80,10 @@ def build_session(
 
             best_moves: list[str] = best_moves_per_blunder[idx_str]
 
+            # Previous position/move so the UI can replay the opponent's last move.
+            prev_fen: str | None = fens[move_index - 1] if move_index > 0 else None
+            prev_move_uci: str | None = uci_moves[move_index - 1] if move_index > 0 else None
+
             all_blunders.append({
                 "game_index": game_index,
                 "move_index": move_index,
@@ -91,6 +95,8 @@ def build_session(
                 "fen_before": fen_before,
                 "uci_played": uci_played,
                 "best_moves": best_moves,
+                "prev_fen": prev_fen,
+                "prev_move_uci": prev_move_uci,
             })
 
         if cache_needs_update:
