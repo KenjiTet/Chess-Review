@@ -16,7 +16,7 @@ from models import (
     SkipRequest,
     SummaryResponse,
 )
-from services.cache import get_cached_game, is_cached, load_cache, store_game
+from services.cache import get_cached_game, is_cached, store_game
 from services.chess_com import get_game_by_url, get_recent_games
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
 from services.trainer import build_session, get_current_blunder, get_summary, submit_attempt
@@ -63,7 +63,8 @@ def _build_stream_generator(
         game_count: int = len(games)
         yield _sse({"status": f"Found {game_count} game(s). Analysing...", "pct": 10})
 
-        cache: dict = load_cache()
+        # cache stub: functions use SQLite directly and ignore this arg.
+        cache: dict = {}
         all_blunders: list[dict] = []
 
         for i, game in enumerate(games):

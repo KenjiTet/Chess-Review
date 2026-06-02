@@ -1,6 +1,6 @@
 # Chess Blunder Trainer — Complete Technical Documentation
 
-**Project name:** Recall  
+**Project name:** Chess Review  
 **Stack:** Python 3 / FastAPI (backend) + React 19 / TypeScript / Vite (frontend)  
 **Purpose:** Fetch a player's Chess.com games, analyse them with Stockfish, and turn each blunder into an interactive training position.
 
@@ -61,10 +61,14 @@ Chess Review v2/
     ├── vite.config.ts                 # Vite config + /api proxy to :8000
     ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
     ├── package.json                   # npm scripts and dependencies
+    ├── public/
+    │   ├── favicon.svg                # App favicon
+    │   └── icons.svg                  # Shared icon sprite
     └── src/
         ├── main.tsx                   # ReactDOM.createRoot entry
         ├── App.tsx                    # Screen router (login/setup/loading/trainer)
         ├── App.css / index.css        # Global styles + CSS variables
+        ├── TimeClassIcons.tsx         # SVG icon map for chess time classes
         ├── api/
         │   └── client.ts              # Typed fetch wrapper for every endpoint
         ├── hooks/
@@ -89,8 +93,10 @@ Chess Review v2/
         │   ├── GameHistory/GameHistory.tsx|css
         │   ├── PlayerBanner/PlayerBanner.tsx|css
         │   └── ErrorBanner/ErrorBanner.tsx|css
+        ├── sounds/
+        │   └── Move.mp3               # Move sound effect audio file
         ├── utils/
-        │   ├── sounds.ts              # Audio feedback on moves
+        │   ├── sounds.ts              # Audio feedback on moves (imports Move.mp3)
         │   └── generateBoardImage.ts  # Canvas PNG export for saved positions
         └── assets/
             ├── bg-dark.png / bg-light.png

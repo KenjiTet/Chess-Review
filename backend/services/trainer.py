@@ -5,7 +5,7 @@ between functions — no global mutable state.
 """
 
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
-from services.cache import get_cached_game, is_cached, load_cache, store_game
+from services.cache import get_cached_game, is_cached, store_game
 
 
 def build_session(username: str, time_class: str, games: list[dict], threshold: int) -> dict:
@@ -28,8 +28,8 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
             username, time_class, games, all_blunders,
             current_position (int), attempts (list).
     """
-    # Load the cache once; all per-game reads and writes reuse this dict.
-    cache: dict = load_cache()
+    # cache argument is a no-op stub kept for interface compatibility; SQLite is used directly.
+    cache: dict = {}
     all_blunders: list[dict] = []
 
     for game_index, game in enumerate(games):

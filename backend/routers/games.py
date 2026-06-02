@@ -6,7 +6,7 @@ import requests as req_lib
 from fastapi import APIRouter, HTTPException
 
 from models import GameAnalysisResult, GameHistoryEntry
-from services.cache import get_cached_game, load_cache, store_game
+from services.cache import get_cached_game, is_cached, store_game
 from services.chess_com import get_game_by_url, get_recent_games, get_recent_games_all
 from services.stockfish import DEPTH, analyze_game, find_blunders, get_board_snapshots
 
@@ -48,10 +48,10 @@ def _blunder_data_from_cache(cache: dict, game_url: str, threshold: int) -> tupl
 
     Returns (None, None, None) if the game is not in cache.
     """
-    if game_url not in cache:
+    if not is_cached(cache, game_url, DEPTH):
         return None, None, None
 
-    entry: dict = cache[game_url]
+    entry: dict = get_cached_game(cache, game_url)
     move_data: list[dict] = entry.get("move_data", [])
     fens: list[str] = entry.get("fens", [])
 
@@ -130,7 +130,8 @@ def game_history(
         raise HTTPException(status_code=502, detail=f"Chess.com API error: {exc}")
 
     paginated: list[dict] = games[offset:offset + n]
-    cache: dict = load_cache()
+    # cache stub: functions use SQLite directly and ignore this arg.
+    cache: dict = {}
     entries: list[GameHistoryEntry] = []
 
     for game in paginated:
@@ -189,10 +190,11 @@ def analyze_game_history(
         404 if the game is not found on Chess.com.
         502 on Chess.com network errors.
     """
-    cache: dict = load_cache()
+    # cache stub: functions use SQLite directly and ignore this arg.
+    cache: dict = {}
 
     # Fast path: return cached blunder data immediately.
-    if not is_guest and game_url in cache:
+    if not is_guest and is_cached(cache, game_url, DEPTH):
         blunder_count, first_fen, first_color = _blunder_data_from_cache(cache, game_url, threshold)
         return GameAnalysisResult(
             blunder_count=blunder_count or 0,

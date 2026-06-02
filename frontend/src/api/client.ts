@@ -5,7 +5,9 @@
  */
 
 // Empty base — /api/* calls are proxied to the backend by Vite (dev) or the host (prod).
-const BASE_URL = '';
+// Empty string = same-origin (works in both local dev via Vite proxy and production via FastAPI static serving).
+// Set VITE_API_BASE_URL if the backend is ever split onto a separate domain.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

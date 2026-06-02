@@ -1,64 +1,66 @@
-"""Disk-backed JSON cache for Stockfish analysis results — port of chess-trainer/cache.py.
+"""SQLite-backed cache for Stockfish analysis results.
 
 Games are keyed by Chess.com URL so they are never re-analysed.
-Cache file is stored at recall/backend/cache/analysis_cache.json.
+Each function opens its own connection — no in-memory dict is passed around.
 """
 
 import json
 import os
 from datetime import datetime, timezone
 
-# One level up from services/ so cache lands at recall/backend/cache/
-_CACHE_DIR: str = os.path.join(os.path.dirname(__file__), "..", "cache")
-_CACHE_FILE: str = os.path.join(_CACHE_DIR, "analysis_cache.json")
+from services.db import get_connection
 
-
+# Kept for backward-compat with any callers that still import these names.
 def load_cache() -> dict:
-    """Load the full cache dict from disk.
-
-    Returns an empty dict if the file does not exist or contains invalid JSON.
-    """
-    try:
-        with open(_CACHE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    """No-op stub — cache now lives in SQLite. Returns empty dict."""
+    return {}
 
 
 def save_cache(cache: dict) -> None:
-    """Write the cache dict to disk as formatted JSON.
-
-    Creates the cache/ directory if it does not already exist.
-
-    Args:
-        cache: Full cache dict to persist.
-    """
-    os.makedirs(_CACHE_DIR, exist_ok=True)
-    with open(_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(cache, f, indent=2, ensure_ascii=False)
+    """No-op stub — cache now lives in SQLite."""
+    pass
 
 
 def is_cached(cache: dict, game_url: str, depth: int) -> bool:
-    """Return True if the game is in cache and was analysed at the given depth.
+    """Return True if the game is in SQLite and was analysed at the given depth.
 
     Args:
-        cache: In-memory cache dict from load_cache().
+        cache: Ignored (kept for interface compatibility).
         game_url: Chess.com game URL (unique identifier).
         depth: Stockfish search depth; entries at a different depth are stale.
     """
-    if game_url not in cache:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT depth FROM game_cache WHERE url = ?", (game_url,)
+        ).fetchone()
+
+    if row is None:
         return False
-    return cache[game_url].get("depth") == depth
+
+    return row["depth"] == depth
 
 
 def get_cached_game(cache: dict, game_url: str) -> dict:
-    """Return the cached entry for a game URL.
+    """Return the cached entry for a game URL, deserialising JSON columns.
 
     Args:
-        cache: In-memory cache dict from load_cache().
+        cache: Ignored (kept for interface compatibility).
         game_url: Chess.com game URL.
     """
-    return cache[game_url]
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM game_cache WHERE url = ?", (game_url,)
+        ).fetchone()
+
+    return {
+        "pgn": row["pgn"],
+        "move_data": json.loads(row["move_data"]),
+        "fens": json.loads(row["fens"]),
+        "uci_moves": json.loads(row["uci_moves"]),
+        "best_moves_per_blunder": json.loads(row["best_moves_per_blunder"]),
+        "analysed_at": row["analysed_at"],
+        "depth": row["depth"],
+    }
 
 
 def store_game(
@@ -71,70 +73,69 @@ def store_game(
     best_moves_per_blunder: dict[str, list[str]],
     depth: int,
 ) -> None:
-    """Add or update a game entry in cache and immediately persist to disk.
+    """Insert or replace a game entry in SQLite.
 
     Args:
-        cache: In-memory cache dict (mutated in place).
-        game_url: Chess.com game URL used as the cache key.
+        cache: Ignored (kept for interface compatibility).
+        game_url: Chess.com game URL used as the primary key.
         pgn: Raw PGN string for the game.
         move_data: Output of analyze_game() for this game.
         fens: FEN snapshots from get_board_snapshots()[0].
         uci_moves: UCI move list from get_board_snapshots()[1].
-        best_moves_per_blunder: Dict mapping move_index (as str) → list of UCI strings.
+        best_moves_per_blunder: Dict mapping move_index (str) → list of UCI strings.
         depth: Stockfish depth used for this analysis.
     """
-    # Use UTC time; strip the +00:00 suffix for a clean ISO string.
     now_iso: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
-    cache[game_url] = {
-        "pgn": pgn,
-        "move_data": move_data,
-        "fens": fens,
-        "uci_moves": uci_moves,
-        "best_moves_per_blunder": best_moves_per_blunder,
-        "analysed_at": now_iso,
-        "depth": depth,
-    }
-    save_cache(cache)
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO game_cache
+                (url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, analysed_at, depth)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                game_url,
+                pgn,
+                json.dumps(move_data),
+                json.dumps(fens),
+                json.dumps(uci_moves),
+                json.dumps(best_moves_per_blunder),
+                now_iso,
+                depth,
+            ),
+        )
+        conn.commit()
 
 
 def get_cache_stats(cache: dict) -> dict:
     """Return summary statistics about the cache.
 
     Args:
-        cache: In-memory cache dict from load_cache().
+        cache: Ignored (kept for interface compatibility).
 
     Returns:
         Dict with keys:
             total_games   : int   — number of games stored
-            total_size_kb : float — approximate size of the JSON file in KB
+            total_size_kb : float — approximate DB file size in KB
             oldest_entry  : str   — ISO datetime of the oldest analysed_at
             newest_entry  : str   — ISO datetime of the most recent analysed_at
     """
-    total_games: int = len(cache)
+    from services.db import _DB_PATH
 
     try:
-        total_size_kb: float = os.path.getsize(_CACHE_FILE) / 1024
+        total_size_kb: float = os.path.getsize(_DB_PATH) / 1024
     except FileNotFoundError:
         total_size_kb = 0.0
 
-    if not cache:
-        return {
-            "total_games": 0,
-            "total_size_kb": total_size_kb,
-            "oldest_entry": "",
-            "newest_entry": "",
-        }
-
-    dates: list[str] = [
-        entry["analysed_at"]
-        for entry in cache.values()
-        if "analysed_at" in entry
-    ]
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS cnt, MIN(analysed_at) AS oldest, MAX(analysed_at) AS newest FROM game_cache"
+        ).fetchone()
 
     return {
-        "total_games": total_games,
+        "total_games": row["cnt"],
         "total_size_kb": total_size_kb,
-        "oldest_entry": min(dates) if dates else "",
-        "newest_entry": max(dates) if dates else "",
+        "oldest_entry": row["oldest"] or "",
+        "newest_entry": row["newest"] or "",
     }
