@@ -7,40 +7,50 @@ import useSettings from './useSettings';
 
 const AUTH_STORAGE_KEY = 'recall_auth';
 
+interface StoredAuth {
+  username: string | undefined;
+  isGuest: boolean;
+  token: string | undefined;
+  isAdmin: boolean;
+}
+
 interface AuthState {
   username: string | undefined;
   isGuest: boolean;
+  token: string | undefined;
+  isAdmin: boolean;
 
-  login: (username: string) => void;
+  login: (username: string, token: string, isAdmin: boolean) => void;
   loginAsGuest: () => void;
   logout: () => void;
   getNamespace: () => string;
+  getToken: () => string | undefined;
 }
 
-function loadStoredAuth(): { username: string | undefined; isGuest: boolean } {
+function loadStoredAuth(): StoredAuth {
   try {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
 
     if (!stored) {
-      return { username: undefined, isGuest: false };
+      return { username: undefined, isGuest: false, token: undefined, isAdmin: false };
     }
 
-    return JSON.parse(stored) as { username: string | undefined; isGuest: boolean };
+    return JSON.parse(stored) as StoredAuth;
   } catch {
-    return { username: undefined, isGuest: false };
+    return { username: undefined, isGuest: false, token: undefined, isAdmin: false };
   }
 }
 
-function persistAuth(username: string | undefined, isGuest: boolean): void {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username, isGuest }));
+function persistAuth(username: string | undefined, isGuest: boolean, token: string | undefined, isAdmin: boolean): void {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username, isGuest, token, isAdmin }));
 }
 
 const useAuth = create<AuthState>((set, get) => ({
   ...loadStoredAuth(),
 
-  login: (username) => {
-    persistAuth(username, false);
-    set({ username, isGuest: false });
+  login: (username, token, isAdmin) => {
+    persistAuth(username, false, token, isAdmin);
+    set({ username, isGuest: false, token, isAdmin });
 
     const ns = username;
     useSettings.getState().reloadForUser(ns);
@@ -49,8 +59,8 @@ const useAuth = create<AuthState>((set, get) => ({
   },
 
   loginAsGuest: () => {
-    persistAuth(undefined, true);
-    set({ username: undefined, isGuest: true });
+    persistAuth(undefined, true, undefined, false);
+    set({ username: undefined, isGuest: true, token: undefined, isAdmin: false });
 
     const ns = 'guest';
     useSettings.getState().reloadForUser(ns);
@@ -59,8 +69,8 @@ const useAuth = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    persistAuth(undefined, false);
-    set({ username: undefined, isGuest: false });
+    persistAuth(undefined, false, undefined, false);
+    set({ username: undefined, isGuest: false, token: undefined, isAdmin: false });
   },
 
   getNamespace: () => {
@@ -71,6 +81,10 @@ const useAuth = create<AuthState>((set, get) => ({
     }
 
     return username ?? 'guest';
+  },
+
+  getToken: () => {
+    return get().token;
   },
 }));
 

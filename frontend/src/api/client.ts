@@ -15,6 +15,8 @@ export interface AuthResponse {
   success: boolean;
   username: string;
   message: string;
+  token?: string;
+  is_admin?: boolean;
 }
 
 export interface GameHistoryEntry {
@@ -131,9 +133,33 @@ export class ApiError extends Error {
 
 // ── Internal ───────────────────────────────────────────────────────────────
 
-/** Fetch JSON from the API; throw ApiError on non-2xx. */
+/**
+ * Token provider — injected at runtime to avoid a circular dependency between
+ * the API client module and the Zustand auth store.
+ */
+let _getToken: (() => string | undefined) | undefined;
+
+/** Register the auth store's token getter so the client can attach JWT headers. */
+export function setTokenProvider(getter: () => string | undefined): void {
+  _getToken = getter;
+}
+
+/** Fetch JSON from the API; throw ApiError on non-2xx.
+ *  Automatically attaches Authorization: Bearer <token> when a token is available.
+ */
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
+  const token = _getToken?.();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const mergedOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...authHeader,
+      ...(options?.headers as Record<string, string> | undefined),
+    },
+  };
+
+  const response = await fetch(url, mergedOptions);
 
   if (!response.ok) {
     const body: { detail?: string } = await response.json().catch(() => ({ detail: response.statusText }));
@@ -326,4 +352,39 @@ export interface BlunderLineResponse {
 export function getBlunderLine(fen: string, blunderUci: string): Promise<BlunderLineResponse> {
   const params = new URLSearchParams({ fen, blunder_uci: blunderUci });
   return fetchJson<BlunderLineResponse>(`${BASE_URL}/api/analysis/blunder-line?${params}`);
+}
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+
+export interface AdminUser {
+  username: string;
+  username_lower: string;
+  created_at: string;
+}
+
+export interface AdminCacheEntry {
+  url: string;
+  analysed_at: string;
+  depth: number;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_cached_games: number;
+}
+
+/** Fetch all registered users from the DB (admin only). */
+export function adminGetUsers(): Promise<AdminUser[]> {
+  return fetchJson<AdminUser[]>(`${BASE_URL}/api/admin/users`);
+}
+
+/** Fetch recent cached game analysis entries (admin only). */
+export function adminGetCache(limit: number = 50): Promise<AdminCacheEntry[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<AdminCacheEntry[]>(`${BASE_URL}/api/admin/cache?${params}`);
+}
+
+/** Fetch aggregate DB stats (admin only). */
+export function adminGetStats(): Promise<AdminStats> {
+  return fetchJson<AdminStats>(`${BASE_URL}/api/admin/stats`);
 }

@@ -2,9 +2,11 @@
 
 import requests as req_lib
 from fastapi import APIRouter, HTTPException
+from jose import jwt as _jwt
 
 from models import AuthRequest, AuthResponse
 from services.chess_com import get_player_profile
+from services.jwt_service import create_token
 from services.users import check_password, create_user
 
 router = APIRouter()
@@ -12,13 +14,13 @@ router = APIRouter()
 
 @router.post("/login")
 def login(req: AuthRequest) -> AuthResponse:
-    """Verify credentials and return success.
+    """Verify credentials and return a signed JWT on success.
 
     Args:
         req: AuthRequest with username and password.
 
     Returns:
-        AuthResponse with success flag and message.
+        AuthResponse with success flag, message, and JWT token.
 
     Raises:
         401 if credentials are invalid.
@@ -26,7 +28,18 @@ def login(req: AuthRequest) -> AuthResponse:
     if not check_password(req.username, req.password):
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
-    return AuthResponse(success=True, username=req.username, message="Login successful.")
+    token: str = create_token(req.username)
+    # Peek at the payload to include is_admin in the response without re-importing the secret logic.
+    payload: dict = _jwt.get_unverified_claims(token)
+    is_admin: bool = bool(payload.get("is_admin", False))
+
+    return AuthResponse(
+        success=True,
+        username=req.username,
+        message="Login successful.",
+        token=token,
+        is_admin=is_admin,
+    )
 
 
 @router.post("/register")

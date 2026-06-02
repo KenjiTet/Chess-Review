@@ -113,6 +113,9 @@ class AuthResponse(BaseModel):
     success: bool
     username: str
     message: str
+    # JWT — present on login, absent on registration (user must log in after registering).
+    token: str | None = None
+    is_admin: bool = False
 
 
 class GameHistoryEntry(BaseModel):

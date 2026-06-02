@@ -530,6 +530,9 @@ function Trainer(): JSX.Element {
   const displayFen = historyEntry?.fen ?? localFen ?? currentBlunder.fen_before;
   const displayLastMoveUci = historyEntry?.uci ?? null;
   const displayEval = historyEntry?.evalScore ?? currentEval;
+  // Show the blunder arrow only when the board is at the exact blunder position
+  const isAtBlunderPosition = historyIndex === initialHistory.blunderIdx && firstMove === null;
+  const blunderArrowUci = isAtBlunderPosition ? (currentBlunder.uci_played ?? null) : null;
   const progressPct = blunderCount > 0 ? (reviewedCount / blunderCount) * 100 : 0;
 
   // Applied only once ResizeObserver has measured; avoids zero-size flash
@@ -635,6 +638,7 @@ function Trainer(): JSX.Element {
             interactive={!botThinking && !isPlayingSequence}
             arrowUcis={showArrows ? (localFen === currentBlunder.fen_before ? currentBlunder.best_moves : currentArrows) : []}
             lastMoveUci={displayLastMoveUci}
+            blunderArrowUci={blunderArrowUci}
           />
         </div>
 

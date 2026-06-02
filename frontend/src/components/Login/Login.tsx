@@ -63,12 +63,18 @@ function Login(): JSX.Element {
 
     try {
       if (mode === 'login') {
-        await loginUser(username.trim(), password);
+        const res = await loginUser(username.trim(), password);
+        loginAuth(username.trim(), res.token ?? '', res.is_admin ?? false);
       } else {
         await registerUser(username.trim(), password);
+        // After registration the user must log in — switch to login mode.
+        clearFields();
+        setMode('login');
+        setError('');
+        setLoading(false);
+        return;
       }
 
-      loginAuth(username.trim());
       setScreen();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';

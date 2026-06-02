@@ -32,6 +32,8 @@ interface BoardProps {
   interactive?: boolean;
   arrowUcis?: string[];
   lastMoveUci?: string | null;
+  /** UCI of the blunder move — rendered as a red arrow when provided. */
+  blunderArrowUci?: string | null;
 }
 
 type Square = string;
@@ -119,6 +121,7 @@ function Board({
   interactive = true,
   arrowUcis = [],
   lastMoveUci,
+  blunderArrowUci,
 }: BoardProps): JSX.Element {
   // Tracks the prev-move pair so changes can be detected during render.
   const [introKey, setIntroKey] = useState<string>(`${prevFen ?? ''}|${prevMoveUci ?? ''}`);
@@ -269,7 +272,7 @@ function Board({
   const introLabel = prevMoveSan ? `↩ ${prevMoveSan}` : '↩ Opponent moved';
 
   // ── Custom SVG arrows ──────────────────────────────────────────────────────
-  const showCustomArrows = !introActive && arrowUcis.length > 0;
+  const showCustomArrows = !introActive && (arrowUcis.length > 0 || Boolean(blunderArrowUci));
 
   return (
     <div className="board">
@@ -335,6 +338,31 @@ function Board({
               </g>
             );
           })}
+          {blunderArrowUci && blunderArrowUci.length >= 4 && (() => {
+            const fromSq = blunderArrowUci.slice(0, 2);
+            const toSq = blunderArrowUci.slice(2, 4);
+            const from = squareCenter(fromSq, orientation);
+            const to = squareCenter(toSq, orientation);
+            const sw = ARROW_STROKE_WIDTHS[0];
+            const paths = buildArrowPaths(from, to, sw);
+
+            if (!paths) {
+              return null;
+            }
+
+            return (
+              <g key={`blunder-arrow-${blunderArrowUci}`}>
+                <path
+                  d={paths.shaft}
+                  stroke="rgba(220,38,38,0.88)"
+                  strokeWidth={sw}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path d={paths.head} fill="rgba(220,38,38,0.88)" />
+              </g>
+            );
+          })()}
         </svg>
       )}
     </div>

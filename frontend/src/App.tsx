@@ -1,6 +1,6 @@
 /** App entry point — routes to the active screen based on session and auth state. */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import useSession from './hooks/useSession';
 import type { Screen } from './hooks/useSession';
@@ -13,11 +13,16 @@ import Login from './components/Login/Login';
 import SessionSetup from './components/SessionSetup/SessionSetup';
 import Loading from './components/Loading/Loading';
 import Trainer from './components/Trainer/Trainer';
+import Admin from './components/Admin/Admin';
 import './App.css';
 
-function renderScreen(screen: Screen, isAuthenticated: boolean): JSX.Element {
+function renderScreen(screen: Screen, isAuthenticated: boolean, isAdmin: boolean, adminView: boolean): JSX.Element {
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  if (adminView && isAdmin) {
+    return <Admin />;
   }
 
   if (screen === 'setup') {
@@ -37,7 +42,9 @@ function App(): JSX.Element {
   const setDarkMode = useSettings((s) => s.setDarkMode);
   const username = useAuth((s) => s.username);
   const isGuest = useAuth((s) => s.isGuest);
+  const isAdmin = useAuth((s) => s.isAdmin);
   const getNamespace = useAuth((s) => s.getNamespace);
+  const [adminView, setAdminView] = useState<boolean>(false);
 
   const isAuthenticated = username !== undefined || isGuest;
 
@@ -64,8 +71,18 @@ function App(): JSX.Element {
     <div className="app">
       <ErrorBanner />
       <main className="app__main">
-        {renderScreen(screen, isAuthenticated)}
+        {renderScreen(screen, isAuthenticated, isAdmin, adminView)}
       </main>
+      {isAdmin && isAuthenticated && (
+        <button
+          className="admin-toggle"
+          type="button"
+          onClick={() => setAdminView((v) => !v)}
+          title={adminView ? 'Back to app' : 'Admin dashboard'}
+        >
+          {adminView ? '⬅' : '⚙'}
+        </button>
+      )}
       <button
         className="theme-toggle"
         type="button"
