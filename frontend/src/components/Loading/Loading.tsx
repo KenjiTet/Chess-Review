@@ -14,12 +14,9 @@ function Loading(): JSX.Element {
   const [displayPct, setDisplayPct] = useState<number>(loadingPct);
 
   // Snap forward immediately whenever a real SSE update arrives.
-  useEffect(() => {
-    if (loadingPct > displayPct) {
-      setDisplayPct(loadingPct);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingPct]);
+  if (loadingPct > displayPct) {
+    setDisplayPct(loadingPct);
+  }
 
   // Slowly advance the displayed bar while the real pct is stalled.
   // Cap at (realPct + 25) so it never outrun the actual progress by much.

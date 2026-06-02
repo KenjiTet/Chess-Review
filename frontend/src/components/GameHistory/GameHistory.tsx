@@ -1,6 +1,6 @@
 /** Scrollable game history table — shows all games; blunder counts are populated on demand (per-game review). */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { fetchGameHistory } from '../../api/client';
 import type { GameHistoryEntry } from '../../api/client';
@@ -126,7 +126,9 @@ function GameHistory({
   const [error, setError] = useState<string>('');
 
   const onGamesLoadedRef = useRef(onGamesLoaded);
-  onGamesLoadedRef.current = onGamesLoaded;
+  useLayoutEffect(() => {
+    onGamesLoadedRef.current = onGamesLoaded;
+  });
 
   useEffect(() => {
     onGamesLoadedRef.current?.(displayedGames);
@@ -135,12 +137,12 @@ function GameHistory({
   useEffect(() => {
     const signal = { cancelled: false };
 
-    setDisplayedGames([]);
-    setError('');
-    setInitialLoading(true);
-    setHasMore(true);
-
     async function load(): Promise<void> {
+      setDisplayedGames([]);
+      setError('');
+      setInitialLoading(true);
+      setHasMore(true);
+
       try {
         const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, threshold, isGuest);
 

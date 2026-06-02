@@ -112,7 +112,6 @@ function Trainer(): JSX.Element {
   // from the very first render (Trainer remounts on each new blunder via screen
   // transitions, so the useState initializer always has a fresh blunder).
   const [localFen, setLocalFen] = useState<string>(currentBlunder?.fen_before ?? '');
-  const [lastMoveUci, setLastMoveUci] = useState<string | null>(null);
   const [firstMove, setFirstMove] = useState<string | null>(null);
   const [moveLog, setMoveLog] = useState<MoveLogEntry[]>([]);
   const [currentEval, setCurrentEval] = useState<number>(currentBlunder?.eval_before_white_pov ?? 0);
@@ -126,8 +125,6 @@ function Trainer(): JSX.Element {
   const initialHistory = buildInitialHistory(currentBlunder);
   const [positionHistory, setPositionHistory] = useState<HistoryEntry[]>(initialHistory.history);
   const [historyIndex, setHistoryIndex] = useState<number>(initialHistory.blunderIdx);
-  // Index of the blunder position in positionHistory — used for display purposes only
-  const [blunderIdx, setBlunderIdx] = useState<number>(initialHistory.blunderIdx);
   // History index at which moveLog[0] was played — slice offset for the move log display
   const [moveLogBaseIdx, setMoveLogBaseIdx] = useState<number>(initialHistory.blunderIdx);
   // Immutable snapshot of the game path — used to restore forward history when the user plays a game move
@@ -171,20 +168,16 @@ function Trainer(): JSX.Element {
   if (currentBlunder?.fen_before !== syncedBlunderFen) {
     setSyncedBlunderFen(currentBlunder?.fen_before);
     setLocalFen(currentBlunder?.fen_before ?? '');
-    setLastMoveUci(null);
     setFirstMove(null);
     setMoveLog([]);
     setBotThinking(false);
     setCurrentEval(currentBlunder?.eval_before_white_pov ?? 0);
     setCurrentArrows(currentBlunder?.best_moves ?? []);
-    sequenceActiveRef.current = false;
     setIsPlayingSequence(false);
     const newHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(newHistory.history);
     setHistoryIndex(newHistory.blunderIdx);
-    setBlunderIdx(newHistory.blunderIdx);
     setMoveLogBaseIdx(newHistory.blunderIdx);
-    gameHistoryRef.current = newHistory.history;
   }
 
   // Reset move counter and fetch position eval when the blunder changes.
@@ -192,6 +185,9 @@ function Trainer(): JSX.Element {
   // Also covers games analysed before eval_before_white_pov was added to the cache.
   useEffect(() => {
     moveIdRef.current = 0;
+    sequenceActiveRef.current = false;
+    const effectHistory = buildInitialHistory(currentBlunder);
+    gameHistoryRef.current = effectHistory.history;
 
     if (!currentBlunder || currentBlunder.eval_before_white_pov !== 0) {
       return;
@@ -210,7 +206,7 @@ function Trainer(): JSX.Element {
     }
 
     if (localFen === currentBlunder.fen_before) {
-      setCurrentArrows(currentBlunder.best_moves);
+      // Arrows for the blunder position are derived directly in JSX from currentBlunder.best_moves
       return undefined;
     }
 
@@ -279,7 +275,6 @@ function Trainer(): JSX.Element {
       setHistoryIndex(userHistoryIdx);
 
       setLocalFen(newFen);
-      setLastMoveUci(uci);
       // Keep only log entries that are still valid for the current position, then append the new move
       const keepCount = Math.max(0, historyIndex - moveLogBaseIdx);
       setMoveLog((prev) => [...prev.slice(0, keepCount), { id, san, classification: null, cpLoss: null }]);
@@ -344,7 +339,6 @@ function Trainer(): JSX.Element {
             setHistoryIndex(sfHistoryIdx);
 
             setLocalFen(sfFen);
-            setLastMoveUci(sfUci);
             setCurrentEval(response.eval_after_white_pov);
             playMoveSound();
             setMoveLog((prev) => [
@@ -384,7 +378,6 @@ function Trainer(): JSX.Element {
     sequenceActiveRef.current = false;
     setIsPlayingSequence(false);
     setLocalFen(currentBlunder.fen_before);
-    setLastMoveUci(null);
     setFirstMove(null);
     setMoveLog([]);
     setCurrentEval(currentBlunder.eval_before_white_pov ?? 0);
@@ -393,7 +386,6 @@ function Trainer(): JSX.Element {
     const resetHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(resetHistory.history);
     setHistoryIndex(resetHistory.blunderIdx);
-    setBlunderIdx(resetHistory.blunderIdx);
     setMoveLogBaseIdx(resetHistory.blunderIdx);
     gameHistoryRef.current = resetHistory.history;
   }
@@ -408,14 +400,12 @@ function Trainer(): JSX.Element {
     sequenceActiveRef.current = false;
     setIsPlayingSequence(true);
     setLocalFen(currentBlunder.fen_before);
-    setLastMoveUci(null);
     setFirstMove(null);
     setMoveLog([]);
     moveIdRef.current = 0;
     const seqBaseHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(seqBaseHistory.history);
     setHistoryIndex(seqBaseHistory.blunderIdx);
-    setBlunderIdx(seqBaseHistory.blunderIdx);
     setMoveLogBaseIdx(seqBaseHistory.blunderIdx);
     gameHistoryRef.current = seqBaseHistory.history;
 
@@ -463,7 +453,6 @@ function Trainer(): JSX.Element {
       setHistoryIndex(nextIdx);
 
       setLocalFen(newFen);
-      setLastMoveUci(uci);
       playMoveSound();
 
       setTimeout(() => playStep(moves, newFen, index + 1, nextIdx + 1), 600);
@@ -644,7 +633,7 @@ function Trainer(): JSX.Element {
             prevMoveSan={prevMoveSan}
             onMove={handleMove}
             interactive={!botThinking && !isPlayingSequence}
-            arrowUcis={showArrows ? currentArrows : []}
+            arrowUcis={showArrows ? (localFen === currentBlunder.fen_before ? currentBlunder.best_moves : currentArrows) : []}
             lastMoveUci={displayLastMoveUci}
           />
         </div>

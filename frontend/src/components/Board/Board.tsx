@@ -14,7 +14,7 @@
  * Legal move dots: dots and rings overlay legal target squares while dragging.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useLayoutEffect, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { JSX, CSSProperties } from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { PieceDropHandlerArgs, PieceHandlerArgs } from 'react-chessboard';
@@ -141,7 +141,9 @@ function Board({
   // Ref so drag/drop callbacks always read the latest canInteract without
   // depending on stale closures (react-chessboard may cache handler references).
   const canInteractRef = useRef<boolean>(false);
-  canInteractRef.current = interactive && !introActive;
+  useLayoutEffect(() => {
+    canInteractRef.current = interactive && !introActive;
+  }, [interactive, introActive]);
 
   // Phase timers: switch to phase 2 after 400ms to animate the piece, done at 1500ms.
   useEffect(() => {
@@ -261,7 +263,7 @@ function Board({
         return false;
       }
     },
-    [canInteract, fen, onMove],
+    [fen, onMove],
   );
 
   const introLabel = prevMoveSan ? `↩ ${prevMoveSan}` : '↩ Opponent moved';
