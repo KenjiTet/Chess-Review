@@ -1,3 +1,14 @@
+.move-log {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.move-log__scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .move-log__header {
   font-size: 0.62rem;
   font-weight: 700;

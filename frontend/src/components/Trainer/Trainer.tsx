@@ -126,10 +126,12 @@ function Trainer(): JSX.Element {
   const initialHistory = buildInitialHistory(currentBlunder);
   const [positionHistory, setPositionHistory] = useState<HistoryEntry[]>(initialHistory.history);
   const [historyIndex, setHistoryIndex] = useState<number>(initialHistory.blunderIdx);
-  // The furthest index the user has actually reached (pre-seeded entries beyond this are nav-only)
-  const [liveIndex, setLiveIndex] = useState<number>(initialHistory.blunderIdx);
-  // Index of the blunder position in positionHistory — move log entries start after this
+  // Index of the blunder position in positionHistory — used for display purposes only
   const [blunderIdx, setBlunderIdx] = useState<number>(initialHistory.blunderIdx);
+  // History index at which moveLog[0] was played — slice offset for the move log display
+  const [moveLogBaseIdx, setMoveLogBaseIdx] = useState<number>(initialHistory.blunderIdx);
+  // Immutable snapshot of the game path — used to restore forward history when the user plays a game move
+  const gameHistoryRef = useRef<HistoryEntry[]>(initialHistory.history);
 
   // Sequential IDs so async eval responses match the right log entry
   const moveIdRef = useRef<number>(0);
@@ -180,8 +182,9 @@ function Trainer(): JSX.Element {
     const newHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(newHistory.history);
     setHistoryIndex(newHistory.blunderIdx);
-    setLiveIndex(newHistory.blunderIdx);
     setBlunderIdx(newHistory.blunderIdx);
+    setMoveLogBaseIdx(newHistory.blunderIdx);
+    gameHistoryRef.current = newHistory.history;
   }
 
   // Reset move counter and fetch position eval when the blunder changes.
@@ -230,7 +233,7 @@ function Trainer(): JSX.Element {
         return;
       }
 
-      const capturedFen = localFen || currentBlunder.fen_before;
+      const capturedFen = positionHistory[historyIndex]?.fen ?? localFen ?? currentBlunder.fen_before;
       const chess = new Chess(capturedFen);
 
       let san: string;
@@ -260,18 +263,30 @@ function Trainer(): JSX.Element {
         setFirstMove(uci);
       }
 
-      // Truncate any forward history and push user move at the current position
+      // Push user move — if it matches the next game-path entry, restore the forward game history
       const userHistoryIdx = historyIndex + 1;
-      setPositionHistory((prev) => [
-        ...prev.slice(0, historyIndex + 1),
-        { fen: newFen, uci, evalScore: 0 },
-      ]);
+      setPositionHistory((prev) => {
+        const nextGameEntry = gameHistoryRef.current[historyIndex + 1];
+        const base = [...prev.slice(0, historyIndex + 1), { fen: newFen, uci, evalScore: 0 }];
+
+        if (nextGameEntry && nextGameEntry.uci === uci) {
+          // Played the game move — keep remaining game path intact so forward nav works
+          return [...base, ...gameHistoryRef.current.slice(historyIndex + 2)];
+        }
+
+        return base;
+      });
       setHistoryIndex(userHistoryIdx);
-      setLiveIndex(userHistoryIdx);
 
       setLocalFen(newFen);
       setLastMoveUci(uci);
-      setMoveLog((prev) => [...prev, { id, san, classification: null, cpLoss: null }]);
+      // Keep only log entries that are still valid for the current position, then append the new move
+      const keepCount = Math.max(0, historyIndex - moveLogBaseIdx);
+      setMoveLog((prev) => [...prev.slice(0, keepCount), { id, san, classification: null, cpLoss: null }]);
+      // If the user played from before the current log base, slide the base back to the new starting point
+      if (historyIndex < moveLogBaseIdx) {
+        setMoveLogBaseIdx(historyIndex);
+      }
 
       // Async eval — update log entry, eval bar, and history entry when result arrives
       evaluateMove({ fen_before: capturedFen, uci_move: uci }).then((result) => {
@@ -327,7 +342,6 @@ function Trainer(): JSX.Element {
               { fen: sfFen, uci: sfUci, evalScore: response.eval_after_white_pov },
             ]);
             setHistoryIndex(sfHistoryIdx);
-            setLiveIndex(sfHistoryIdx);
 
             setLocalFen(sfFen);
             setLastMoveUci(sfUci);
@@ -358,7 +372,7 @@ function Trainer(): JSX.Element {
         });
       }
     },
-    [currentBlunder, localFen, firstMove, botMode, historyIndex],
+    [currentBlunder, localFen, firstMove, botMode, historyIndex, positionHistory, moveLogBaseIdx],
   );
 
   // ── Reset to blunder position ───────────────────────────────────────────────
@@ -379,8 +393,9 @@ function Trainer(): JSX.Element {
     const resetHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(resetHistory.history);
     setHistoryIndex(resetHistory.blunderIdx);
-    setLiveIndex(resetHistory.blunderIdx);
     setBlunderIdx(resetHistory.blunderIdx);
+    setMoveLogBaseIdx(resetHistory.blunderIdx);
+    gameHistoryRef.current = resetHistory.history;
   }
 
   // ── Blunder sequence replay ─────────────────────────────────────────────────
@@ -400,8 +415,9 @@ function Trainer(): JSX.Element {
     const seqBaseHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(seqBaseHistory.history);
     setHistoryIndex(seqBaseHistory.blunderIdx);
-    setLiveIndex(seqBaseHistory.blunderIdx);
     setBlunderIdx(seqBaseHistory.blunderIdx);
+    setMoveLogBaseIdx(seqBaseHistory.blunderIdx);
+    gameHistoryRef.current = seqBaseHistory.history;
 
     let result: BlunderLineResponse;
 
@@ -445,7 +461,6 @@ function Trainer(): JSX.Element {
         { fen: newFen, uci, evalScore: 0 },
       ]);
       setHistoryIndex(nextIdx);
-      setLiveIndex(nextIdx);
 
       setLocalFen(newFen);
       setLastMoveUci(uci);
@@ -496,13 +511,17 @@ function Trainer(): JSX.Element {
   // ── History navigation ──────────────────────────────────────────────────────
   function handleHistoryBack(): void {
     if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
+      const newIdx = historyIndex - 1;
+      setHistoryIndex(newIdx);
+      setLocalFen(positionHistory[newIdx]?.fen ?? localFen);
     }
   }
 
   function handleHistoryForward(): void {
     if (historyIndex < positionHistory.length - 1) {
-      setHistoryIndex(historyIndex + 1);
+      const newIdx = historyIndex + 1;
+      setHistoryIndex(newIdx);
+      setLocalFen(positionHistory[newIdx]?.fen ?? localFen);
     }
   }
 
@@ -518,9 +537,6 @@ function Trainer(): JSX.Element {
   const orientation = currentBlunder.color === 'black' ? 'black' : 'white';
   const isSaved = favorites.some((f) => f.fen === currentBlunder.fen_before);
 
-  // Board is non-interactive whenever the user is browsing any position that
-  // is not the live tip (before OR after it in the pre-seeded game history).
-  const isViewingHistory = historyIndex !== liveIndex;
   const historyEntry = positionHistory[historyIndex];
   const displayFen = historyEntry?.fen ?? localFen ?? currentBlunder.fen_before;
   const displayLastMoveUci = historyEntry?.uci ?? null;
@@ -627,8 +643,8 @@ function Trainer(): JSX.Element {
             prevMoveUci={currentBlunder.prev_move_uci}
             prevMoveSan={prevMoveSan}
             onMove={handleMove}
-            interactive={!botThinking && !isPlayingSequence && !isViewingHistory}
-            arrowUcis={showArrows && !isViewingHistory ? currentArrows : []}
+            interactive={!botThinking && !isPlayingSequence}
+            arrowUcis={showArrows ? currentArrows : []}
             lastMoveUci={displayLastMoveUci}
           />
         </div>
@@ -636,7 +652,7 @@ function Trainer(): JSX.Element {
         <div className="trainer__panel-col" style={sideHeightStyle}>
           <div className="trainer__panel">
             {/* Move log */}
-            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - blunderIdx))} />
+            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
 
             <hr className="trainer__panel-divider" />
 

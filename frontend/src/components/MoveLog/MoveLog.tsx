@@ -43,8 +43,9 @@ function MoveLog({ entries }: MoveLogProps): JSX.Element {
   }, [entries]);
 
   return (
-    <div className="move-log" ref={containerRef}>
+    <div className="move-log">
       <div className="move-log__header">Move Feedback</div>
+      <div className="move-log__scroll" ref={containerRef}>
       {entries.length === 0 ? (
         <div className="move-log__empty">Play a move to see feedback</div>
       ) : (
@@ -75,6 +76,7 @@ function MoveLog({ entries }: MoveLogProps): JSX.Element {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
