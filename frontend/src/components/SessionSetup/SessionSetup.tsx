@@ -58,10 +58,9 @@ function getInitialUsername(authUsername: string | undefined): string {
 interface TimeClassSelectProps {
   value: TimeClass;
   onChange: (v: TimeClass) => void;
-  disabled: boolean;
 }
 
-function TimeClassSelect({ value, onChange, disabled }: TimeClassSelectProps): JSX.Element {
+function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -77,9 +76,7 @@ function TimeClassSelect({ value, onChange, disabled }: TimeClassSelectProps): J
   }, []);
 
   function handleToggle(): void {
-    if (!disabled) {
-      setOpen((prev) => !prev);
-    }
+    setOpen((prev) => !prev);
   }
 
   function handleSelect(tc: TimeClass): void {
@@ -90,12 +87,11 @@ function TimeClassSelect({ value, onChange, disabled }: TimeClassSelectProps): J
   const label = value === 'all' ? 'All' : value.charAt(0).toUpperCase() + value.slice(1);
 
   return (
-    <div ref={dropdownRef} className={`tc-select${disabled ? ' tc-select--disabled' : ''}`}>
+    <div ref={dropdownRef} className="tc-select">
       <button
         type="button"
         className="tc-select__trigger"
         onClick={handleToggle}
-        disabled={disabled}
       >
         {value !== 'all' && <TimeClassIcon tc={value} size={15} />}
         <span className="tc-select__label">{label}</span>
@@ -144,8 +140,6 @@ function SessionSetup(): JSX.Element {
   const [timeClass, setTimeClass] = useState<TimeClass>('rapid');
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [recentUsernames, setRecentUsernames] = useState<string[]>(getRecentUsernames);
-  const [todayBlunders, setTodayBlunders] = useState<number>(0);
-  const [isHistoryAnalyzing, setIsHistoryAnalyzing] = useState<boolean>(false);
 
   // Pre-populate with the auth username (or most recent) so history loads immediately.
   const [historyUsername, setHistoryUsername] = useState<string>(() => getInitialUsername(authUsername));
@@ -167,10 +161,6 @@ function SessionSetup(): JSX.Element {
 
   function handleGamesLoaded(games: GameHistoryEntry[]): void {
     gamesRef.current = games;
-  }
-
-  function handleTodayBlundersUpdate(count: number): void {
-    setTodayBlunders(count);
   }
 
   function findLastNonReviewedUrl(): string | undefined {
@@ -250,11 +240,6 @@ function SessionSetup(): JSX.Element {
           Chess <span className="setup__gold">Blunder</span> Trainer
         </h1>
         <p className="setup__hero-sub">Review your blunders like a daily puzzle</p>
-        {todayBlunders > 0 && (
-          <span className="setup__blunder-badge">
-            {todayBlunders} new blunders today
-          </span>
-        )}
       </div>
 
       {/* User identity — fixed at bottom-left, takes no layout height */}
@@ -309,7 +294,6 @@ function SessionSetup(): JSX.Element {
             <TimeClassSelect
               value={timeClass}
               onChange={setTimeClass}
-              disabled={isHistoryAnalyzing}
             />
           </div>
 
@@ -347,8 +331,6 @@ function SessionSetup(): JSX.Element {
                   isGuest={isGuest}
                   onTrainGame={handleTrainGame}
                   onGamesLoaded={handleGamesLoaded}
-                  onTodayBlundersUpdate={handleTodayBlundersUpdate}
-                  onAnalyzingChange={setIsHistoryAnalyzing}
                 />
               </>
             )

@@ -31,6 +31,13 @@ class BlunderResponse(BaseModel):
     best_moves: list[str]
     uci_played: str
     eval_before_white_pov: int = 0
+    # Index of the blunder move within game_fens / game_uci_moves.
+    move_index: int = 0
+    # Full position list for the entire game.
+    # game_fens[i] is the position before move i; game_uci_moves[i] is that move.
+    # len(game_fens) == len(game_uci_moves) + 1
+    game_fens: list[str] = []
+    game_uci_moves: list[str] = []
     white_username: str = ""
     white_rating: int = 0
     black_username: str = ""

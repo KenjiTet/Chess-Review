@@ -29,12 +29,6 @@ export interface GameHistoryEntry {
   first_blunder_color: string | null;
 }
 
-export interface GameAnalysisResult {
-  blunder_count: number;
-  first_blunder_fen: string | null;
-  first_blunder_color: string | null;
-}
-
 export interface SessionCreateRequest {
   username: string;
   time_class: string;
@@ -63,6 +57,12 @@ export interface BlunderResponse {
   best_moves: string[];
   uci_played: string;
   eval_before_white_pov: number;
+  /** Index of the blunder move within game_fens / game_uci_moves */
+  move_index?: number;
+  /** All FENs for the entire game (len == game_uci_moves.length + 1) */
+  game_fens?: string[];
+  /** UCI moves for the entire game */
+  game_uci_moves?: string[];
   white_username?: string;
   white_rating?: number;
   black_username?: string;
@@ -82,15 +82,6 @@ export interface AttemptResponse {
   classification: string;
   best_moves: string[];
   uci_blunder: string;
-}
-
-export interface SummaryResponse {
-  total_blunders: number;
-  total_reviewed: number;
-  correct: number;
-  accuracy_pct: number;
-  best_game_url: string | null;
-  worst_game_url: string | null;
 }
 
 export interface EvaluateRequest {
@@ -198,32 +189,8 @@ export function fetchGameHistory(
   return fetchJson<GameHistoryEntry[]>(`${BASE_URL}/api/games/history?${params}`);
 }
 
-/** Analyze a single game and return its blunder count and first blunder position. */
-export function analyzeGameHistory(
-  gameUrl: string,
-  username: string,
-  threshold: number,
-  isGuest: boolean = false,
-): Promise<GameAnalysisResult> {
-  const params = new URLSearchParams({
-    game_url: gameUrl,
-    username,
-    threshold: String(threshold),
-    is_guest: String(isGuest),
-  });
-  return fetchJson<GameAnalysisResult>(`${BASE_URL}/api/games/analyze?${params}`);
-}
 
 // ── Session ────────────────────────────────────────────────────────────────
-
-/** Build a session synchronously (blocks until analysis is complete). */
-export function buildSession(req: SessionCreateRequest): Promise<SessionCreateResponse> {
-  return fetchJson<SessionCreateResponse>(`${BASE_URL}/api/session/build`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  });
-}
 
 /**
  * Build a session via SSE stream.
@@ -297,10 +264,6 @@ export function submitAttempt(req: AttemptRequest): Promise<AttemptResponse> {
   });
 }
 
-/** Retrieve end-of-session summary statistics. */
-export function getSummary(sessionId: string): Promise<SummaryResponse> {
-  return fetchJson<SummaryResponse>(`${BASE_URL}/api/session/summary?session_id=${sessionId}`);
-}
 
 /** Skip the current blunder without submitting an attempt. */
 export async function skipBlunder(sessionId: string): Promise<void> {

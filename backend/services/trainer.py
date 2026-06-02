@@ -124,6 +124,9 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
                 "best_moves": best_moves,
                 "prev_fen": prev_fen,
                 "prev_move_uci": prev_move_uci,
+                # Full game position history for < > navigation
+                "game_fens": fens,
+                "game_uci_moves": uci_moves,
                 "white_username": white_username,
                 "white_rating": white_rating,
                 "black_username": black_username,

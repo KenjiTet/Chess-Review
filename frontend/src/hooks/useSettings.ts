@@ -18,7 +18,7 @@ interface SettingsState extends Settings {
 const BASE_KEY = 'recall_settings';
 
 const DEFAULTS: Settings = {
-  darkMode: true,
+  darkMode: false,
   nGames: 1,
   threshold: 300,
 };
@@ -47,7 +47,7 @@ function loadSettings(namespace?: string): Settings {
 
     return {
       ...DEFAULTS,
-      darkMode: legacyDark !== null ? legacyDark === 'true' : true,
+      darkMode: legacyDark !== null ? legacyDark === 'true' : false,
     };
   } catch {
     return DEFAULTS;

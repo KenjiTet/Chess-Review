@@ -1,9 +1,9 @@
-/** Scrollable game history table — shows all games immediately; enriches uncached ones behind a progress banner. */
+/** Scrollable game history table — shows all games; blunder counts are populated on demand (per-game review). */
 
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { analyzeGameHistory, fetchGameHistory } from '../../api/client';
-import type { GameAnalysisResult, GameHistoryEntry } from '../../api/client';
+import { fetchGameHistory } from '../../api/client';
+import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
 import './GameHistory.css';
@@ -18,8 +18,6 @@ interface GameHistoryProps {
   isGuest: boolean;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
-  onTodayBlundersUpdate?: (count: number) => void;
-  onAnalyzingChange?: (isAnalyzing: boolean) => void;
 }
 
 function formatDate(iso: string): string {
@@ -34,56 +32,7 @@ function formatDate(iso: string): string {
   }
 }
 
-// ── Batch analysis helpers ─────────────────────────────────────────────────
-
-async function runBatchAnalysis(
-  uncached: GameHistoryEntry[],
-  username: string,
-  threshold: number,
-  isGuest: boolean,
-  signal: { cancelled: boolean },
-  onGameAnalyzed: (url: string, result: GameAnalysisResult) => void,
-  onProgress: (current: number, total: number) => void,
-): Promise<void> {
-  for (let i = 0; i < uncached.length; i++) {
-    if (signal.cancelled) {
-      break;
-    }
-
-    const game = uncached[i];
-
-    try {
-      const result: GameAnalysisResult = await analyzeGameHistory(game.url, username, threshold, isGuest);
-
-      if (!signal.cancelled) {
-        onGameAnalyzed(game.url, result);
-      }
-    } catch {
-      // Game stays visible with null blunder_count.
-    }
-
-    if (!signal.cancelled) {
-      onProgress(i + 1, uncached.length);
-    }
-  }
-}
-
 // ── Sub-components ─────────────────────────────────────────────────────────
-
-function AnalysisProgressBanner({ current, total }: { current: number; total: number }): JSX.Element {
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-
-  return (
-    <div className="history__analysis-banner">
-      <span className="history__analysis-banner-label">
-        Analysing game {current} / {total}…
-      </span>
-      <div className="history__analysis-banner-track">
-        <div className="history__analysis-banner-fill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
 
 function GameRow({
   game,
@@ -167,8 +116,6 @@ function GameHistory({
   isGuest,
   onTrainGame,
   onGamesLoaded,
-  onTodayBlundersUpdate,
-  onAnalyzingChange,
 }: GameHistoryProps): JSX.Element {
   const isReviewedFn = useReviewed((s) => s.isReviewed);
 
@@ -177,72 +124,19 @@ function GameHistory({
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [isAnalyzingBatch, setIsAnalyzingBatch] = useState<boolean>(false);
-  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
 
   const onGamesLoadedRef = useRef(onGamesLoaded);
   onGamesLoadedRef.current = onGamesLoaded;
-  const onTodayBlundersUpdateRef = useRef(onTodayBlundersUpdate);
-  onTodayBlundersUpdateRef.current = onTodayBlundersUpdate;
-  const onAnalyzingChangeRef = useRef(onAnalyzingChange);
-  onAnalyzingChangeRef.current = onAnalyzingChange;
-
-  useEffect(() => {
-    onAnalyzingChangeRef.current?.(isAnalyzingBatch);
-  }, [isAnalyzingBatch]);
 
   useEffect(() => {
     onGamesLoadedRef.current?.(displayedGames);
-
-    const today = new Date().toDateString();
-    const todayTotal = displayedGames
-      .filter((g) => new Date(g.date).toDateString() === today && g.blunder_count !== null)
-      .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
-
-    onTodayBlundersUpdateRef.current?.(todayTotal);
   }, [displayedGames]);
-
-  async function startAnalysis(games: GameHistoryEntry[], signal: { cancelled: boolean }): Promise<void> {
-    const uncached = games.filter((g) => g.blunder_count === null);
-
-    if (uncached.length === 0) {
-      return;
-    }
-
-    setIsAnalyzingBatch(true);
-    setBatchProgress({ current: 0, total: uncached.length });
-
-    try {
-      await runBatchAnalysis(
-        uncached,
-        username,
-        threshold,
-        isGuest,
-        signal,
-        (url: string, result: GameAnalysisResult) => {
-          setDisplayedGames((prev) =>
-            prev.map((g) =>
-              g.url === url
-                ? { ...g, blunder_count: result.blunder_count, first_blunder_fen: result.first_blunder_fen, first_blunder_color: result.first_blunder_color }
-                : g,
-            ),
-          );
-        },
-        (current: number, total: number) => setBatchProgress({ current, total }),
-      );
-    } finally {
-      if (!signal.cancelled) {
-        setIsAnalyzingBatch(false);
-      }
-    }
-  }
 
   useEffect(() => {
     const signal = { cancelled: false };
 
     setDisplayedGames([]);
     setError('');
-    setIsAnalyzingBatch(false);
     setInitialLoading(true);
     setHasMore(true);
 
@@ -257,8 +151,6 @@ function GameHistory({
         setDisplayedGames(games);
         setHasMore(games.length === FETCH_SIZE);
         setInitialLoading(false);
-
-        await startAnalysis(games, signal);
       } catch (err: unknown) {
         if (!signal.cancelled) {
           const msg = err instanceof Error ? err.message : 'Failed to load games.';
@@ -273,27 +165,21 @@ function GameHistory({
     return () => {
       signal.cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, timeClass, threshold, isGuest]);
 
   async function handleLoadMore(): Promise<void> {
-    if (isAnalyzingBatch || loadingMore) {
+    if (loadingMore) {
       return;
     }
 
     const offset = displayedGames.length;
     setLoadingMore(true);
 
-    const signal = { cancelled: false };
-
     try {
       const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, offset, threshold, isGuest);
-
       setDisplayedGames((prev) => [...prev, ...more]);
       setHasMore(more.length === FETCH_SIZE);
       setLoadingMore(false);
-
-      await startAnalysis(more, signal);
     } catch {
       setLoadingMore(false);
     }
@@ -320,11 +206,7 @@ function GameHistory({
 
   return (
     <div className="history">
-      {isAnalyzingBatch && (
-        <AnalysisProgressBanner current={batchProgress.current} total={batchProgress.total} />
-      )}
-
-      {displayedGames.length === 0 && !isAnalyzingBatch && (
+      {displayedGames.length === 0 && (
         <p className="history__empty">No games found.</p>
       )}
 
@@ -358,7 +240,7 @@ function GameHistory({
                   className="history__load-more"
                   type="button"
                   onClick={handleLoadMore}
-                  disabled={isAnalyzingBatch || loadingMore}
+                  disabled={loadingMore}
                 >
                   {loadingMore ? 'Loading…' : 'Load more'}
                 </button>

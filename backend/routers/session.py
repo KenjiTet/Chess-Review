@@ -150,6 +150,9 @@ def _build_stream_generator(
                     "prev_move_uci": prev_move_uci,
                     # 0 fallback for games loaded from cache before this field was added
                     "eval_before_white_pov": blunder.get("eval_before_white_pov", 0),
+                    # Full game position history for < > navigation
+                    "game_fens": fens,
+                    "game_uci_moves": uci_moves,
                     "white_username": white_username,
                     "white_rating": white_rating,
                     "black_username": black_username,
