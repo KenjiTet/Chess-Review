@@ -222,7 +222,7 @@ function GameHistory({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [handleLoadMore]);
+  }, [handleLoadMore, initialLoading]);
 
   if (initialLoading) {
     return (
