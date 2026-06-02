@@ -1,0 +1,32 @@
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #c0392b;
+  color: #fff;
+  font-size: 0.9rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.error-banner__message {
+  flex: 1;
+}
+
+.error-banner__dismiss {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0.8;
+}
+
+.error-banner__dismiss:hover {
+  opacity: 1;
+}

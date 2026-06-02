@@ -1,0 +1,39 @@
+.eval-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.eval-bar__track {
+  width: 30px;
+  flex: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+}
+
+.eval-bar__black {
+  background: #1a1a1a;
+  transition: height 0.4s ease;
+  flex-shrink: 0;
+}
+
+.eval-bar__white {
+  background: #f0ede5;
+  transition: height 0.4s ease;
+  flex: 1;
+}
+
+.eval-bar__score {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  min-width: 28px;
+  /* Always contrast against the theme background, never the winning side. */
+  color: var(--text-h);
+}

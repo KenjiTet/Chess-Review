@@ -1,0 +1,66 @@
+.player-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.player-banner__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.player-banner__piece {
+  font-size: 1.05rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.player-banner__piece--white {
+  color: var(--text);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.player-banner__piece--black {
+  color: var(--text);
+}
+
+.player-banner__username {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-banner__rating {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+[data-theme='light'] .player-banner__rating {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.player-banner__time {
+  font-family: var(--mono, 'Courier New', monospace);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}

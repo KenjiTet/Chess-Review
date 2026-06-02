@@ -1,0 +1,112 @@
+.blunder-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 4px solid var(--warning);
+  border-radius: 0 10px 10px 0;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.blunder-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.blunder-card__badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.blunder-card__badge--blunder {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+}
+
+.blunder-card__badge--mistake {
+  background: rgba(249, 115, 22, 0.1);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.blunder-card__badge--inaccuracy {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.blunder-card__badge--good {
+  background: rgba(132, 204, 22, 0.1);
+  color: #84cc16;
+  border: 1px solid rgba(132, 204, 22, 0.3);
+}
+
+.blunder-card__badge--best {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.blunder-card__info {
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.blunder-card__body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.blunder-card__prompt {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.blunder-card__prompt strong {
+  color: var(--text-h);
+  font-family: var(--mono);
+}
+
+.blunder-card__prompt em {
+  color: var(--muted);
+}
+
+.blunder-card__sequence-btn {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.blunder-card__sequence-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.blunder-card__sequence-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
