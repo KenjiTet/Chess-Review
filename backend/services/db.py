@@ -45,4 +45,12 @@ def init_db() -> None:
                 created_at     TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_reviewed_games (
+                username_lower TEXT NOT NULL,
+                game_url       TEXT NOT NULL,
+                reviewed_at    TEXT NOT NULL,
+                PRIMARY KEY (username_lower, game_url)
+            )
+        """)
         conn.commit()

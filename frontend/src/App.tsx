@@ -54,7 +54,11 @@ function App(): JSX.Element {
       const ns = getNamespace();
       useSettings.getState().reloadForUser(ns);
       useFavorites.getState().reloadForUser(ns);
-      useReviewed.getState().reloadForUser(ns);
+
+      // Reviewed games are stored per-user in the DB; guests have none.
+      if (!isGuest) {
+        void useReviewed.getState().loadFromServer();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

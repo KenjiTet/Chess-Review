@@ -55,7 +55,7 @@ const useAuth = create<AuthState>((set, get) => ({
     const ns = username;
     useSettings.getState().reloadForUser(ns);
     useFavorites.getState().reloadForUser(ns);
-    useReviewed.getState().reloadForUser(ns);
+    void useReviewed.getState().loadFromServer();
   },
 
   loginAsGuest: () => {
@@ -65,12 +65,13 @@ const useAuth = create<AuthState>((set, get) => ({
     const ns = 'guest';
     useSettings.getState().reloadForUser(ns);
     useFavorites.getState().reloadForUser(ns);
-    useReviewed.getState().reloadForUser(ns);
+    useReviewed.getState().clear();
   },
 
   logout: () => {
     persistAuth(undefined, false, undefined, false);
     set({ username: undefined, isGuest: false, token: undefined, isAdmin: false });
+    useReviewed.getState().clear();
   },
 
   getNamespace: () => {

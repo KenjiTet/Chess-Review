@@ -1,6 +1,6 @@
 /** Scrollable game history table — shows all games; blunder counts are populated on demand (per-game review). */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { fetchGameHistory } from '../../api/client';
 import type { GameHistoryEntry } from '../../api/client';
@@ -9,7 +9,7 @@ import { TimeClassIcon } from '../TimeClassIcons';
 import './GameHistory.css';
 
 // Games fetched per page.
-const FETCH_SIZE = 5;
+const FETCH_SIZE = 10;
 
 interface GameHistoryProps {
   username: string;
@@ -95,13 +95,17 @@ function GameRow({
 
       {/* Review button */}
       <div className="history__col history__col--action">
-        <button
-          className={`history__review-btn${isReviewed ? ' history__review-btn--done' : ''}`}
-          type="button"
-          onClick={onTrain}
-        >
-          {isReviewed ? 'Re-review' : 'Review'}
-        </button>
+        {game.blunder_count === 0 ? (
+          <span className="history__no-blunders">No blunders</span>
+        ) : (
+          <button
+            className={`history__review-btn${isReviewed ? ' history__review-btn--done' : ''}`}
+            type="button"
+            onClick={onTrain}
+          >
+            {isReviewed ? 'Re-review' : 'Review'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -126,11 +130,18 @@ function GameHistory({
   const [error, setError] = useState<string>('');
 
   const onGamesLoadedRef = useRef(onGamesLoaded);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef<boolean>(false);
+  // Mirrors displayedGames.length so the observer callback can read it without a setState side-effect
+  const gamesLengthRef = useRef<number>(0);
+
   useLayoutEffect(() => {
     onGamesLoadedRef.current = onGamesLoaded;
   });
 
   useEffect(() => {
+    gamesLengthRef.current = displayedGames.length;
     onGamesLoadedRef.current?.(displayedGames);
   }, [displayedGames]);
 
@@ -169,23 +180,49 @@ function GameHistory({
     };
   }, [username, timeClass, threshold, isGuest]);
 
-  async function handleLoadMore(): Promise<void> {
-    if (loadingMore) {
+  const handleLoadMore = useCallback(async (currentLength: number): Promise<void> => {
+    if (loadingMoreRef.current) {
       return;
     }
 
-    const offset = displayedGames.length;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
 
     try {
-      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, offset, threshold, isGuest);
+      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, currentLength, threshold, isGuest);
       setDisplayedGames((prev) => [...prev, ...more]);
       setHasMore(more.length === FETCH_SIZE);
-      setLoadingMore(false);
     } catch {
+      // Silent — sentinel will retry on next intersection
+    } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }
+  }, [username, timeClass, threshold, isGuest]);
+
+  // IntersectionObserver: load more when the sentinel scrolls into view inside the body container
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const body = bodyRef.current;
+
+    if (!sentinel || !body) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+
+        if (entry?.isIntersecting && !loadingMoreRef.current) {
+          void handleLoadMore(gamesLengthRef.current);
+        }
+      },
+      { root: body, threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleLoadMore]);
 
   if (initialLoading) {
     return (
@@ -224,8 +261,8 @@ function GameHistory({
             <div className="history__col history__col--action" />
           </div>
 
-          {/* Scrollable body — load more is the last row */}
-          <div className="history__body">
+          {/* Scrollable body — sentinel at bottom triggers infinite scroll */}
+          <div ref={bodyRef} className="history__body">
             {displayedGames.map((game, idx) => (
               <GameRow
                 key={`game-${game.url}-${idx}`}
@@ -237,15 +274,8 @@ function GameHistory({
             ))}
 
             {hasMore && (
-              <div className="history__row history__row--load-more">
-                <button
-                  className="history__load-more"
-                  type="button"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? 'Loading…' : 'Load more'}
-                </button>
+              <div ref={sentinelRef} className="history__sentinel">
+                {loadingMore && <div className="history__spinner history__spinner--inline" />}
               </div>
             )}
           </div>

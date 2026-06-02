@@ -8,7 +8,7 @@ import useAuth from '../../hooks/useAuth';
 import useReviewed from '../../hooks/useReviewed';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
-import type { GameHistoryEntry } from '../GameHistory/GameHistory';
+import type { GameHistoryEntry } from '../../api/client.ts';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import { TimeClassIcon } from '../TimeClassIcons';
 import './SessionSetup.css';
@@ -17,6 +17,21 @@ const TIME_CLASSES = ['all', 'rapid', 'blitz', 'bullet', 'daily'] as const;
 type TimeClass = (typeof TIME_CLASSES)[number];
 
 const STORAGE_KEY = 'recall_recent_usernames';
+const TIME_CLASS_STORAGE_KEY = 'recall_time_class';
+
+function getSavedTimeClass(): TimeClass {
+  try {
+    const stored = localStorage.getItem(TIME_CLASS_STORAGE_KEY);
+
+    if (stored && (TIME_CLASSES as readonly string[]).includes(stored)) {
+      return stored as TimeClass;
+    }
+
+    return 'rapid';
+  } catch {
+    return 'rapid';
+  }
+}
 
 function getRecentUsernames(): string[] {
   try {
@@ -137,7 +152,12 @@ function SessionSetup(): JSX.Element {
 
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
   const [username, setUsername] = useState<string>(() => getInitialUsername(authUsername));
-  const [timeClass, setTimeClass] = useState<TimeClass>('rapid');
+  const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
+
+  function handleTimeClassChange(tc: TimeClass): void {
+    setTimeClass(tc);
+    localStorage.setItem(TIME_CLASS_STORAGE_KEY, tc);
+  }
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [recentUsernames, setRecentUsernames] = useState<string[]>(getRecentUsernames);
 
@@ -204,6 +224,18 @@ function SessionSetup(): JSX.Element {
     });
   }
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key !== 'Enter') {
+      return;
+    }
+    // Prevent form submission — only validate the username.
+    e.preventDefault();
+    setShowDropdown(false);
+    if (username.trim()) {
+      setHistoryUsername(username.trim());
+    }
+  };
+
   const handleInputFocus = (): void => {
     if (recentUsernames.length > 0) {
       setShowDropdown(true);
@@ -267,6 +299,7 @@ function SessionSetup(): JSX.Element {
                 onChange={(e) => setUsername(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
+                onKeyDown={handleInputKeyDown}
                 required
                 autoComplete="off"
               />
@@ -293,7 +326,7 @@ function SessionSetup(): JSX.Element {
             <label className="setup__label" htmlFor="setup-timeclass">Time Control</label>
             <TimeClassSelect
               value={timeClass}
-              onChange={setTimeClass}
+              onChange={handleTimeClassChange}
             />
           </div>
 

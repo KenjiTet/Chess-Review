@@ -19,6 +19,12 @@ interface SessionStore {
   error: string | undefined;
   blunderCount: number;
   reviewedCount: number;
+  /** True after all blunders in a session are reviewed — triggers the done modal. */
+  sessionDone: boolean;
+  /** Why the session ended — 'finished' = all reviewed, 'no_blunders' = none found. */
+  sessionDoneReason: 'finished' | 'no_blunders' | undefined;
+  /** The last request used to build a session, so the user can replay next game. */
+  lastSessionRequest: SessionCreateRequest | undefined;
 
   buildSession: (req: SessionCreateRequest) => Promise<void>;
   fetchBlunder: () => Promise<void>;
@@ -45,9 +51,12 @@ const useSession = create<SessionStore>((set, get) => ({
   error: undefined,
   blunderCount: 0,
   reviewedCount: 0,
+  sessionDone: false,
+  sessionDoneReason: undefined,
+  lastSessionRequest: undefined,
 
   buildSession: async (req: SessionCreateRequest) => {
-    set({ screen: 'loading', loadingPct: 0, loadingStatus: 'Starting...', error: undefined });
+    set({ screen: 'loading', loadingPct: 0, loadingStatus: 'Starting...', error: undefined, sessionDone: false, lastSessionRequest: req });
 
     try {
       const response = await streamBuildSession(req, (event) => {
@@ -92,14 +101,20 @@ const useSession = create<SessionStore>((set, get) => ({
 
           if (raw) {
             const urls = JSON.parse(raw) as string[];
-            useReviewed.getState().markReviewed(urls);
+            void useReviewed.getState().markReviewed(urls);
             sessionStorage.removeItem('recall_pending_game_urls');
           }
         } catch {
           // Non-critical — reviewed tracking best-effort only.
         }
 
-        get().reset();
+        // If we're still on the loading screen, no blunders were found — show the no-blunders modal.
+        // If we're on the trainer screen, the user just finished the last blunder — show the done modal.
+        if (screen === 'loading') {
+          set({ sessionDone: true, sessionDoneReason: 'no_blunders', sessionId: undefined, screen: 'trainer' });
+        } else {
+          set({ sessionDone: true, sessionDoneReason: 'finished', sessionId: undefined });
+        }
         return;
       }
 
@@ -190,6 +205,8 @@ const useSession = create<SessionStore>((set, get) => ({
       error: undefined,
       blunderCount: 0,
       reviewedCount: 0,
+      sessionDone: false,
+      sessionDoneReason: undefined,
     });
   },
 }));

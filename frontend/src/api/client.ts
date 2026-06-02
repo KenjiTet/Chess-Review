@@ -302,6 +302,20 @@ export async function skipBlunder(sessionId: string): Promise<void> {
   });
 }
 
+/** Mark a list of game URLs as reviewed for the authenticated user. */
+export function markGamesReviewed(gameUrls: string[]): Promise<{ marked: number }> {
+  return fetchJson<{ marked: number }>(`${BASE_URL}/api/session/mark-reviewed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(gameUrls),
+  });
+}
+
+/** Fetch all game URLs the authenticated user has previously reviewed. */
+export function fetchReviewedGames(): Promise<{ game_urls: string[] }> {
+  return fetchJson<{ game_urls: string[] }>(`${BASE_URL}/api/session/reviewed-games`);
+}
+
 // ── Analysis ───────────────────────────────────────────────────────────────
 
 /** Evaluate a single move quality via Stockfish. */

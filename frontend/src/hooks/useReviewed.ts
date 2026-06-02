@@ -1,58 +1,55 @@
-/** Tracks which game URLs the current user has reviewed (completed a training session on). */
+/** Tracks which game URLs the current user has reviewed — persisted in the backend DB. */
 
 import { create } from 'zustand';
-
-const BASE_KEY = 'recall_reviewed';
-
-function storageKey(namespace: string): string {
-  return `${BASE_KEY}_${namespace}`;
-}
-
-function loadReviewed(namespace: string): Set<string> {
-  try {
-    const stored = localStorage.getItem(storageKey(namespace));
-
-    if (!stored) {
-      return new Set();
-    }
-
-    return new Set(JSON.parse(stored) as string[]);
-  } catch {
-    return new Set();
-  }
-}
-
-function persistReviewed(namespace: string, urls: Set<string>): void {
-  localStorage.setItem(storageKey(namespace), JSON.stringify(Array.from(urls)));
-}
+import { fetchReviewedGames, markGamesReviewed } from '../api/client';
 
 interface ReviewedState {
   reviewedUrls: Set<string>;
-  namespace: string;
 
-  markReviewed: (urls: string[]) => void;
+  /** Persist new URLs as reviewed (calls the backend, then updates local state). */
+  markReviewed: (urls: string[]) => Promise<void>;
+
+  /** Check if a game URL has been reviewed. */
   isReviewed: (url: string) => boolean;
-  reloadForUser: (namespace: string) => void;
+
+  /** Load reviewed games from the backend for the authenticated user. */
+  loadFromServer: () => Promise<void>;
+
+  /** Clear local state (called on logout). */
+  clear: () => void;
 }
 
 const useReviewed = create<ReviewedState>((set, get) => ({
   reviewedUrls: new Set<string>(),
-  namespace: 'guest',
 
-  markReviewed: (urls) => {
+  markReviewed: async (urls) => {
+    // Optimistically update local state first
     const current = new Set(get().reviewedUrls);
     urls.forEach((u) => current.add(u));
-    persistReviewed(get().namespace, current);
     set({ reviewedUrls: current });
+
+    try {
+      await markGamesReviewed(urls);
+    } catch {
+      // Keep local state — the backend may be temporarily unavailable
+    }
   },
 
   isReviewed: (url) => {
     return get().reviewedUrls.has(url);
   },
 
-  reloadForUser: (namespace) => {
-    const loaded = loadReviewed(namespace);
-    set({ reviewedUrls: loaded, namespace });
+  loadFromServer: async () => {
+    try {
+      const result = await fetchReviewedGames();
+      set({ reviewedUrls: new Set(result.game_urls) });
+    } catch {
+      set({ reviewedUrls: new Set() });
+    }
+  },
+
+  clear: () => {
+    set({ reviewedUrls: new Set() });
   },
 }));
 

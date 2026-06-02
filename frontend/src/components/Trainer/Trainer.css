@@ -294,3 +294,94 @@
     display: none;
   }
 }
+
+/* ── Session done modal ─────────────────────────────────────────── */
+
+.trainer__done-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.trainer__done-overlay--static {
+  position: static;
+  inset: unset;
+  background: none;
+  flex: 1;
+  z-index: unset;
+}
+
+.trainer__done-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2.5rem 2rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.trainer__done-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.trainer__done-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.trainer__done-msg {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+.trainer__done-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.trainer__done-btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.trainer__done-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.trainer__done-btn--primary {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: var(--gold-text);
+  border-color: transparent;
+}
+
+.trainer__done-btn--primary:hover {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  color: var(--gold-text);
+  box-shadow: 0 3px 10px rgba(200, 134, 31, 0.35);
+}

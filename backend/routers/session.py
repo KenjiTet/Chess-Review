@@ -1,10 +1,11 @@
 """Session management router — build, query, attempt, and summarise training sessions."""
 
 import json
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import requests as req_lib
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from models import (
@@ -18,6 +19,8 @@ from models import (
 )
 from services.cache import get_cached_game, is_cached, store_game
 from services.chess_com import get_game_by_url, get_recent_games
+from services.db import get_connection
+from services.jwt_service import get_current_user
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
 from services.trainer import build_session, get_current_blunder, get_summary, submit_attempt
 
@@ -319,3 +322,48 @@ def get_session_summary(session_id: str):
         best_game_url=best_url,
         worst_game_url=worst_url,
     )
+
+
+@router.post("/mark-reviewed")
+def mark_reviewed(game_urls: list[str], user: dict = Depends(get_current_user)):
+    """Persist a list of game URLs as reviewed for the authenticated user.
+
+    Args:
+        game_urls: List of Chess.com game URLs to mark as reviewed.
+        user: Injected JWT payload from the Authorization header.
+    """
+    username_lower: str = user["sub"].lower()
+    now_iso: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+    with get_connection() as conn:
+        conn.executemany(
+            """
+            INSERT OR IGNORE INTO user_reviewed_games (username_lower, game_url, reviewed_at)
+            VALUES (?, ?, ?)
+            """,
+            [(username_lower, url, now_iso) for url in game_urls],
+        )
+        conn.commit()
+
+    return {"marked": len(game_urls)}
+
+
+@router.get("/reviewed-games")
+def get_reviewed_games(user: dict = Depends(get_current_user)):
+    """Return all game URLs the authenticated user has reviewed.
+
+    Args:
+        user: Injected JWT payload from the Authorization header.
+
+    Returns:
+        Dict with key "game_urls" — list of Chess.com URL strings.
+    """
+    username_lower: str = user["sub"].lower()
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT game_url FROM user_reviewed_games WHERE username_lower = ?",
+            (username_lower,),
+        ).fetchall()
+
+    return {"game_urls": [row["game_url"] for row in rows]}

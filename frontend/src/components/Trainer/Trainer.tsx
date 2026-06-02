@@ -100,8 +100,12 @@ function Trainer(): JSX.Element {
   const reviewedCount = useSession((s) => s.reviewedCount);
   const blunderCount = useSession((s) => s.blunderCount);
   const sessionId = useSession((s) => s.sessionId);
+  const sessionDone = useSession((s) => s.sessionDone);
+  const sessionDoneReason = useSession((s) => s.sessionDoneReason);
+  const lastSessionRequest = useSession((s) => s.lastSessionRequest);
   const submitAttempt = useSession((s) => s.submitAttempt);
   const skipBlunder = useSession((s) => s.skipBlunder);
+  const buildSession = useSession((s) => s.buildSession);
   const reset = useSession((s) => s.reset);
 
   const addFavorite = useFavorites((s) => s.addFavorite);
@@ -474,6 +478,16 @@ function Trainer(): JSX.Element {
     }
   }
 
+  // ── Session done modal actions ──────────────────────────────────────────────
+  function handleReviewNextGame(): void {
+    if (!lastSessionRequest) {
+      reset();
+      return;
+    }
+
+    void buildSession({ ...lastSessionRequest, game_url: undefined });
+  }
+
   // ── Save position to favorites ──────────────────────────────────────────────
   function handleSaveFavorite(): void {
     if (!currentBlunder) {
@@ -515,6 +529,42 @@ function Trainer(): JSX.Element {
   }
 
   // ── Guard ───────────────────────────────────────────────────────────────────
+  if (sessionDone) {
+    return (
+      <div className="trainer trainer--empty">
+        <div className="trainer__done-overlay trainer__done-overlay--static">
+          <div className="trainer__done-modal">
+            <div className="trainer__done-icon">{'♟'}</div>
+            <h2 className="trainer__done-title">
+              {sessionDoneReason === 'no_blunders' ? 'Clean game!' : 'All blunders reviewed!'}
+            </h2>
+            <p className="trainer__done-msg">
+              {sessionDoneReason === 'no_blunders'
+                ? 'No blunders found in this game.'
+                : 'No more blunders to review in this game.'}
+            </p>
+            <div className="trainer__done-actions">
+              <button
+                className="trainer__done-btn trainer__done-btn--primary"
+                type="button"
+                onClick={handleReviewNextGame}
+              >
+                Next game
+              </button>
+              <button
+                className="trainer__done-btn"
+                type="button"
+                onClick={reset}
+              >
+                Back to menu
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentBlunder) {
     return (
       <div className="trainer trainer--empty">
@@ -561,13 +611,14 @@ function Trainer(): JSX.Element {
       </button>
     );
   } else {
+    const isLastBlunder = reviewedCount + 1 >= blunderCount;
     actionButton = (
       <button
         className="trainer__panel-btn trainer__panel-btn--primary"
         type="button"
         onClick={handleNext}
       >
-        Next →
+        {isLastBlunder ? 'Finish' : 'Next →'}
       </button>
     );
   }
