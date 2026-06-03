@@ -66,8 +66,6 @@ def _blunder_data_from_cache(
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
     computed_acc: dict[str, float] = compute_player_accuracy(move_data)
 
-    print("computed accuracy from cache:", computed_acc)
-
     blunder_count: int = len(blunders)
 
     if blunders and fens:

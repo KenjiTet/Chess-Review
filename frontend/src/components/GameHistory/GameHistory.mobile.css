@@ -1,0 +1,236 @@
+/* ── Mobile card-style game history ─────────────────────────────────────── */
+
+.history--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Scrollable body wrapper for cards — uses IntersectionObserver on sentinel */
+
+.history--mobile .history__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 50vh;
+  padding-bottom: 4px;
+}
+
+.history--mobile .history__body::-webkit-scrollbar {
+  width: 0;
+}
+
+/* Loading skeleton for mobile */
+
+.history--mobile .history__cards-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Card */
+
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.game-card:hover {
+  border-color: var(--gold);
+  background: var(--surface-2);
+}
+
+/* Result badge */
+
+.game-card__res {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--mono);
+}
+
+.game-card__res--win {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.game-card__res--lose {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+}
+
+.game-card__res--draw {
+  background: var(--draw-bg, rgba(138, 150, 170, 0.14));
+  color: var(--draw, #8a96aa);
+  border: 1px solid var(--draw-border, rgba(138, 150, 170, 0.3));
+}
+
+/* Main info */
+
+.game-card__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.game-card__opp {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-card__color-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.game-card__color-dot--white {
+  background: #f1ece1;
+}
+
+.game-card__color-dot--black {
+  background: #2a2d33;
+}
+
+.game-card__sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.game-card__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+
+.game-card__blunders {
+  color: var(--gold);
+}
+
+/* Right side */
+
+.game-card__right {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.game-card__acc {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-h);
+  text-align: right;
+}
+
+.game-card__acc small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: right;
+}
+
+.game-card__tc {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* No-blunders card state */
+
+.game-card--no-blunders {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.game-card--no-blunders:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+/* Re-review indicator */
+
+.game-card__badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* Skeleton card */
+
+.game-card--skeleton {
+  pointer-events: none;
+}
+
+.game-card--skeleton .game-card__res {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.skeleton-line {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.skeleton-line--md {
+  width: 80px;
+}
+
+.skeleton-line--sm {
+  width: 55px;
+}
+
+.skeleton-line--acc {
+  width: 36px;
+  height: 12px;
+}

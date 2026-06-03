@@ -15,6 +15,7 @@ import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
 import './SessionSetup.css';
+import './SessionSetup.mobile.css';
 
 const TIME_CLASSES = ['all', 'rapid', 'blitz', 'bullet', 'daily'] as const;
 type TimeClass = (typeof TIME_CLASSES)[number];
@@ -122,7 +123,11 @@ function PlayerCard({ username, avatar, platform }: PlayerCardProps): JSX.Elemen
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-function SessionSetup(): JSX.Element {
+interface SessionSetupProps {
+  isMobile?: boolean;
+}
+
+function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
   const buildSession = useSession((s) => s.buildSession);
   const loadFavoritePosition = useSession((s) => s.loadFavoritePosition);
 
@@ -203,6 +208,106 @@ function SessionSetup(): JSX.Element {
 
   function handleLogout(): void {
     logout();
+  }
+
+  // ── Mobile layout ─────────────────────────────────────────────────────────
+  if (isMobile) {
+    const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
+    const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
+
+    return (
+      <div className="setup--mobile">
+        {/* Profile card */}
+        <div className="setup__mobile-profile">
+          <div className="setup__mobile-avatar">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={username}
+                className="setup__mobile-avatar-img"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.src = fallbackSrc;
+                  target.className = 'setup__mobile-avatar-logo';
+                }}
+              />
+            ) : (
+              <img
+                src={fallbackSrc}
+                alt={platformLabel}
+                className="setup__mobile-avatar-logo"
+              />
+            )}
+          </div>
+          <div className="setup__mobile-profile-txt">
+            <span className="setup__mobile-profile-name">{username}</span>
+            <span className="setup__mobile-profile-meta">{platformLabel}</span>
+          </div>
+          <button
+            className="setup__mobile-logout-btn"
+            type="button"
+            onClick={handleLogout}
+          >
+            Log out
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="setup__mobile-body">
+          {/* Controls */}
+          <div className="setup__mobile-controls">
+            <div className="setup__mobile-control">
+              <span className="setup__mobile-label">Time Control</span>
+              <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+            </div>
+            <div className="setup__mobile-control">
+              <span className="setup__mobile-label">Sensitivity</span>
+              <ThresholdPicker value={threshold} onChange={setThreshold} />
+            </div>
+          </div>
+
+          {/* Section header with tab toggle */}
+          <div className="setup__mobile-section">
+            <h2>{showFavorites ? 'Saved Positions' : 'Recent Games'}</h2>
+            <button
+              type="button"
+              className="setup__mobile-tab-btn"
+              onClick={() => setShowFavorites((v) => !v)}
+            >
+              {showFavorites ? 'Recent games' : '★ Saved'}
+            </button>
+          </div>
+
+          {/* Content */}
+          {showFavorites ? (
+            <div className="setup__mobile-favorites-wrap">
+              <Favorites onOpen={handleOpenFavorite} />
+            </div>
+          ) : (
+            username && (
+              <GameHistory
+                username={username}
+                timeClass={timeClass}
+                isGuest={isGuest}
+                platform={platform ?? 'chesscom'}
+                isMobile
+                onTrainGame={handleTrainGame}
+                onGamesLoaded={handleGamesLoaded}
+              />
+            )
+          )}
+        </div>
+
+        {/* Fixed start training button */}
+        <div className="setup__mobile-submit-bar">
+          <form onSubmit={handleSubmit}>
+            <button className="setup__mobile-submit" type="submit">
+              Start Training
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

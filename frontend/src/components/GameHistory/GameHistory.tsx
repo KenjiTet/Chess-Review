@@ -7,6 +7,7 @@ import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
 import './GameHistory.css';
+import './GameHistory.mobile.css';
 
 // Games fetched per page.
 const FETCH_SIZE = 10;
@@ -16,6 +17,7 @@ interface GameHistoryProps {
   timeClass: string;
   isGuest: boolean;
   platform: string;
+  isMobile?: boolean;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
 }
@@ -111,6 +113,97 @@ function GameRow({
   );
 }
 
+// ── Mobile card component ──────────────────────────────────────────────────
+
+function GameCard({
+  game,
+  username,
+  isReviewed,
+  onTrain,
+}: {
+  game: GameHistoryEntry;
+  username: string;
+  isReviewed: boolean;
+  onTrain: () => void;
+}): JSX.Element {
+  const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
+  const opponentName = isWhite ? game.black_username : game.white_username;
+  const myAccuracy = isWhite ? game.white_accuracy : game.black_accuracy;
+  const myColor = isWhite ? 'white' : 'black';
+
+  const resultChar = game.result === 'win' ? 'W' : game.result === 'lose' ? 'L' : 'D';
+  const resultResClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw';
+  const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
+
+  const noBlunders = game.blunder_count === 0;
+  const tcLabel = game.time_class.charAt(0).toUpperCase() + game.time_class.slice(1);
+
+  function handleClick(): void {
+    if (noBlunders) {
+      return;
+    }
+    onTrain();
+  }
+
+  return (
+    <div
+      className={`game-card${noBlunders ? ' game-card--no-blunders' : ''}`}
+      onClick={handleClick}
+      role={noBlunders ? undefined : 'button'}
+      tabIndex={noBlunders ? undefined : 0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleClick();
+        }
+      }}
+    >
+      {/* Result badge */}
+      <div className={`game-card__res game-card__res--${resultResClass}`}>
+        {resultChar}
+      </div>
+
+      {/* Main info */}
+      <div className="game-card__main">
+        <div className="game-card__opp">
+          <span className={`game-card__color-dot game-card__color-dot--${myColor}`} />
+          {opponentName}
+          {isReviewed && (
+            <span className="game-card__badge">Reviewed</span>
+          )}
+        </div>
+        <div className="game-card__sub">
+          {resultLabel} as {myColor}
+          <span className="game-card__dot" />
+          {tcLabel}
+          {!noBlunders && (
+            <>
+              <span className="game-card__dot" />
+              <span className="game-card__blunders">
+                {game.blunder_count} blunder{game.blunder_count !== 1 ? 's' : ''}
+              </span>
+            </>
+          )}
+          {noBlunders && (
+            <>
+              <span className="game-card__dot" />
+              clean
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Right: accuracy + date */}
+      <div className="game-card__right">
+        <div className="game-card__acc">
+          {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
+          <small>accuracy</small>
+        </div>
+        <div className="game-card__tc">{formatDate(game.date)}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 function GameHistory({
@@ -118,6 +211,7 @@ function GameHistory({
   timeClass,
   isGuest,
   platform,
+  isMobile = false,
   onTrainGame,
   onGamesLoaded,
 }: GameHistoryProps): JSX.Element {
@@ -225,6 +319,27 @@ function GameHistory({
   }, [handleLoadMore, initialLoading]);
 
   if (initialLoading) {
+    if (isMobile) {
+      return (
+        <div className="history history--mobile">
+          <div className="history__cards-skeleton">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={`mob-skeleton-${i}`} className="game-card game-card--skeleton">
+                <div className="game-card__res" />
+                <div className="game-card__main">
+                  <div className="skeleton-line skeleton-line--md" />
+                  <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 5 }} />
+                </div>
+                <div className="game-card__right">
+                  <div className="skeleton-line skeleton-line--acc" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="history">
         <div className="history__table">
@@ -274,6 +389,38 @@ function GameHistory({
     );
   }
 
+  // Mobile card layout
+  if (isMobile) {
+    return (
+      <div className="history history--mobile">
+        {displayedGames.length === 0 && (
+          <p className="history__empty">No games found.</p>
+        )}
+
+        {displayedGames.length > 0 && (
+          <div ref={bodyRef} className="history__body">
+            {displayedGames.map((game, idx) => (
+              <GameCard
+                key={`mob-game-${game.url}-${idx}`}
+                game={game}
+                username={username}
+                isReviewed={isReviewedFn(game.url)}
+                onTrain={() => onTrainGame(game.url)}
+              />
+            ))}
+
+            {hasMore && (
+              <div ref={sentinelRef} className="history__sentinel">
+                {loadingMore && <div className="history__spinner history__spinner--inline" />}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop table layout
   return (
     <div className="history">
       {displayedGames.length === 0 && (

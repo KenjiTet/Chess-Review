@@ -9,9 +9,12 @@ interface Settings {
 }
 
 interface SettingsState extends Settings {
+  /** Admin-only: forces the mobile layout regardless of viewport size. Not persisted. */
+  mobileOverride: boolean;
   setDarkMode: (v: boolean) => void;
   setNGames: (v: number) => void;
   setThreshold: (v: number) => void;
+  toggleMobileOverride: () => void;
   reloadForUser: (namespace: string) => void;
 }
 
@@ -60,6 +63,7 @@ function persist(s: Settings): void {
 
 const useSettings = create<SettingsState>((set, get) => ({
   ...loadSettings(),
+  mobileOverride: false,
 
   setDarkMode: (darkMode) => {
     set({ darkMode });
@@ -74,6 +78,10 @@ const useSettings = create<SettingsState>((set, get) => ({
   setThreshold: (threshold) => {
     set({ threshold });
     persist({ ...get(), threshold });
+  },
+
+  toggleMobileOverride: () => {
+    set((s) => ({ mobileOverride: !s.mobileOverride }));
   },
 
   reloadForUser: (namespace) => {

@@ -26,6 +26,7 @@ import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import useSettings from '../../hooks/useSettings';
 import './Trainer.css';
+import './Trainer.mobile.css';
 
 interface HistoryEntry {
   fen: string;
@@ -98,7 +99,11 @@ function buildInitialHistory(blunder: { fen_before: string; prev_fen: string | n
   return { history: entries, blunderIdx };
 }
 
-function Trainer(): JSX.Element {
+interface TrainerProps {
+  isMobile?: boolean;
+}
+
+function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   const currentBlunder = useSession((s) => s.currentBlunder);
   const reviewedCount = useSession((s) => s.reviewedCount);
   const blunderCount = useSession((s) => s.blunderCount);
@@ -116,6 +121,8 @@ function Trainer(): JSX.Element {
 
   const threshold = useSettings((s) => s.threshold);
   const setThreshold = useSettings((s) => s.setThreshold);
+  const darkMode = useSettings((s) => s.darkMode);
+  const setDarkMode = useSettings((s) => s.setDarkMode);
 
   // ── Local board state ───────────────────────────────────────────────────────
   // Initialize directly from currentBlunder so the board has the correct FEN
@@ -131,6 +138,10 @@ function Trainer(): JSX.Element {
   const [botThinking, setBotThinking] = useState<boolean>(false);
   const [isPlayingSequence, setIsPlayingSequence] = useState<boolean>(false);
   const [saveModalOpen, setSaveModalOpen] = useState<boolean>(false);
+
+  // Mobile-only UI state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [mobileFbOpen, setMobileFbOpen] = useState<boolean>(false);
 
   // Position history for < > navigation — seeded with prev/blunder/blunder-result context
   const initialHistory = buildInitialHistory(currentBlunder);
@@ -681,6 +692,241 @@ function Trainer(): JSX.Element {
     } catch {
       prevMoveSan = null;
     }
+  }
+
+  // ── Mobile layout ───────────────────────────────────────────────────────────
+  if (isMobile) {
+    // Determine the contextual action for the bottom bar's last button
+    let mobileActionLabel: string;
+    let mobileActionHandler: () => void;
+    let mobileActionPrimary: boolean;
+
+    if (sessionId === undefined) {
+      mobileActionLabel = '← Back';
+      mobileActionHandler = reset;
+      mobileActionPrimary = false;
+    } else if (firstMove === null) {
+      mobileActionLabel = 'Skip →';
+      mobileActionHandler = skipBlunder;
+      mobileActionPrimary = false;
+    } else {
+      const isLastBlunder = reviewedCount + 1 >= blunderCount;
+      mobileActionLabel = isLastBlunder ? 'Finish' : 'Next →';
+      mobileActionHandler = handleNext;
+      mobileActionPrimary = true;
+    }
+
+    return (
+      <>
+      <div className="trainer trainer--mobile">
+        {/* Header */}
+        <header className="trainer__mobile-hdr">
+          <div className="trainer__mobile-hdr-top">
+            <div className="trainer__brand">
+              <span className="trainer__brand-icon">♚</span>
+              <div>
+                <div className="trainer__brand-title">Chess Blunder Trainer</div>
+                <div className="trainer__brand-sub">
+                  Blunder {reviewedCount + 1} / {blunderCount}
+                </div>
+              </div>
+            </div>
+            <button
+              className="trainer__mobile-menu-btn"
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              <span className="trainer__mobile-menu-bars">
+                <i /><i /><i />
+              </span>
+              Menu
+            </button>
+          </div>
+
+          {/* Progress bar */}
+          <div className="trainer__progress-track">
+            <div className="trainer__progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+
+          {/* Dropdown menu */}
+          {mobileMenuOpen && (
+            <>
+              <div
+                className="trainer__mobile-scrim"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              <div className="trainer__mobile-dropdown">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDarkMode(!darkMode);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="dd-ic">{darkMode ? '☀' : '☾'}</span>
+                  {darkMode ? 'Switch to light' : 'Switch to dark'}
+                </button>
+                <hr />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    reset();
+                  }}
+                >
+                  <span className="dd-ic">⌂</span>
+                  Back to menu
+                </button>
+              </div>
+            </>
+          )}
+        </header>
+
+        {/* Scrollable body */}
+        <div className="trainer__mobile-body">
+          {/* Blunder banner */}
+          <BlunderCard
+            moveSan={currentBlunder.move_san}
+            cpLoss={currentBlunder.cp_loss}
+            classification={currentBlunder.classification}
+            onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
+            sequenceDisabled={isPlayingSequence}
+          />
+
+          {/* Horizontal eval bar */}
+          <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
+
+          {/* Board */}
+          <div className="trainer__mobile-board-wrap">
+            <Board
+              fen={displayFen}
+              orientation={orientation}
+              prevFen={currentBlunder.prev_fen}
+              prevMoveUci={currentBlunder.prev_move_uci}
+              prevMoveSan={prevMoveSan}
+              onMove={handleMove}
+              interactive={!botThinking && !isPlayingSequence}
+              arrowUcis={showArrows ? (localFen === currentBlunder.fen_before ? currentBlunder.best_moves : currentArrows) : []}
+              lastMoveUci={displayLastMoveUci}
+              blunderArrowUci={blunderArrowUci}
+            />
+          </div>
+
+          {/* History navigation */}
+          <div className="trainer__mobile-nav-row">
+            <button
+              className="trainer__mobile-nav-btn"
+              type="button"
+              onClick={handleHistoryBack}
+              disabled={historyIndex === 0}
+              title="Previous position"
+            >
+              ‹
+            </button>
+            <button
+              className="trainer__mobile-nav-btn"
+              type="button"
+              onClick={handleHistoryForward}
+              disabled={historyIndex === positionHistory.length - 1 || botMode}
+              title="Next position"
+            >
+              ›
+            </button>
+          </div>
+
+          {/* Bot thinking indicator */}
+          {botThinking && (
+            <div className="trainer__mobile-bot-status">Stockfish thinking…</div>
+          )}
+
+          {/* Collapsible move feedback */}
+          <div className="trainer__mobile-fb">
+            <button
+              className="trainer__mobile-fb-head"
+              type="button"
+              onClick={() => setMobileFbOpen((v) => !v)}
+            >
+              <span className="trainer__mobile-fb-title">Move Feedback</span>
+              <span className={`trainer__mobile-fb-chev${mobileFbOpen ? ' trainer__mobile-fb-chev--open' : ''}`}>
+                ▾
+              </span>
+            </button>
+            {mobileFbOpen && (
+              <div className="trainer__mobile-fb-body">
+                <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom action bar */}
+        <nav className="trainer__mobile-actionbar">
+          {/* Show Moves */}
+          <button
+            className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
+            type="button"
+            onClick={() => setShowArrows((prev) => !prev)}
+          >
+            <span className="trainer__mobile-act-ic">⇗</span>
+            <span className="trainer__mobile-act-lbl">Moves</span>
+          </button>
+
+          {/* vs Bot */}
+          <button
+            className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
+            type="button"
+            onClick={() => setBotMode((prev) => !prev)}
+            title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
+          >
+            <span className="trainer__mobile-act-ic">♟</span>
+            <span className="trainer__mobile-act-lbl">vs Bot</span>
+          </button>
+
+          {/* Reset */}
+          <button
+            className="trainer__mobile-act"
+            type="button"
+            onClick={handleReset}
+          >
+            <span className="trainer__mobile-act-ic">↺</span>
+            <span className="trainer__mobile-act-lbl">Reset</span>
+          </button>
+
+          {/* Save */}
+          <button
+            className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
+            type="button"
+            onClick={handleSaveFavorite}
+            disabled={isSaved}
+          >
+            <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
+            <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
+          </button>
+
+          {/* Contextual: Skip / Next / Back */}
+          <button
+            className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
+            type="button"
+            onClick={mobileActionHandler}
+          >
+            <span className="trainer__mobile-act-ic">▶▶</span>
+            <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
+          </button>
+        </nav>
+      </div>
+
+      {currentBlunder && (
+        <SaveFavoriteModal
+          isOpen={saveModalOpen}
+          classification={currentBlunder.classification}
+          blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
+          onConfirm={handleConfirmSave}
+          onCancel={handleCancelSave}
+        />
+      )}
+      </>
+    );
   }
 
   return (
