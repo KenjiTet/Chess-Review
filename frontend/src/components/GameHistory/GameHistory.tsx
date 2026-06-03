@@ -227,9 +227,40 @@ function GameHistory({
   if (initialLoading) {
     return (
       <div className="history">
-        <div className="history__loading">
-          <div className="history__spinner" />
-          Loading games…
+        <div className="history__table">
+          <div className="history__header">
+            <div className="history__col history__col--tc" />
+            <div className="history__col history__col--players">Players</div>
+            <div className="history__col history__col--result">Result</div>
+            <div className="history__col history__col--acc">Accuracy</div>
+            <div className="history__col history__col--date">Date</div>
+            <div className="history__col history__col--action" />
+          </div>
+          <div className="history__body">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={`skeleton-row-${i}`} className="history__row history__row--skeleton">
+                <div className="history__col history__col--tc">
+                  <div className="skeleton skeleton--icon" />
+                </div>
+                <div className="history__col history__col--players">
+                  <div className="skeleton skeleton--md" />
+                  <div className="skeleton skeleton--sm" />
+                </div>
+                <div className="history__col history__col--result">
+                  <div className="skeleton skeleton--xs" />
+                </div>
+                <div className="history__col history__col--acc">
+                  <div className="skeleton skeleton--xs" />
+                </div>
+                <div className="history__col history__col--date">
+                  <div className="skeleton skeleton--sm" />
+                </div>
+                <div className="history__col history__col--action">
+                  <div className="skeleton skeleton--btn" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

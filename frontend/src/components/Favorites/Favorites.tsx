@@ -55,6 +55,9 @@ function FavoriteItem({ fav, onOpen }: FavoriteItemProps): JSX.Element {
             {fav.classification}
           </span>
           <p className="fav-item__desc">{fav.blunderDescription}</p>
+          {fav.note && (
+            <p className="fav-item__note">{fav.note}</p>
+          )}
         </div>
       </div>
     </div>

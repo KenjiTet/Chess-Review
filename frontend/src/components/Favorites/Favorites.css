@@ -108,6 +108,17 @@
   margin: 0;
 }
 
+.fav-item__note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 0.55rem;
+  border-left: 2px solid var(--gold);
+  opacity: 0.9;
+}
+
 /* Empty state */
 
 .fav-empty {

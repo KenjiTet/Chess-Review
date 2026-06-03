@@ -14,6 +14,7 @@ export interface FavoritePosition {
   color: string;
   moveNumber: number;
   boardImageDataUrl: string;
+  note?: string;
 }
 
 const BASE_KEY = 'recall_favorites';

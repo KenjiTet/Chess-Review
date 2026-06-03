@@ -358,6 +358,35 @@
   display: inline-block;
 }
 
+/* ── Skeleton loader ───────────────────────────────────────────── */
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+.skeleton--icon { width: 15px; height: 15px; border-radius: 3px; }
+.skeleton--xs   { width: 36px; height: 14px; }
+.skeleton--sm   { width: 80px; height: 12px; }
+.skeleton--md   { width: 120px; height: 12px; }
+.skeleton--btn  { width: 60px; height: 26px; border-radius: 6px; }
+
+.history__row--skeleton {
+  pointer-events: none;
+}
+
 /* ── Infinite scroll sentinel ─────────────────────────────────── */
 
 .history__sentinel {

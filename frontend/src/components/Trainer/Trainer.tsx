@@ -22,6 +22,7 @@ import MoveLog, { type MoveLogEntry } from '../MoveLog/MoveLog';
 import { evaluateMove, getPositionEval, getStockfishMove, getBestMoves, getBlunderLine, type BlunderLineResponse } from '../../api/client';
 import { playMoveSound } from '../../utils/sounds';
 import { generateBoardImage } from '../../utils/generateBoardImage';
+import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import './Trainer.css';
 
 interface HistoryEntry {
@@ -124,6 +125,7 @@ function Trainer(): JSX.Element {
   const [botMode, setBotMode] = useState<boolean>(false);
   const [botThinking, setBotThinking] = useState<boolean>(false);
   const [isPlayingSequence, setIsPlayingSequence] = useState<boolean>(false);
+  const [saveModalOpen, setSaveModalOpen] = useState<boolean>(false);
 
   // Position history for < > navigation — seeded with prev/blunder/blunder-result context
   const initialHistory = buildInitialHistory(currentBlunder);
@@ -494,6 +496,16 @@ function Trainer(): JSX.Element {
       return;
     }
 
+    setSaveModalOpen(true);
+  }
+
+  function handleConfirmSave(note: string): void {
+    if (!currentBlunder) {
+      return;
+    }
+
+    setSaveModalOpen(false);
+
     const boardImageDataUrl = generateBoardImage(currentBlunder.fen_before, orientation);
     const colorLabel = currentBlunder.color === 'w' ? 'White' : 'Black';
     const blunderDescription = `Move ${currentBlunder.move_number} (${colorLabel}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`;
@@ -508,7 +520,12 @@ function Trainer(): JSX.Element {
       color: currentBlunder.color,
       moveNumber: currentBlunder.move_number,
       boardImageDataUrl,
+      note: note !== '' ? note : undefined,
     });
+  }
+
+  function handleCancelSave(): void {
+    setSaveModalOpen(false);
   }
 
   // ── History navigation ──────────────────────────────────────────────────────
@@ -643,6 +660,7 @@ function Trainer(): JSX.Element {
   }
 
   return (
+    <>
     <div className="trainer">
       <header className="trainer__header">
         <div className="trainer__brand">
@@ -773,6 +791,17 @@ function Trainer(): JSX.Element {
       </div>
       </div>
     </div>
+
+    {currentBlunder && (
+      <SaveFavoriteModal
+        isOpen={saveModalOpen}
+        classification={currentBlunder.classification}
+        blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
+        onConfirm={handleConfirmSave}
+        onCancel={handleCancelSave}
+      />
+    )}
+    </>
   );
 }
 
