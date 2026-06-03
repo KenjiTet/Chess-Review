@@ -23,6 +23,8 @@ import { evaluateMove, getPositionEval, getStockfishMove, getBestMoves, getBlund
 import { playMoveSound } from '../../utils/sounds';
 import { generateBoardImage } from '../../utils/generateBoardImage';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
+import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
+import useSettings from '../../hooks/useSettings';
 import './Trainer.css';
 
 interface HistoryEntry {
@@ -111,6 +113,9 @@ function Trainer(): JSX.Element {
 
   const addFavorite = useFavorites((s) => s.addFavorite);
   const favorites = useFavorites((s) => s.favorites);
+
+  const threshold = useSettings((s) => s.threshold);
+  const setThreshold = useSettings((s) => s.setThreshold);
 
   // ── Local board state ───────────────────────────────────────────────────────
   // Initialize directly from currentBlunder so the board has the correct FEN
@@ -490,6 +495,17 @@ function Trainer(): JSX.Element {
     void buildSession({ ...lastSessionRequest, game_url: undefined });
   }
 
+  function handleRetryWithThreshold(newThreshold: number): void {
+    setThreshold(newThreshold);
+
+    if (!lastSessionRequest) {
+      reset();
+      return;
+    }
+
+    void buildSession({ ...lastSessionRequest, threshold: newThreshold });
+  }
+
   // ── Save position to favorites ──────────────────────────────────────────────
   function handleSaveFavorite(): void {
     if (!currentBlunder) {
@@ -560,6 +576,14 @@ function Trainer(): JSX.Element {
                 ? 'No blunders found in this game.'
                 : 'No more blunders to review in this game.'}
             </p>
+
+            {sessionDoneReason === 'no_blunders' && (
+              <div className="trainer__done-threshold">
+                <span className="trainer__done-threshold-label">Lower the threshold to find more blunders</span>
+                <ThresholdPicker value={threshold} onChange={handleRetryWithThreshold} />
+              </div>
+            )}
+
             <div className="trainer__done-actions">
               <button
                 className="trainer__done-btn trainer__done-btn--primary"

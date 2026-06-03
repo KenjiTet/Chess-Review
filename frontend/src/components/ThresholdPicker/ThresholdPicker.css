@@ -1,0 +1,82 @@
+/* Dropdown threshold picker — mirrors tc-select styles */
+
+.threshold-picker {
+  position: relative;
+}
+
+.threshold-picker__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.threshold-picker__trigger:hover,
+.threshold-picker__trigger:focus {
+  border-color: var(--gold);
+  outline: none;
+}
+
+.threshold-picker__label {
+  flex: 1;
+  text-align: left;
+  font-weight: 600;
+}
+
+.threshold-picker__chevron {
+  width: 10px;
+  height: 6px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.threshold-picker__chevron--open {
+  transform: rotate(180deg);
+}
+
+.threshold-picker__menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.threshold-picker__option {
+  display: flex;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.threshold-picker__option:hover {
+  background: var(--bg);
+  color: var(--gold);
+}
+
+.threshold-picker__option--active {
+  color: var(--gold);
+  font-weight: 700;
+}

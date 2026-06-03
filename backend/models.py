@@ -9,6 +9,7 @@ class SessionCreateRequest(BaseModel):
     time_class: str
     n_games: int
     threshold: int
+    platform: str = "chesscom"
 
 
 class SessionCreateResponse(BaseModel):

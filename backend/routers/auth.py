@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException
 from jose import jwt as _jwt
 
 from models import AuthRequest, AuthResponse, IdentifyRequest
-from services.chess_com import get_player_profile
+from services.chess_com import get_player_profile as chesscom_get_profile
+import services.lichess as lichess_svc
 from services.jwt_service import create_token
 from services.users import check_password, create_user
 
@@ -63,7 +64,7 @@ def register(req: AuthRequest) -> AuthResponse:
 
     # Verify the username exists on Chess.com before creating the account.
     try:
-        get_player_profile(req.username)
+        chesscom_get_profile(req.username)
     except ValueError:
         raise HTTPException(
             status_code=400,
@@ -98,7 +99,7 @@ def identify(req: IdentifyRequest) -> AuthResponse:
 
     if req.platform == "chesscom":
         try:
-            profile = get_player_profile(req.username)
+            profile = chesscom_get_profile(req.username)
             avatar = profile.get("avatar")
         except ValueError:
             raise HTTPException(
@@ -107,6 +108,16 @@ def identify(req: IdentifyRequest) -> AuthResponse:
             )
         except req_lib.RequestException:
             raise HTTPException(status_code=502, detail="Could not verify Chess.com username. Please try again.")
+    elif req.platform == "lichess":
+        try:
+            lichess_svc.get_player_profile(req.username)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Lichess username '{req.username}' does not exist. Please check and try again.",
+            )
+        except req_lib.RequestException:
+            raise HTTPException(status_code=502, detail="Could not verify Lichess username. Please try again.")
 
     token: str = create_token(req.username)
     payload: dict = _jwt.get_unverified_claims(token)

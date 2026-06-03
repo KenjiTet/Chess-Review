@@ -11,6 +11,7 @@ import GameHistory from '../GameHistory/GameHistory';
 import type { GameHistoryEntry } from '../../api/client.ts';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import { TimeClassIcon } from '../TimeClassIcons';
+import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
 import './SessionSetup.css';
@@ -127,6 +128,7 @@ function SessionSetup(): JSX.Element {
 
   const nGames = useSettings((s) => s.nGames);
   const threshold = useSettings((s) => s.threshold);
+  const setThreshold = useSettings((s) => s.setThreshold);
 
   const authUsername = useAuth((s) => s.username);
   const isGuest = useAuth((s) => s.isGuest);
@@ -184,6 +186,7 @@ function SessionSetup(): JSX.Element {
       n_games: nGames,
       threshold,
       game_url: gameUrl,
+      platform: platform ?? 'chesscom',
     });
   };
 
@@ -194,6 +197,7 @@ function SessionSetup(): JSX.Element {
       n_games: 1,
       threshold,
       game_url: gameUrl,
+      platform: platform ?? 'chesscom',
     });
   }
 
@@ -238,6 +242,11 @@ function SessionSetup(): JSX.Element {
             />
           </div>
 
+          <div className="setup__field setup__field--threshold">
+            <label className="setup__label">Sensitivity</label>
+            <ThresholdPicker value={threshold} onChange={setThreshold} />
+          </div>
+
           {/* Favorites toggle — star icon button */}
           <div className="setup__field setup__field--fav">
             <label className="setup__label">&nbsp;</label>
@@ -268,8 +277,8 @@ function SessionSetup(): JSX.Element {
                 <GameHistory
                   username={username}
                   timeClass={timeClass}
-                  threshold={threshold}
                   isGuest={isGuest}
+                  platform={platform ?? 'chesscom'}
                   onTrainGame={handleTrainGame}
                   onGamesLoaded={handleGamesLoaded}
                 />

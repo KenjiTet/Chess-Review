@@ -18,7 +18,9 @@ from models import (
     SummaryResponse,
 )
 from services.cache import get_cached_game, is_cached, store_game
-from services.chess_com import get_game_by_url, get_recent_games
+from services.chess_com import get_game_by_url as chesscom_game_by_url
+from services.chess_com import get_recent_games as chesscom_recent_games
+import services.lichess as lichess_svc
 from services.db import get_connection
 from services.jwt_service import get_current_user
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
@@ -42,6 +44,7 @@ def _build_stream_generator(
     n_games: int,
     threshold: int,
     game_url: str | None = None,
+    platform: str = "chesscom",
 ):
     """Sync generator that yields SSE events while building a training session.
 
@@ -54,10 +57,16 @@ def _build_stream_generator(
         yield _sse({"status": "Fetching games...", "pct": 5})
 
         if game_url:
-            game: dict = get_game_by_url(username, game_url)
+            if platform == "lichess":
+                game: dict = lichess_svc.get_game_by_url(username, game_url)
+            else:
+                game = chesscom_game_by_url(username, game_url)
             games: list[dict] = [game]
         else:
-            games = get_recent_games(username, time_class, n_games)
+            if platform == "lichess":
+                games = lichess_svc.get_recent_games(username, time_class, n_games)
+            else:
+                games = chesscom_recent_games(username, time_class, n_games)
 
         if not games:
             yield _sse({"status": "No matching games found.", "pct": 100, "error": "no_games"})
@@ -197,8 +206,8 @@ def _build_stream_generator(
         })
 
     except req_lib.RequestException as exc:
-        # Surface Chess.com API failures to the frontend loading screen
-        yield _sse({"status": "error", "pct": 0, "error": f"Chess.com API error: {exc}"})
+        # Surface API failures to the frontend loading screen
+        yield _sse({"status": "error", "pct": 0, "error": f"API error: {exc}"})
     except Exception as exc:
         yield _sse({"status": "error", "pct": 0, "error": str(exc)})
 
@@ -210,6 +219,7 @@ def build_stream(
     n_games: int,
     threshold: int,
     game_url: str | None = None,
+    platform: str = "chesscom",
 ):
     """Stream SSE progress events while building a training session.
 
@@ -218,7 +228,7 @@ def build_stream(
     If game_url is provided, builds the session from that specific game only.
     """
     return StreamingResponse(
-        _build_stream_generator(username, time_class, n_games, threshold, game_url),
+        _build_stream_generator(username, time_class, n_games, threshold, game_url, platform),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -232,11 +242,14 @@ def build_session_sync(req: SessionCreateRequest):
     testing and simple CLI clients where progress streaming is not needed.
     """
     try:
-        games: list[dict] = get_recent_games(req.username, req.time_class, req.n_games)
+        if req.platform == "lichess":
+            games: list[dict] = lichess_svc.get_recent_games(req.username, req.time_class, req.n_games)
+        else:
+            games = chesscom_recent_games(req.username, req.time_class, req.n_games)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except req_lib.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"Chess.com API error: {exc}")
+        raise HTTPException(status_code=502, detail=f"API error: {exc}")
 
     session: dict = build_session(req.username, req.time_class, games, req.threshold)
     session_id: str = str(uuid4())

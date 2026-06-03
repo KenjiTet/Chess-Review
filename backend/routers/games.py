@@ -7,7 +7,10 @@ from fastapi import APIRouter, HTTPException
 
 from models import GameAnalysisResult, GameHistoryEntry
 from services.cache import get_cached_game, is_cached, store_game
-from services.chess_com import get_game_by_url, get_recent_games, get_recent_games_all
+from services.chess_com import get_game_by_url as chesscom_game_by_url
+from services.chess_com import get_recent_games as chesscom_recent_games
+from services.chess_com import get_recent_games_all as chesscom_recent_games_all
+import services.lichess as lichess_svc
 from services.stockfish import DEPTH, analyze_game, compute_player_accuracy, find_blunders, get_board_snapshots
 
 router = APIRouter()
@@ -79,27 +82,31 @@ def _blunder_data_from_cache(
 
 
 @router.get("")
-def list_games(username: str, time_class: str, n: int) -> list[dict]:
+def list_games(username: str, time_class: str, n: int, platform: str = "chesscom") -> list[dict]:
     """Fetch the n most recent games of a given time class for a player.
 
     Args (query params):
-        username:   Chess.com username.
+        username:   Player username.
         time_class: One of rapid, blitz, bullet, daily.
         n:          Number of games to fetch.
+        platform:   "chesscom" or "lichess".
 
     Returns:
         List of game dicts (pgn, url, white, black, time_class, etc.)
 
     Raises:
-        404 if the username is not found on Chess.com.
-        502 on Chess.com network/API errors.
+        404 if the username is not found.
+        502 on API network errors.
     """
     try:
-        games = get_recent_games(username, time_class, n)
+        if platform == "lichess":
+            games = lichess_svc.get_recent_games(username, time_class, n)
+        else:
+            games = chesscom_recent_games(username, time_class, n)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except req_lib.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"Chess.com API error: {exc}")
+        raise HTTPException(status_code=502, detail=f"API error: {exc}")
 
     return games
 
@@ -112,6 +119,7 @@ def game_history(
     offset: int,
     threshold: int,
     is_guest: bool = False,
+    platform: str = "chesscom",
 ) -> list[GameHistoryEntry]:
     """Fetch enriched game history for the player with blunder data from cache.
 
@@ -128,14 +136,20 @@ def game_history(
     total_needed: int = offset + n
 
     try:
-        if time_class == "all":
-            games = get_recent_games_all(username, total_needed)
+        if platform == "lichess":
+            if time_class == "all":
+                games = lichess_svc.get_recent_games_all(username, total_needed)
+            else:
+                games = lichess_svc.get_recent_games(username, time_class, total_needed)
         else:
-            games = get_recent_games(username, time_class, total_needed)
+            if time_class == "all":
+                games = chesscom_recent_games_all(username, total_needed)
+            else:
+                games = chesscom_recent_games(username, time_class, total_needed)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except req_lib.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"Chess.com API error: {exc}")
+        raise HTTPException(status_code=502, detail=f"API error: {exc}")
 
     paginated: list[dict] = games[offset:offset + n]
     # cache stub: functions use SQLite directly and ignore this arg.
@@ -194,6 +208,7 @@ def analyze_game_history(
     username: str,
     threshold: int,
     is_guest: bool = False,
+    platform: str = "chesscom",
 ) -> GameAnalysisResult:
     """Analyze a single game and return its blunder count and first blunder position.
 
@@ -226,13 +241,16 @@ def analyze_game_history(
             first_blunder_color=first_color,
         )
 
-    # Fetch game PGN from Chess.com.
+    # Fetch game PGN from the appropriate platform.
     try:
-        game: dict = get_game_by_url(username, game_url)
+        if platform == "lichess":
+            game: dict = lichess_svc.get_game_by_url(username, game_url)
+        else:
+            game = chesscom_game_by_url(username, game_url)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except req_lib.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"Chess.com API error: {exc}")
+        raise HTTPException(status_code=502, detail=f"API error: {exc}")
 
     pgn: str = game.get("pgn", "")
     if not pgn:

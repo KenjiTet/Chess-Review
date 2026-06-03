@@ -40,6 +40,7 @@ export interface SessionCreateRequest {
   n_games: number;
   threshold: number;
   game_url?: string;
+  platform?: string;
 }
 
 export interface SessionCreateResponse {
@@ -215,6 +216,7 @@ export function fetchGameHistory(
   offset: number,
   threshold: number,
   isGuest: boolean = false,
+  platform: string = 'chesscom',
 ): Promise<GameHistoryEntry[]> {
   const params = new URLSearchParams({
     username,
@@ -223,6 +225,7 @@ export function fetchGameHistory(
     offset: String(offset),
     threshold: String(threshold),
     is_guest: String(isGuest),
+    platform,
   });
   return fetchJson<GameHistoryEntry[]>(`${BASE_URL}/api/games/history?${params}`);
 }
@@ -246,6 +249,7 @@ export function streamBuildSession(
       time_class: req.time_class,
       n_games: String(req.n_games),
       threshold: String(req.threshold),
+      platform: req.platform ?? 'chesscom',
     });
 
     if (req.game_url) {

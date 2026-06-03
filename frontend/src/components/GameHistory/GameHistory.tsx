@@ -14,8 +14,8 @@ const FETCH_SIZE = 10;
 interface GameHistoryProps {
   username: string;
   timeClass: string;
-  threshold: number;
   isGuest: boolean;
+  platform: string;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
 }
@@ -116,8 +116,8 @@ function GameRow({
 function GameHistory({
   username,
   timeClass,
-  threshold,
   isGuest,
+  platform,
   onTrainGame,
   onGamesLoaded,
 }: GameHistoryProps): JSX.Element {
@@ -155,7 +155,7 @@ function GameHistory({
       setHasMore(true);
 
       try {
-        const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, threshold, isGuest);
+        const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, 300, isGuest, platform);
 
         if (signal.cancelled) {
           return;
@@ -178,7 +178,7 @@ function GameHistory({
     return () => {
       signal.cancelled = true;
     };
-  }, [username, timeClass, threshold, isGuest]);
+  }, [username, timeClass, isGuest, platform]);
 
   const handleLoadMore = useCallback(async (currentLength: number): Promise<void> => {
     if (loadingMoreRef.current) {
@@ -189,7 +189,7 @@ function GameHistory({
     setLoadingMore(true);
 
     try {
-      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, currentLength, threshold, isGuest);
+      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, currentLength, 300, isGuest, platform);
       setDisplayedGames((prev) => [...prev, ...more]);
       setHasMore(more.length === FETCH_SIZE);
     } catch {
@@ -198,7 +198,7 @@ function GameHistory({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [username, timeClass, threshold, isGuest]);
+  }, [username, timeClass, isGuest, platform]);
 
   // IntersectionObserver: load more when the sentinel scrolls into view inside the body container
   useEffect(() => {
