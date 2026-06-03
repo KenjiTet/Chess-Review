@@ -108,6 +108,12 @@ class AuthRequest(BaseModel):
     password: str
 
 
+class IdentifyRequest(BaseModel):
+    """Request body for passwordless identification — username + platform only."""
+    username: str
+    platform: str  # "chesscom" | "lichess"
+
+
 class AuthResponse(BaseModel):
     """Response for login or registration."""
     success: bool
@@ -116,6 +122,7 @@ class AuthResponse(BaseModel):
     # JWT — present on login, absent on registration (user must log in after registering).
     token: str | None = None
     is_admin: bool = False
+    avatar: str | None = None
 
 
 class GameHistoryEntry(BaseModel):

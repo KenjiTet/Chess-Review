@@ -68,6 +68,54 @@
   letter-spacing: -0.2px;
 }
 
+/* Try-out quick select */
+
+.login__tryout {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.login__tryout-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.login__tryout-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.login__tryout-chip {
+  padding: 0.25rem 0.65rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--sans);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.login__tryout-chip:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(226, 160, 63, 0.06);
+}
+
+.login__tryout-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Fields */
 
 .login__field {
@@ -188,6 +236,53 @@
   border-color: var(--text);
   color: var(--text);
   background: var(--bg);
+}
+
+/* Platform selector */
+
+.login__platforms {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.login__platform-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.4rem;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.login__platform-btn:hover {
+  border-color: var(--text-h);
+}
+
+.login__platform-btn--active {
+  border-color: var(--gold);
+  background: rgba(226, 160, 63, 0.07);
+  box-shadow: 0 0 0 3px rgba(226, 160, 63, 0.15);
+}
+
+.login__platform-logo {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.login__platform-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  font-family: var(--sans);
 }
 
 /* Toggle link */

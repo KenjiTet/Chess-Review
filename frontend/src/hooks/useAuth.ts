@@ -12,6 +12,8 @@ interface StoredAuth {
   isGuest: boolean;
   token: string | undefined;
   isAdmin: boolean;
+  platform: string | undefined;
+  avatar: string | undefined;
 }
 
 interface AuthState {
@@ -19,9 +21,10 @@ interface AuthState {
   isGuest: boolean;
   token: string | undefined;
   isAdmin: boolean;
+  platform: string | undefined;
+  avatar: string | undefined;
 
-  login: (username: string, token: string, isAdmin: boolean) => void;
-  loginAsGuest: () => void;
+  login: (username: string, token: string, isAdmin: boolean, platform: string, avatar: string | undefined) => void;
   logout: () => void;
   getNamespace: () => string;
   getToken: () => string | undefined;
@@ -32,25 +35,25 @@ function loadStoredAuth(): StoredAuth {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
 
     if (!stored) {
-      return { username: undefined, isGuest: false, token: undefined, isAdmin: false };
+      return { username: undefined, isGuest: false, token: undefined, isAdmin: false, platform: undefined, avatar: undefined };
     }
 
     return JSON.parse(stored) as StoredAuth;
   } catch {
-    return { username: undefined, isGuest: false, token: undefined, isAdmin: false };
+    return { username: undefined, isGuest: false, token: undefined, isAdmin: false, platform: undefined, avatar: undefined };
   }
 }
 
-function persistAuth(username: string | undefined, isGuest: boolean, token: string | undefined, isAdmin: boolean): void {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username, isGuest, token, isAdmin }));
+function persistAuth(username: string | undefined, isGuest: boolean, token: string | undefined, isAdmin: boolean, platform: string | undefined, avatar: string | undefined): void {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username, isGuest, token, isAdmin, platform, avatar }));
 }
 
 const useAuth = create<AuthState>((set, get) => ({
   ...loadStoredAuth(),
 
-  login: (username, token, isAdmin) => {
-    persistAuth(username, false, token, isAdmin);
-    set({ username, isGuest: false, token, isAdmin });
+  login: (username, token, isAdmin, platform, avatar) => {
+    persistAuth(username, false, token, isAdmin, platform, avatar);
+    set({ username, isGuest: false, token, isAdmin, platform, avatar });
 
     const ns = username;
     useSettings.getState().reloadForUser(ns);
@@ -58,19 +61,9 @@ const useAuth = create<AuthState>((set, get) => ({
     void useReviewed.getState().loadFromServer();
   },
 
-  loginAsGuest: () => {
-    persistAuth(undefined, true, undefined, false);
-    set({ username: undefined, isGuest: true, token: undefined, isAdmin: false });
-
-    const ns = 'guest';
-    useSettings.getState().reloadForUser(ns);
-    useFavorites.getState().reloadForUser(ns);
-    useReviewed.getState().clear();
-  },
-
   logout: () => {
-    persistAuth(undefined, false, undefined, false);
-    set({ username: undefined, isGuest: false, token: undefined, isAdmin: false });
+    persistAuth(undefined, false, undefined, false, undefined, undefined);
+    set({ username: undefined, isGuest: false, token: undefined, isAdmin: false, platform: undefined, avatar: undefined });
     useReviewed.getState().clear();
   },
 

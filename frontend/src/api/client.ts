@@ -17,6 +17,7 @@ export interface AuthResponse {
   message: string;
   token?: string;
   is_admin?: boolean;
+  avatar?: string;
 }
 
 export interface GameHistoryEntry {
@@ -186,6 +187,15 @@ export function registerUser(username: string, password: string): Promise<AuthRe
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
+  });
+}
+
+/** Passwordless identification — validate username exists on platform and receive a JWT. */
+export function identifyUser(username: string, platform: string): Promise<AuthResponse> {
+  return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/identify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, platform }),
   });
 }
 

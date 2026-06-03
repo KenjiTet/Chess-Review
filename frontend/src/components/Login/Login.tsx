@@ -1,60 +1,38 @@
-/** Login / register / guest entry screen. */
+/** Username selection screen — no password required. */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { JSX } from 'react';
-import { loginUser, registerUser } from '../../api/client';
+import { identifyUser } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
 import useSession from '../../hooks/useSession';
+import chesscomLogo from '../../assets/chesscom_logo.png';
+import lichessLogo from '../../assets/Lichess_logo.png';
 import './Login.css';
 
-type Mode = 'login' | 'register';
+type Platform = 'chesscom' | 'lichess';
+
+const TRYOUT_USERNAMES: Record<Platform, string[]> = {
+  chesscom: ['MagnusCarlsen', 'Hikaru', 'GothamChess'],
+  lichess: ['SindarovGM'],
+};
 
 function Login(): JSX.Element {
   const loginAuth = useAuth((s) => s.login);
-  const loginAsGuest = useAuth((s) => s.loginAsGuest);
   const setScreen = useSession((s) => s.reset);
 
-  const [mode, setMode] = useState<Mode>('login');
+  const [platform, setPlatform] = useState<Platform>('chesscom');
   const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirm, setConfirm] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  function clearFields(): void {
-    setUsername('');
-    setPassword('');
-    setConfirm('');
-    setError('');
-  }
+  const placeholder = platform === 'chesscom'
+    ? 'Enter Chess.com username...'
+    : 'Enter Lichess username...';
 
-  function handleToggleMode(): void {
-    clearFields();
-    setMode((m) => (m === 'login' ? 'register' : 'login'));
-  }
-
-  function validate(): string | undefined {
-    if (!username.trim()) {
-      return 'Username is required.';
-    }
-
-    if (password.length < 5) {
-      return 'Password must be at least 5 characters.';
-    }
-
-    if (mode === 'register' && password !== confirm) {
-      return 'Passwords do not match.';
-    }
-
-    return undefined;
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
-    e.preventDefault();
-    const validationError = validate();
-
-    if (validationError) {
-      setError(validationError);
+  async function submitUsername(name: string): Promise<void> {
+    if (!name.trim()) {
+      setError('Username is required.');
       return;
     }
 
@@ -62,19 +40,8 @@ function Login(): JSX.Element {
     setLoading(true);
 
     try {
-      if (mode === 'login') {
-        const res = await loginUser(username.trim(), password);
-        loginAuth(username.trim(), res.token ?? '', res.is_admin ?? false);
-      } else {
-        await registerUser(username.trim(), password);
-        // After registration the user must log in — switch to login mode.
-        clearFields();
-        setMode('login');
-        setError('');
-        setLoading(false);
-        return;
-      }
-
+      const res = await identifyUser(name.trim(), platform);
+      loginAuth(name.trim(), res.token ?? '', res.is_admin ?? false, platform, res.avatar);
       setScreen();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
@@ -84,9 +51,20 @@ function Login(): JSX.Element {
     }
   }
 
-  function handleGuest(): void {
-    loginAsGuest();
-    setScreen();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
+    e.preventDefault();
+    await submitUsername(username);
+  }
+
+  function handlePlatformSelect(p: Platform): void {
+    setPlatform(p);
+    setUsername('');
+    setError('');
+  }
+
+  async function handleTryout(name: string): Promise<void> {
+    setUsername(name);
+    await submitUsername(name);
   }
 
   return (
@@ -100,74 +78,69 @@ function Login(): JSX.Element {
       </div>
 
       <div className="login__card">
-        <h2 className="login__title">
-          {mode === 'login' ? 'Sign in' : 'Create account'}
-        </h2>
+        <h2 className="login__title">Choose your platform</h2>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Platform selector */}
+        <div className="login__platforms">
+          <button
+            type="button"
+            className={`login__platform-btn${platform === 'chesscom' ? ' login__platform-btn--active' : ''}`}
+            onClick={() => handlePlatformSelect('chesscom')}
+          >
+            <img src={chesscomLogo} alt="Chess.com" className="login__platform-logo" />
+            <span className="login__platform-label">Chess.com</span>
+          </button>
+          <button
+            type="button"
+            className={`login__platform-btn${platform === 'lichess' ? ' login__platform-btn--active' : ''}`}
+            onClick={() => handlePlatformSelect('lichess')}
+          >
+            <img src={lichessLogo} alt="Lichess" className="login__platform-logo" />
+            <span className="login__platform-label">Lichess</span>
+          </button>
+        </div>
+
+        {/* Try-out quick select */}
+        <div className="login__tryout">
+          <span className="login__tryout-label">Try with</span>
+          <div className="login__tryout-chips">
+            {TRYOUT_USERNAMES[platform].map((name) => (
+              <button
+                key={`tryout-${name}`}
+                type="button"
+                className="login__tryout-chip"
+                disabled={loading}
+                onClick={() => handleTryout(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Username form */}
+        <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="login__field">
             <label className="login__label" htmlFor="login-username">Username</label>
             <input
               id="login-username"
               className={`login__input${error ? ' login__input--error' : ''}`}
               type="text"
-              placeholder="Chess.com username"
+              placeholder={placeholder}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
+              autoFocus
               required
             />
           </div>
-
-          <div className="login__field">
-            <label className="login__label" htmlFor="login-password">Password</label>
-            <input
-              id="login-password"
-              className={`login__input${error ? ' login__input--error' : ''}`}
-              type="password"
-              placeholder="Min. 5 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-            />
-          </div>
-
-          {mode === 'register' && (
-            <div className="login__field">
-              <label className="login__label" htmlFor="login-confirm">Confirm Password</label>
-              <input
-                id="login-confirm"
-                className={`login__input${error ? ' login__input--error' : ''}`}
-                type="password"
-                placeholder="Repeat password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                autoComplete="new-password"
-                required
-              />
-            </div>
-          )}
 
           {error && <p className="login__error">{error}</p>}
 
           <button className="login__btn" type="submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {loading ? 'Checking...' : 'Continue'}
           </button>
         </form>
-
-        <div className="login__divider">or</div>
-
-        <button className="login__guest-btn" type="button" onClick={handleGuest}>
-          Continue as Guest
-        </button>
-
-        <p className="login__toggle">
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button className="login__toggle-link" type="button" onClick={handleToggleMode}>
-            {mode === 'login' ? 'Create one' : 'Sign in'}
-          </button>
-        </p>
       </div>
     </div>
   );

@@ -41,12 +41,11 @@ function App(): JSX.Element {
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
   const username = useAuth((s) => s.username);
-  const isGuest = useAuth((s) => s.isGuest);
   const isAdmin = useAuth((s) => s.isAdmin);
   const getNamespace = useAuth((s) => s.getNamespace);
   const [adminView, setAdminView] = useState<boolean>(false);
 
-  const isAuthenticated = username !== undefined || isGuest;
+  const isAuthenticated = username !== undefined;
 
   // On first mount, reload user-namespaced stores if a session was already stored.
   useEffect(() => {
@@ -54,11 +53,7 @@ function App(): JSX.Element {
       const ns = getNamespace();
       useSettings.getState().reloadForUser(ns);
       useFavorites.getState().reloadForUser(ns);
-
-      // Reviewed games are stored per-user in the DB; guests have none.
-      if (!isGuest) {
-        void useReviewed.getState().loadFromServer();
-      }
+      void useReviewed.getState().loadFromServer();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

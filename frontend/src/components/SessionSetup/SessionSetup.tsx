@@ -1,6 +1,6 @@
-/** Setup screen — username, time control, game history, favorites. */
+/** Setup screen — player identity, time control, game history, favorites. */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { JSX } from 'react';
 import useSession from '../../hooks/useSession';
 import useSettings from '../../hooks/useSettings';
@@ -11,61 +11,18 @@ import GameHistory from '../GameHistory/GameHistory';
 import type { GameHistoryEntry } from '../../api/client.ts';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import { TimeClassIcon } from '../TimeClassIcons';
+import chesscomLogo from '../../assets/chesscom_logo.png';
+import lichessLogo from '../../assets/Lichess_logo.png';
 import './SessionSetup.css';
 
 const TIME_CLASSES = ['all', 'rapid', 'blitz', 'bullet', 'daily'] as const;
 type TimeClass = (typeof TIME_CLASSES)[number];
 
-const STORAGE_KEY = 'recall_recent_usernames';
 const TIME_CLASS_STORAGE_KEY = 'recall_time_class';
 
 function getSavedTimeClass(): TimeClass {
-  try {
-    const stored = localStorage.getItem(TIME_CLASS_STORAGE_KEY);
-
-    if (stored && (TIME_CLASSES as readonly string[]).includes(stored)) {
-      return stored as TimeClass;
-    }
-
-    return 'rapid';
-  } catch {
-    return 'rapid';
-  }
-}
-
-function getRecentUsernames(): string[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-
-    if (!stored) {
-      return [];
-    }
-
-    return JSON.parse(stored) as string[];
-  } catch {
-    return [];
-  }
-}
-
-function addRecentUsername(name: string): void {
-  const trimmed = name.trim();
-
-  if (!trimmed) {
-    return;
-  }
-
-  const recent = getRecentUsernames().filter((n) => n !== trimmed);
-  const updated = [trimmed, ...recent].slice(0, 3);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-}
-
-function getInitialUsername(authUsername: string | undefined): string {
-  if (authUsername) {
-    return authUsername;
-  }
-
-  const recents = getRecentUsernames();
-  return recents[0] ?? '';
+  // Always default to "all" — do not restore a previously saved selection.
+  return 'all';
 }
 
 // ── Custom time-class select with icons ────────────────────────────────────
@@ -78,17 +35,6 @@ interface TimeClassSelectProps {
 function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleOutsideClick(e: MouseEvent): void {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, []);
 
   function handleToggle(): void {
     setOpen((prev) => !prev);
@@ -136,6 +82,43 @@ function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element
   );
 }
 
+// ── Player identity card ───────────────────────────────────────────────────
+
+interface PlayerCardProps {
+  username: string;
+  avatar: string | undefined;
+  platform: string | undefined;
+}
+
+function PlayerCard({ username, avatar, platform }: PlayerCardProps): JSX.Element {
+  const [imgFailed, setImgFailed] = useState<boolean>(false);
+
+  const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
+  const showAvatar = avatar && !imgFailed;
+
+  return (
+    <div className="setup__player-card">
+      <div className="setup__player-avatar">
+        {showAvatar ? (
+          <img
+            src={avatar}
+            alt={username}
+            className="setup__player-avatar-img"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <img
+            src={fallbackSrc}
+            alt={platform ?? 'platform'}
+            className="setup__player-avatar-img setup__player-avatar-img--logo"
+          />
+        )}
+      </div>
+      <span className="setup__player-name">{username}</span>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 function SessionSetup(): JSX.Element {
@@ -147,26 +130,22 @@ function SessionSetup(): JSX.Element {
 
   const authUsername = useAuth((s) => s.username);
   const isGuest = useAuth((s) => s.isGuest);
+  const avatar = useAuth((s) => s.avatar);
+  const platform = useAuth((s) => s.platform);
   const logout = useAuth((s) => s.logout);
   const isReviewed = useReviewed((s) => s.isReviewed);
 
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>(() => getInitialUsername(authUsername));
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
+
+  const username = authUsername ?? '';
 
   function handleTimeClassChange(tc: TimeClass): void {
     setTimeClass(tc);
     localStorage.setItem(TIME_CLASS_STORAGE_KEY, tc);
   }
-  const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [recentUsernames, setRecentUsernames] = useState<string[]>(getRecentUsernames);
 
-  // Pre-populate with the auth username (or most recent) so history loads immediately.
-  const [historyUsername, setHistoryUsername] = useState<string>(() => getInitialUsername(authUsername));
   const gamesRef = useRef<GameHistoryEntry[]>([]);
-
-  // The display name shown in the user badge (logged-in username or "Guest").
-  const displayName = isGuest ? 'Guest' : (authUsername ?? '');
 
   function handleOpenFavorite(fav: FavoritePosition): void {
     loadFavoritePosition({
@@ -190,14 +169,11 @@ function SessionSetup(): JSX.Element {
       }
     }
 
-    // Fall back to most recent game if all are reviewed.
     return gamesRef.current[0]?.url;
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    addRecentUsername(username);
-    setRecentUsernames(getRecentUsernames());
 
     const gameUrl = findLastNonReviewedUrl();
     const trainTimeClass = timeClass === 'all' ? 'rapid' : timeClass;
@@ -212,9 +188,6 @@ function SessionSetup(): JSX.Element {
   };
 
   function handleTrainGame(gameUrl: string): void {
-    addRecentUsername(username);
-    setRecentUsernames(getRecentUsernames());
-
     buildSession({
       username,
       time_class: timeClass === 'all' ? 'rapid' : timeClass,
@@ -223,42 +196,6 @@ function SessionSetup(): JSX.Element {
       game_url: gameUrl,
     });
   }
-
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key !== 'Enter') {
-      return;
-    }
-    // Prevent form submission — only validate the username.
-    e.preventDefault();
-    setShowDropdown(false);
-    if (username.trim()) {
-      setHistoryUsername(username.trim());
-    }
-  };
-
-  const handleInputFocus = (): void => {
-    if (recentUsernames.length > 0) {
-      setShowDropdown(true);
-    }
-  };
-
-  const handleInputBlur = (): void => {
-    // Delay to allow dropdown click to register before hiding.
-    setTimeout(() => {
-      setShowDropdown(false);
-
-      // Trigger history fetch when user leaves the username field with a value.
-      if (username.trim()) {
-        setHistoryUsername(username.trim());
-      }
-    }, 150);
-  };
-
-  const handleSelectRecent = (name: string): void => {
-    setUsername(name);
-    setShowDropdown(false);
-    setHistoryUsername(name.trim());
-  };
 
   function handleLogout(): void {
     logout();
@@ -274,10 +211,10 @@ function SessionSetup(): JSX.Element {
         <p className="setup__hero-sub">Review your blunders like a daily puzzle</p>
       </div>
 
-      {/* User identity — fixed at bottom-left, takes no layout height */}
+      {/* User identity badge — fixed bottom-left */}
       <div className="setup__user-row">
-        {displayName && (
-          <span className="setup__user-name">{displayName}</span>
+        {username && (
+          <span className="setup__user-name">{username}</span>
         )}
         <button className="setup__logout-btn" type="button" onClick={handleLogout}>
           Log out
@@ -287,39 +224,10 @@ function SessionSetup(): JSX.Element {
       <form className="setup__card" onSubmit={handleSubmit}>
         {/* ── Controls row: player + time + favorites toggle ── */}
         <div className="setup__controls-row">
+          {/* Player identity — no box, inline with controls */}
           <div className="setup__field setup__field--player">
-            <label className="setup__label" htmlFor="setup-username">Player</label>
-            <div className="setup__input-wrap">
-              <input
-                id="setup-username"
-                className="setup__input"
-                type="text"
-                placeholder="Chess.com username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                onKeyDown={handleInputKeyDown}
-                required
-                autoComplete="off"
-              />
-              {showDropdown && recentUsernames.length > 0 && (
-                <ul className="setup__recent-list">
-                  {recentUsernames.map((name, idx) => (
-                    <li
-                      key={`recent-${name}-${idx}`}
-                      className="setup__recent-item"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelectRecent(name);
-                      }}
-                    >
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <label className="setup__label">Player</label>
+            <PlayerCard username={username} avatar={avatar} platform={platform} />
           </div>
 
           <div className="setup__field setup__field--time">
@@ -354,11 +262,11 @@ function SessionSetup(): JSX.Element {
               </div>
             </>
           ) : (
-            historyUsername && (
+            username && (
               <>
                 <div className="setup__section-title">Recent Games</div>
                 <GameHistory
-                  username={historyUsername}
+                  username={username}
                   timeClass={timeClass}
                   threshold={threshold}
                   isGuest={isGuest}
