@@ -51,8 +51,8 @@ function Admin(): JSX.Element {
 
   // Load stats on first render.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadTab('stats');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function renderStats(): JSX.Element {

@@ -24,6 +24,9 @@ if sys.platform == "win32":
 
 STOCKFISH_PATH: str = os.environ.get("STOCKFISH_PATH", "")
 DEPTH: int = 15
+# Endgame detection: use a deeper search when few pieces remain on the board.
+ENDGAME_DEPTH: int = 20
+ENDGAME_PIECE_THRESHOLD: int = 8
 
 # Centipawn-loss upper bounds per classification label.
 # Losses exceeding the "mistake" bound are classified as blunders.
@@ -56,6 +59,103 @@ def classify_move(cp_loss: int) -> str:
     if cp_loss <= THRESHOLDS["mistake"]:
         return "mistake"
     return "blunder"
+
+
+def _depth_for_board(board: chess.Board) -> int:
+    """Return ENDGAME_DEPTH when few pieces remain, DEPTH otherwise."""
+    if len(board.piece_map()) <= ENDGAME_PIECE_THRESHOLD:
+        return ENDGAME_DEPTH
+    return DEPTH
+
+
+def compute_player_accuracy(move_data: list[dict]) -> dict[str, float]:
+    """Compute per-player accuracy from Stockfish move data using a win-probability model.
+
+    Three filters are applied before scoring each move:
+      1. Losing position filter: moves where the mover is already clearly losing
+         (eval_mover < ACCURACY_MIN_EVAL) are excluded. Win% is already near 0%
+         so any move scores near-perfect — those inflated scores don't reflect skill.
+      2. Mate-score filter: positions flagged with a forced-mate eval
+         (|eval| > ACCURACY_MATE_THRESHOLD) are excluded. The same compression
+         issue applies at the top of the win% curve.
+      3. Calibration: the raw average is passed through a linear transform fitted
+         empirically against Chess.com CAPS2 scores on 10 games. This corrects the
+         remaining ~5–10% systematic overestimation from the formula itself.
+
+    Args:
+        move_data: Output of analyze_game() — list of move dicts with cp_loss,
+                   color, and eval_before_white_pov.
+
+    Returns:
+        Dict {"white": float, "black": float} with accuracy percentages [0, 100].
+        Sides with no scoreable moves are omitted from the dict.
+    """
+    import math
+
+    # Moves below this eval (from the mover's POV) are excluded — position is
+    # already lost and any move scores near 100% regardless of quality.
+    ACCURACY_MIN_EVAL: int = -300
+
+    # Positions with |eval| above this are forced-mate sequences — same inflation
+    # problem at the top of the win% curve.
+    ACCURACY_MATE_THRESHOLD: int = 2000
+
+    # Linear calibration coefficients fitted against Chess.com CAPS2 on 10 games
+    # after applying the losing-position and mate-score filters above.
+    #   calibrated = CALIB_A * raw_avg + CALIB_B
+    # Fit: post-filter raw [50.0–77.4] → Chess.com [53.9–89.7], MAE ≈ 4.77%.
+    CALIB_A: float = 0.8380
+    CALIB_B: float = 13.6227
+
+    def win_pct(cp: int) -> float:
+        """Win probability (%) for a centipawn score from the mover's perspective."""
+        return 100.0 / (1.0 + 10.0 ** (-cp / 400.0))
+
+    white_accs: list[float] = []
+    black_accs: list[float] = []
+
+    for move in move_data:
+        cp_loss: int = move.get("cp_loss", 0)
+        color: str = move.get("color", "")
+        eval_white: int = move.get("eval_before_white_pov", 0)
+
+        # Convert eval to the mover's perspective.
+        if color == "white":
+            eval_mover: int = eval_white
+        else:
+            eval_mover = -eval_white
+
+        # Step 1 — skip losing positions (eval already hopeless).
+        if eval_mover < ACCURACY_MIN_EVAL:
+            continue
+
+        # Step 2 — skip mate-score positions (win% pinned at 100%).
+        if abs(eval_white) > ACCURACY_MATE_THRESHOLD:
+            continue
+
+        wp_before: float = win_pct(eval_mover)
+        wp_after: float = win_pct(eval_mover - cp_loss)
+        wp_loss: float = max(0.0, wp_before - wp_after)
+
+        acc: float = max(0.0, min(100.0, 103.1668 * math.exp(-0.04354 * wp_loss) - 3.1668))
+
+        if color == "white":
+            white_accs.append(acc)
+        elif color == "black":
+            black_accs.append(acc)
+
+    result: dict[str, float] = {}
+
+    # Step 3 — apply linear calibration to bring raw average in line with CAPS2.
+    if white_accs:
+        raw: float = sum(white_accs) / len(white_accs)
+        result["white"] = max(0.0, min(100.0, CALIB_A * raw + CALIB_B))
+
+    if black_accs:
+        raw = sum(black_accs) / len(black_accs)
+        result["black"] = max(0.0, min(100.0, CALIB_A * raw + CALIB_B))
+
+    return result
 
 
 def analyze_game(pgn: str) -> list[dict]:
@@ -96,7 +196,7 @@ def analyze_game(pgn: str) -> list[dict]:
             move_san: str = board.san(move)
 
             # Evaluate position BEFORE the move from the mover's perspective.
-            info_before = engine.analyse(board, chess.engine.Limit(depth=DEPTH))
+            info_before = engine.analyse(board, chess.engine.Limit(depth=_depth_for_board(board)))
             score_before: int = info_before["score"].relative.score(mate_score=_MATE_SCORE)
             eval_before_white: int = info_before["score"].white().score(mate_score=_MATE_SCORE)
 
@@ -108,7 +208,7 @@ def analyze_game(pgn: str) -> list[dict]:
 
             # After the move, board.turn has flipped to the opponent.
             # .relative is now from the opponent's POV, so negate to stay with the mover.
-            info_after = engine.analyse(board, chess.engine.Limit(depth=DEPTH))
+            info_after = engine.analyse(board, chess.engine.Limit(depth=_depth_for_board(board)))
             score_after: int = -info_after["score"].relative.score(mate_score=_MATE_SCORE)
 
             # If the game move was the engine's best, cp_loss is always 0 regardless of
@@ -166,8 +266,19 @@ def get_board_snapshots(pgn: str) -> tuple[list[str], list[str]]:
     return fens, moves
 
 
+# Centipawn threshold above which a position is considered "clearly winning"
+# for the mover. Suboptimal moves in already-winning positions that remain
+# clearly winning after the move are suppressed (e.g. mate-in-4 played as
+# mate-in-8 — still a winning position, not worth flagging as a blunder).
+STILL_WINNING_CP: int = 300
+
+
 def find_blunders(move_data: list[dict], min_cp_loss: int = 100) -> list[dict]:
-    """Filter a move list to only moves that qualify as blunders.
+    """Filter a move list to only moves that qualify as real blunders.
+
+    A move is suppressed even if its centipawn loss exceeds min_cp_loss when
+    the position is clearly winning both before and after the move (i.e. the
+    player was winning and remains winning — the "suboptimal but fine" case).
 
     Args:
         move_data: Output of analyze_game().
@@ -180,11 +291,34 @@ def find_blunders(move_data: list[dict], min_cp_loss: int = 100) -> list[dict]:
     result: list[dict] = []
 
     for i, move in enumerate(move_data):
-        if move["cp_loss"] >= min_cp_loss:
-            # Copy the dict so the original is not mutated.
-            blunder = dict(move)
-            blunder["move_index"] = i
-            result.append(blunder)
+        if move["cp_loss"] < min_cp_loss:
+            continue
+
+        color: str = move.get("color", "")
+        eval_white_before: int = move.get("eval_before_white_pov", 0)
+
+        # Derive eval-after from the next move's eval-before (already in move_data).
+        eval_white_after: int | None = None
+        if i + 1 < len(move_data):
+            eval_white_after = move_data[i + 1].get("eval_before_white_pov")
+
+        # Convert evals to the mover's perspective.
+        if color == "white":
+            eval_before_mover: int = eval_white_before
+            eval_after_mover: int | None = eval_white_after
+        else:
+            eval_before_mover = -eval_white_before
+            eval_after_mover = -eval_white_after if eval_white_after is not None else None
+
+        # Suppress "still winning" moves: position was clearly winning before and
+        # remains clearly winning after — the move was suboptimal but not a real error.
+        if eval_after_mover is not None and eval_before_mover >= STILL_WINNING_CP and eval_after_mover >= STILL_WINNING_CP:
+            continue
+
+        # Copy the dict so the original is not mutated.
+        blunder = dict(move)
+        blunder["move_index"] = i
+        result.append(blunder)
 
     return result
 

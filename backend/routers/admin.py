@@ -1,7 +1,5 @@
 """Admin router — live DB inspection endpoints, restricted to admin users only."""
 
-import json
-
 from fastapi import APIRouter, Depends
 
 from services.db import get_connection

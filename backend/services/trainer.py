@@ -70,6 +70,14 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
         # Identify blunders for this session's threshold.
         blunders = find_blunders(move_data, min_cp_loss=threshold)
 
+        # Only train on the player's own blunders, not the opponent's.
+        if white_username.lower() == username.lower():
+            player_color: str = "white"
+        else:
+            player_color = "black"
+
+        blunders = [b for b in blunders if b["color"] == player_color]
+
         # Track whether we computed any new best-moves data that must be saved.
         cache_needs_update: bool = not is_cached(cache, url, DEPTH)
 

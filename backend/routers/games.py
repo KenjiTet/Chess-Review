@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from models import GameAnalysisResult, GameHistoryEntry
 from services.cache import get_cached_game, is_cached, store_game
 from services.chess_com import get_game_by_url, get_recent_games, get_recent_games_all
-from services.stockfish import DEPTH, analyze_game, find_blunders, get_board_snapshots
+from services.stockfish import DEPTH, analyze_game, compute_player_accuracy, find_blunders, get_board_snapshots
 
 router = APIRouter()
 
@@ -43,19 +43,27 @@ def _iso_date(end_time: int) -> str:
     return datetime.fromtimestamp(end_time, tz=timezone.utc).isoformat()
 
 
-def _blunder_data_from_cache(cache: dict, game_url: str, threshold: int) -> tuple[int | None, str | None, str | None]:
-    """Return (blunder_count, first_blunder_fen, first_blunder_color) from cache.
+def _blunder_data_from_cache(
+    cache: dict,
+    game_url: str,
+    threshold: int,
+) -> tuple[int | None, str | None, str | None, dict[str, float]]:
+    """Return (blunder_count, first_blunder_fen, first_blunder_color, computed_accuracy) from cache.
 
-    Returns (None, None, None) if the game is not in cache.
+    computed_accuracy is a dict {"white": float, "black": float} derived from Stockfish data.
+    Returns (None, None, None, {}) if the game is not in cache.
     """
     if not is_cached(cache, game_url, DEPTH):
-        return None, None, None
+        return None, None, None, {}
 
     entry: dict = get_cached_game(cache, game_url)
     move_data: list[dict] = entry.get("move_data", [])
     fens: list[str] = entry.get("fens", [])
 
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
+    computed_acc: dict[str, float] = compute_player_accuracy(move_data)
+
+    print("computed accuracy from cache:", computed_acc)
 
     blunder_count: int = len(blunders)
 
@@ -67,7 +75,7 @@ def _blunder_data_from_cache(cache: dict, game_url: str, threshold: int) -> tupl
         first_fen = None
         first_color = None
 
-    return blunder_count, first_fen, first_color
+    return blunder_count, first_fen, first_color, computed_acc
 
 
 @router.get("")
@@ -140,12 +148,28 @@ def game_history(
         white: dict = game.get("white", {})
         black: dict = game.get("black", {})
 
+        computed_acc: dict[str, float] = {}
+
         if is_guest:
             blunder_count, first_fen, first_color = None, None, None
         else:
-            blunder_count, first_fen, first_color = _blunder_data_from_cache(cache, url, threshold)
+            blunder_count, first_fen, first_color, computed_acc = _blunder_data_from_cache(cache, url, threshold)
 
         accuracies: dict = game.get("accuracies", {})
+
+        # Prefer Chess.com's accuracy values; fall back to Stockfish-computed values.
+        chess_com_white: float | None = accuracies.get("white")
+        chess_com_black: float | None = accuracies.get("black")
+
+        if chess_com_white is not None:
+            white_accuracy: float | None = chess_com_white
+        else:
+            white_accuracy = computed_acc.get("white")
+
+        if chess_com_black is not None:
+            black_accuracy: float | None = chess_com_black
+        else:
+            black_accuracy = computed_acc.get("black")
 
         entries.append(GameHistoryEntry(
             url=url,
@@ -154,8 +178,8 @@ def game_history(
             time_class=game.get("time_class", time_class),
             white_username=white.get("username", ""),
             black_username=black.get("username", ""),
-            white_accuracy=accuracies.get("white"),
-            black_accuracy=accuracies.get("black"),
+            white_accuracy=white_accuracy,
+            black_accuracy=black_accuracy,
             blunder_count=blunder_count,
             first_blunder_fen=first_fen,
             first_blunder_color=first_color,
@@ -195,7 +219,7 @@ def analyze_game_history(
 
     # Fast path: return cached blunder data immediately.
     if not is_guest and is_cached(cache, game_url, DEPTH):
-        blunder_count, first_fen, first_color = _blunder_data_from_cache(cache, game_url, threshold)
+        blunder_count, first_fen, first_color, _ = _blunder_data_from_cache(cache, game_url, threshold)
         return GameAnalysisResult(
             blunder_count=blunder_count or 0,
             first_blunder_fen=first_fen,

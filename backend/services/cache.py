@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from services.db import get_connection
 
+
 # Kept for backward-compat with any callers that still import these names.
 def load_cache() -> dict:
     """No-op stub — cache now lives in SQLite. Returns empty dict."""
