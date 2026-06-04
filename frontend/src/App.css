@@ -18,6 +18,13 @@
   box-sizing: border-box;
 }
 
+/* Strip shell padding so the mobile trainer can fill the full viewport */
+.app__main--mobile {
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
 /* Theme toggle — fixed circle button, bottom-right */
 .theme-toggle {
   position: fixed;

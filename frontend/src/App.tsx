@@ -101,7 +101,7 @@ function App(): JSX.Element {
   return (
     <div className="app">
       <ErrorBanner />
-      <main className="app__main">
+      <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
         {renderScreen(screen, isAuthenticated, screenProps)}
       </main>
 
