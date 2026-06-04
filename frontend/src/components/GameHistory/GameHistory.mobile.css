@@ -34,14 +34,13 @@
 .game-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 11px 13px;
+  padding: 10px 12px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  text-decoration: none;
   color: inherit;
 }
 
@@ -50,99 +49,69 @@
   background: var(--surface-2);
 }
 
-/* Result badge */
+/* Time class icon */
 
-.game-card__res {
+.game-card__tc-icon {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 800;
-  font-family: var(--mono);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
 }
 
-.game-card__res--win {
-  background: var(--success-bg);
-  color: var(--success);
-  border: 1px solid var(--success-border);
-}
-
-.game-card__res--lose {
-  background: var(--error-bg);
-  color: var(--error);
-  border: 1px solid var(--error-border);
-}
-
-.game-card__res--draw {
-  background: var(--draw-bg, rgba(138, 150, 170, 0.14));
-  color: var(--draw, #8a96aa);
-  border: 1px solid var(--draw-border, rgba(138, 150, 170, 0.3));
-}
-
-/* Main info */
+/* Players column — mirrors desktop layout */
 
 .game-card__main {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
-.game-card__opp {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-h);
+.game-card__player-line {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+/* Piece color dot — same as desktop history__piece */
+
+.game-card__piece {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.game-card__piece--white {
+  background: #f1ece1;
+}
+
+.game-card__piece--black {
+  background: #2a2d33;
+}
+
+.game-card__player-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.game-card__color-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  flex: 0 0 auto;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-}
-
-.game-card__color-dot--white {
-  background: #f1ece1;
-}
-
-.game-card__color-dot--black {
-  background: #2a2d33;
-}
-
-.game-card__sub {
-  font-size: 11.5px;
-  color: var(--muted);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.game-card__dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--muted);
-  opacity: 0.5;
-  flex: 0 0 auto;
-}
-
-.game-card__blunders {
-  color: var(--gold);
+/* Highlight the current user's name */
+.game-card__player-name--me {
+  font-weight: 800;
+  color: var(--text-h);
 }
 
 /* Right side */
@@ -173,7 +142,7 @@
   text-align: right;
 }
 
-.game-card__tc {
+.game-card__date {
   font-size: 11px;
   color: var(--muted);
   font-weight: 600;
@@ -182,7 +151,7 @@
 /* No-blunders card state */
 
 .game-card--no-blunders {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
 }
 
@@ -211,7 +180,7 @@
   pointer-events: none;
 }
 
-.game-card--skeleton .game-card__res {
+.game-card--skeleton .game-card__tc-icon {
   background: var(--surface-2);
   border-color: var(--border);
 }

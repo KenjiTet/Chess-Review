@@ -127,16 +127,9 @@ function GameCard({
   onTrain: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
-  const opponentName = isWhite ? game.black_username : game.white_username;
   const myAccuracy = isWhite ? game.white_accuracy : game.black_accuracy;
-  const myColor = isWhite ? 'white' : 'black';
-
-  const resultChar = game.result === 'win' ? 'W' : game.result === 'lose' ? 'L' : 'D';
-  const resultResClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw';
-  const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
 
   const noBlunders = game.blunder_count === 0;
-  const tcLabel = game.time_class.charAt(0).toUpperCase() + game.time_class.slice(1);
 
   function handleClick(): void {
     if (noBlunders) {
@@ -147,7 +140,7 @@ function GameCard({
 
   return (
     <div
-      className={`game-card${noBlunders ? ' game-card--no-blunders' : ''}`}
+      className={`game-card${noBlunders ? ' game-card--no-blunders' : ''}${isReviewed ? ' game-card--reviewed' : ''}`}
       onClick={handleClick}
       role={noBlunders ? undefined : 'button'}
       tabIndex={noBlunders ? undefined : 0}
@@ -157,37 +150,29 @@ function GameCard({
         }
       }}
     >
-      {/* Result badge */}
-      <div className={`game-card__res game-card__res--${resultResClass}`}>
-        {resultChar}
+      {/* Time class icon */}
+      <div className="game-card__tc-icon">
+        <TimeClassIcon tc={game.time_class} size={16} />
       </div>
 
-      {/* Main info */}
+      {/* Players — white on top, black on bottom (mirrors desktop) */}
       <div className="game-card__main">
-        <div className="game-card__opp">
-          <span className={`game-card__color-dot game-card__color-dot--${myColor}`} />
-          {opponentName}
-          {isReviewed && (
+        <div className="game-card__player-line">
+          <span className="game-card__piece game-card__piece--white" />
+          <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
+            {game.white_username}
+          </span>
+          {isReviewed && isWhite && (
             <span className="game-card__badge">Reviewed</span>
           )}
         </div>
-        <div className="game-card__sub">
-          {resultLabel} as {myColor}
-          <span className="game-card__dot" />
-          {tcLabel}
-          {!noBlunders && (
-            <>
-              <span className="game-card__dot" />
-              <span className="game-card__blunders">
-                {game.blunder_count} blunder{game.blunder_count !== 1 ? 's' : ''}
-              </span>
-            </>
-          )}
-          {noBlunders && (
-            <>
-              <span className="game-card__dot" />
-              clean
-            </>
+        <div className="game-card__player-line">
+          <span className="game-card__piece game-card__piece--black" />
+          <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
+            {game.black_username}
+          </span>
+          {isReviewed && !isWhite && (
+            <span className="game-card__badge">Reviewed</span>
           )}
         </div>
       </div>
@@ -198,7 +183,7 @@ function GameCard({
           {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
           <small>accuracy</small>
         </div>
-        <div className="game-card__tc">{formatDate(game.date)}</div>
+        <div className="game-card__date">{formatDate(game.date)}</div>
       </div>
     </div>
   );
@@ -325,7 +310,7 @@ function GameHistory({
           <div className="history__cards-skeleton">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={`mob-skeleton-${i}`} className="game-card game-card--skeleton">
-                <div className="game-card__res" />
+                <div className="game-card__tc-icon" />
                 <div className="game-card__main">
                   <div className="skeleton-line skeleton-line--md" />
                   <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 5 }} />
