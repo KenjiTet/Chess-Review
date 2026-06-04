@@ -11,6 +11,8 @@ interface BlunderCardProps {
   sequenceDisabled?: boolean;
   /** When true renders a short "Show" label on the sequence button instead of the full text. */
   compactSequenceLabel?: boolean;
+  /** When true renders a compact prompt: "In this game you played X — what would you play instead?" */
+  compactPrompt?: boolean;
 }
 
 function capCpLoss(cpLoss: number): string {
@@ -20,7 +22,7 @@ function capCpLoss(cpLoss: number): string {
   return String(cpLoss);
 }
 
-function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, sequenceDisabled, compactSequenceLabel = false }: BlunderCardProps): JSX.Element {
+function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, sequenceDisabled, compactSequenceLabel = false, compactPrompt = false }: BlunderCardProps): JSX.Element {
   return (
     <div className="blunder-card">
       <div className="blunder-card__meta">
@@ -30,8 +32,10 @@ function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, s
       </div>
       <div className="blunder-card__body">
         <p className="blunder-card__prompt">
-          In this game you played <strong>{moveSan}</strong> — a {classification}{' '}
-          (cp loss: {capCpLoss(cpLoss)}). <em>What would you have played instead?</em>
+          {compactPrompt
+            ? <>In this game you played <strong>{moveSan}</strong> — what would you play instead?</>
+            : <>In this game you played <strong>{moveSan}</strong> — a {classification}{' '}(cp loss: {capCpLoss(cpLoss)}). <em>What would you have played instead?</em></>
+          }
         </p>
         {onShowBlunderSequence && (
           <button

@@ -771,11 +771,12 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
             sequenceDisabled={isPlayingSequence}
             compactSequenceLabel
+            compactPrompt
           />
 
-          {/* 2. Move feedback — right under the blunder message */}
+          {/* 2. Move feedback — only the latest entry (1 max) to keep layout compact */}
           <div className="trainer__mobile-fb">
-            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
+            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx)).slice(-1)} />
           </div>
 
           {/* 3. Horizontal eval bar */}
