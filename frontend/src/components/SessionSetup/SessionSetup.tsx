@@ -254,8 +254,8 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
 
         {/* Scrollable body */}
         <div className="setup__mobile-body">
-          {/* Controls */}
-          <div className="setup__mobile-controls">
+          {/* Controls — wrapped in a card for visual containment */}
+          <div className="setup__mobile-card">
             <div className="setup__mobile-control">
               <span className="setup__mobile-label">Time Control</span>
               <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />

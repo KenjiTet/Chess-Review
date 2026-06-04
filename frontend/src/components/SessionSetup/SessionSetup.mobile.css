@@ -9,26 +9,25 @@
   position: relative;
 }
 
-/* Profile card */
+/* ── Profile strip ───────────────────────────────────────────────────────── */
 
 .setup__mobile-profile {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 13px;
-  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+  gap: 12px;
   border-bottom: 1px solid var(--border);
   padding: 44px 16px 14px;
 }
 
 .setup__mobile-avatar {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: radial-gradient(circle at 30% 25%, #34406a, #1c2336);
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,11 +46,6 @@
   opacity: 0.85;
 }
 
-.setup__mobile-avatar-fallback {
-  font-size: 24px;
-  color: var(--gold);
-}
-
 .setup__mobile-profile-txt {
   display: flex;
   flex-direction: column;
@@ -61,7 +55,7 @@
 }
 
 .setup__mobile-profile-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text-h);
   white-space: nowrap;
@@ -84,7 +78,7 @@
   font: inherit;
   font-size: 12px;
   font-weight: 700;
-  padding: 6px 10px;
+  padding: 5px 10px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
@@ -94,34 +88,38 @@
   color: var(--error, #ef4444);
 }
 
-/* Scrollable body */
+/* ── Scrollable body ─────────────────────────────────────────────────────── */
 
 .setup__mobile-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 16px 100px;
+  padding: 14px 14px 100px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .setup__mobile-body::-webkit-scrollbar {
   width: 0;
 }
 
-/* Controls row (stacked on mobile) */
+/* ── Controls card ───────────────────────────────────────────────────────── */
 
-.setup__mobile-controls {
+.setup__mobile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .setup__mobile-control {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .setup__mobile-label {
@@ -132,17 +130,29 @@
   color: var(--muted);
 }
 
-/* Section header row */
+/* Make the tc-select and threshold picker fill the card width */
+.setup__mobile-card .tc-select,
+.setup__mobile-card .threshold-picker {
+  width: 100%;
+}
+
+.setup__mobile-card .tc-select__trigger,
+.setup__mobile-card .threshold-picker__trigger {
+  width: 100%;
+}
+
+/* ── Section header row ──────────────────────────────────────────────────── */
 
 .setup__mobile-section {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  padding: 0 2px;
 }
 
 .setup__mobile-section h2 {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -151,27 +161,28 @@
 
 .setup__mobile-tab-btn {
   font-size: 12px;
-  color: var(--gold);
-  text-decoration: none;
   font-weight: 700;
+  color: var(--gold);
   background: transparent;
   border: 0;
   cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
+  font-family: inherit;
   padding: 0;
+  transition: opacity 0.15s;
 }
 
-/* Fixed bottom submit button */
+.setup__mobile-tab-btn:hover {
+  opacity: 0.75;
+}
+
+/* ── Fixed start-training bar ────────────────────────────────────────────── */
 
 .setup__mobile-submit-bar {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 18px));
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 18px));
   background: var(--bar-bg, rgba(20, 25, 38, 0.96));
   border-top: 1px solid var(--bar-border, rgba(255, 255, 255, 0.06));
   backdrop-filter: blur(16px);
@@ -179,9 +190,15 @@
   z-index: 40;
 }
 
+/* Light mode override for the submit bar background */
+:root[data-theme="light"] .setup__mobile-submit-bar {
+  background: rgba(255, 255, 255, 0.96);
+  border-top-color: rgba(0, 0, 0, 0.07);
+}
+
 .setup__mobile-submit {
   width: 100%;
-  padding: 14px;
+  padding: 13px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   border: none;
@@ -191,13 +208,14 @@
   font-weight: 800;
   cursor: pointer;
   transition: opacity 0.15s;
+  box-shadow: 0 4px 14px rgba(200, 134, 31, 0.35);
 }
 
 .setup__mobile-submit:hover {
-  opacity: 0.92;
+  opacity: 0.9;
 }
 
-/* Favorites wrapper on mobile */
+/* ── Favorites wrapper ───────────────────────────────────────────────────── */
 
 .setup__mobile-favorites-wrap {
   flex: 1;

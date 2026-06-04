@@ -25,6 +25,7 @@ import { generateBoardImage } from '../../utils/generateBoardImage';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import useSettings from '../../hooks/useSettings';
+import useAuth from '../../hooks/useAuth';
 import './Trainer.css';
 import './Trainer.mobile.css';
 
@@ -121,8 +122,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
 
   const threshold = useSettings((s) => s.threshold);
   const setThreshold = useSettings((s) => s.setThreshold);
-  const darkMode = useSettings((s) => s.darkMode);
-  const setDarkMode = useSettings((s) => s.setDarkMode);
+  const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
+  const mobileOverride = useSettings((s) => s.mobileOverride);
+  const isAdmin = useAuth((s) => s.isAdmin);
 
   // ── Local board state ───────────────────────────────────────────────────────
   // Initialize directly from currentBlunder so the board has the correct FEN
@@ -138,10 +140,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   const [botThinking, setBotThinking] = useState<boolean>(false);
   const [isPlayingSequence, setIsPlayingSequence] = useState<boolean>(false);
   const [saveModalOpen, setSaveModalOpen] = useState<boolean>(false);
-
-  // Mobile-only UI state
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [mobileFbOpen, setMobileFbOpen] = useState<boolean>(false);
 
   // Position history for < > navigation — seeded with prev/blunder/blunder-result context
   const initialHistory = buildInitialHistory(currentBlunder);
@@ -696,7 +694,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
 
   // ── Mobile layout ───────────────────────────────────────────────────────────
   if (isMobile) {
-    // Determine the contextual action for the bottom bar's last button
+    // Contextual action for the bottom bar's last button
     let mobileActionLabel: string;
     let mobileActionHandler: () => void;
     let mobileActionPrimary: boolean;
@@ -731,61 +729,41 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                 </div>
               </div>
             </div>
-            <button
-              className="trainer__mobile-menu-btn"
-              type="button"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label="Menu"
-            >
-              <span className="trainer__mobile-menu-bars">
-                <i /><i /><i />
-              </span>
-              Menu
-            </button>
+            <div className="trainer__mobile-hdr-actions">
+              {/* Admin: exit mobile preview. Always in the header so it's never hidden. */}
+              {isAdmin && mobileOverride && (
+                <button
+                  className="trainer__mobile-exit-btn"
+                  type="button"
+                  onClick={toggleMobileOverride}
+                  title="Exit mobile preview"
+                >
+                  🖥
+                </button>
+              )}
+              <button
+                className="trainer__mobile-menu-btn"
+                type="button"
+                onClick={reset}
+                aria-label="Back to menu"
+              >
+                <span className="trainer__mobile-menu-bars">
+                  <i /><i /><i />
+                </span>
+                Menu
+              </button>
+            </div>
           </div>
 
           {/* Progress bar */}
           <div className="trainer__progress-track">
             <div className="trainer__progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
-
-          {/* Dropdown menu */}
-          {mobileMenuOpen && (
-            <>
-              <div
-                className="trainer__mobile-scrim"
-                onClick={() => setMobileMenuOpen(false)}
-              />
-              <div className="trainer__mobile-dropdown">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDarkMode(!darkMode);
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <span className="dd-ic">{darkMode ? '☀' : '☾'}</span>
-                  {darkMode ? 'Switch to light' : 'Switch to dark'}
-                </button>
-                <hr />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    reset();
-                  }}
-                >
-                  <span className="dd-ic">⌂</span>
-                  Back to menu
-                </button>
-              </div>
-            </>
-          )}
         </header>
 
         {/* Scrollable body */}
         <div className="trainer__mobile-body">
-          {/* Blunder banner */}
+          {/* Blunder banner — compact horizontal layout */}
           <BlunderCard
             moveSan={currentBlunder.move_san}
             cpLoss={currentBlunder.cp_loss}
@@ -840,29 +818,14 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             <div className="trainer__mobile-bot-status">Stockfish thinking…</div>
           )}
 
-          {/* Collapsible move feedback */}
+          {/* Move feedback — always visible, MoveLog has its own "Play a move" empty state */}
           <div className="trainer__mobile-fb">
-            <button
-              className="trainer__mobile-fb-head"
-              type="button"
-              onClick={() => setMobileFbOpen((v) => !v)}
-            >
-              <span className="trainer__mobile-fb-title">Move Feedback</span>
-              <span className={`trainer__mobile-fb-chev${mobileFbOpen ? ' trainer__mobile-fb-chev--open' : ''}`}>
-                ▾
-              </span>
-            </button>
-            {mobileFbOpen && (
-              <div className="trainer__mobile-fb-body">
-                <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
-              </div>
-            )}
+            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
           </div>
         </div>
 
         {/* Bottom action bar */}
         <nav className="trainer__mobile-actionbar">
-          {/* Show Moves */}
           <button
             className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
             type="button"
@@ -872,7 +835,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             <span className="trainer__mobile-act-lbl">Moves</span>
           </button>
 
-          {/* vs Bot */}
           <button
             className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
             type="button"
@@ -883,7 +845,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             <span className="trainer__mobile-act-lbl">vs Bot</span>
           </button>
 
-          {/* Reset */}
           <button
             className="trainer__mobile-act"
             type="button"
@@ -893,7 +854,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             <span className="trainer__mobile-act-lbl">Reset</span>
           </button>
 
-          {/* Save */}
           <button
             className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
             type="button"
@@ -904,7 +864,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
           </button>
 
-          {/* Contextual: Skip / Next / Back */}
           <button
             className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
             type="button"
