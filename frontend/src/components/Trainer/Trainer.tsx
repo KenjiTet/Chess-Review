@@ -774,12 +774,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             compactPrompt
           />
 
-          {/* 2. Move feedback — only the latest entry (1 max) to keep layout compact */}
-          <div className="trainer__mobile-fb">
-            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx)).slice(-1)} />
-          </div>
-
-          {/* 3. Horizontal eval bar */}
+          {/* 2. Horizontal eval bar */}
           <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
 
           {/* 4. Board */}
@@ -802,7 +797,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
 
         {/* Settings panel — sticky footer, always visible at the bottom of the trainer */}
         <div className="trainer__mobile-panel">
-          {/* Nav row: previous / next history */}
+          {/* Nav row: ‹  [inline move feedback]  › */}
           <div className="trainer__mobile-panel-nav">
             <button
               className="trainer__mobile-nav-btn"
@@ -813,9 +808,55 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             >
               ‹
             </button>
-            <span className="trainer__mobile-panel-nav-label">
-              {botThinking ? 'Stockfish thinking…' : 'History'}
-            </span>
+
+            {/* Inline move feedback — shows last evaluated move between the nav buttons */}
+            <div className="trainer__mobile-inline-fb">
+              {(() => {
+                const visibleEntries = moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx));
+                const lastEntry = visibleEntries[visibleEntries.length - 1] ?? null;
+
+                if (botThinking) {
+                  return <span className="trainer__mobile-inline-fb__thinking">Stockfish…</span>;
+                }
+
+                if (lastEntry === null) {
+                  return <span className="trainer__mobile-inline-fb__empty">Play a move</span>;
+                }
+
+                const BADGE_COLORS: Record<string, string> = {
+                  best: '#22c55e',
+                  good: '#84cc16',
+                  inaccuracy: '#f59e0b',
+                  mistake: '#f97316',
+                  blunder: '#ef4444',
+                };
+
+                const color = lastEntry.classification !== null ? BADGE_COLORS[lastEntry.classification] : undefined;
+
+                return (
+                  <div className="trainer__mobile-inline-fb__entry">
+                    <span className="trainer__mobile-inline-fb__san">{lastEntry.san}</span>
+                    {lastEntry.classification !== null && color !== undefined
+                      ? (
+                        <span
+                          className="trainer__mobile-inline-fb__badge"
+                          style={{ color, borderColor: `${color}55`, background: `${color}18` }}
+                        >
+                          {lastEntry.classification}
+                        </span>
+                      )
+                      : <span className="trainer__mobile-inline-fb__pending">⏳</span>
+                    }
+                    {lastEntry.cpLoss !== null && (
+                      <span className="trainer__mobile-inline-fb__cp" style={color !== undefined ? { color } : undefined}>
+                        -{lastEntry.cpLoss} cp
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
             <button
               className="trainer__mobile-nav-btn"
               type="button"
