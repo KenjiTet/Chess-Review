@@ -1,6 +1,11 @@
 /**
  * Chess board component wrapping react-chessboard.
  *
+ * Supports both drag-and-drop AND click-to-move:
+ *   1. Click a piece to select it (highlights in yellow, shows legal dots).
+ *   2. Click a target square to complete the move.
+ *   Clicking an empty non-target square deselects. Clicking an own piece switches selection.
+ *
  * Intro animation: when prevFen and prevMoveUci are provided, shows the
  * opponent's last position for 1000ms then animates the piece to its destination
  * before becoming interactive at 1800ms total.
@@ -11,13 +16,14 @@
  * Source-square highlighting: the source square of lastMoveUci (or prevMoveUci
  * during intro) is highlighted with a yellow glow after each move.
  *
- * Legal move dots: dots and rings overlay legal target squares while dragging.
+ * Legal move dots: dots and rings overlay legal target squares while dragging
+ * or after clicking to select a piece.
  */
 
 import { useState, useLayoutEffect, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { JSX, CSSProperties } from 'react';
 import { Chessboard } from 'react-chessboard';
-import type { PieceDropHandlerArgs, PieceHandlerArgs } from 'react-chessboard';
+import type { PieceDropHandlerArgs, PieceHandlerArgs, SquareHandlerArgs } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { playMoveSound } from '../../utils/sounds';
 import './Board.css';
@@ -43,12 +49,18 @@ const SOURCE_HIGHLIGHT: CSSProperties = {
   boxShadow: 'inset 0 0 0 3px rgba(255, 210, 0, 0.8)',
 };
 
-// Dot shown on empty legal target squares while dragging a piece
+/** Highlight for the click-selected piece's source square. */
+const SELECTED_HIGHLIGHT: CSSProperties = {
+  background: 'rgba(255, 210, 0, 0.60)',
+  boxShadow: 'inset 0 0 0 3px rgba(255, 210, 0, 1)',
+};
+
+// Dot shown on empty legal target squares while dragging/selected
 const LEGAL_MOVE_DOT: CSSProperties = {
   background: 'radial-gradient(circle, rgba(0,0,0,0.22) 28%, transparent 28%)',
 };
 
-// Ring shown on occupied (capture) legal target squares while dragging
+// Ring shown on occupied (capture) legal target squares while dragging/selected
 const LEGAL_CAPTURE_RING: CSSProperties = {
   background: 'radial-gradient(circle, transparent 64%, rgba(0,0,0,0.22) 64%)',
 };
@@ -111,6 +123,29 @@ function buildArrowPaths(
   return { shaft, head };
 }
 
+/** Compute the set of legal target / capture squares for a given source square. */
+function computeLegalSquares(fen: string, fromSquare: string): { targets: Set<string>; captures: Set<string> } {
+  try {
+    const temp = new Chess(fen);
+    const targets = new Set<string>();
+    const captures = new Set<string>();
+
+    for (const m of temp.moves({ verbose: true })) {
+      if (m.from !== fromSquare) {
+        continue;
+      }
+      targets.add(m.to);
+      if (m.captured) {
+        captures.add(m.to);
+      }
+    }
+
+    return { targets, captures };
+  } catch {
+    return { targets: new Set<string>(), captures: new Set<string>() };
+  }
+}
+
 function Board({
   fen,
   orientation,
@@ -128,8 +163,11 @@ function Board({
   const [introTimedOut, setIntroTimedOut] = useState<boolean>(false);
   // Phase 1: show prevFen (before opponent moved), Phase 2: show fen (piece animates)
   const [introPhase, setIntroPhase] = useState<1 | 2>(1);
+
   // Source square of the piece currently being dragged (null when not dragging)
   const [dragSquare, setDragSquare] = useState<string | null>(null);
+  // Source square selected by a click (null when nothing selected)
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
   // Reset intro when the opponent-move data changes (during render, not in effect).
   const currentIntroKey = `${prevFen ?? ''}|${prevMoveUci ?? ''}`;
@@ -147,6 +185,12 @@ function Board({
   useLayoutEffect(() => {
     canInteractRef.current = interactive && !introActive;
   }, [interactive, introActive]);
+
+  // Clear selected square whenever the board position changes (after each move)
+  // so the highlight doesn't linger on the wrong square.
+  useEffect(() => {
+    setSelectedSquare(null);
+  }, [fen]);
 
   // Phase timers: switch to phase 2 after 400ms to animate the piece, done at 1500ms.
   useEffect(() => {
@@ -180,29 +224,27 @@ function Board({
   const displayFen = introActive && prevFen && introPhase === 1 ? prevFen : fen;
   const canInteract = interactive && !introActive;
 
-  // Compute legal move targets for the dragged piece so we can show overlay dots.
-  const legalMoveInfo = useMemo((): { targets: Set<string>; captures: Set<string> } => {
-    if (!dragSquare || !canInteract) {
-      return { targets: new Set<string>(), captures: new Set<string>() };
-    }
-    try {
-      const temp = new Chess(fen);
-      const targets = new Set<string>();
-      const captures = new Set<string>();
-      for (const m of temp.moves({ verbose: true })) {
-        if (m.from !== dragSquare) {
-          continue;
-        }
-        targets.add(m.to);
-        if (m.captured) {
-          captures.add(m.to);
-        }
+  // Legal moves for the piece being dragged (for dot overlays while dragging).
+  const dragLegalInfo = useMemo(
+    () => {
+      if (!dragSquare || !canInteract) {
+        return { targets: new Set<string>(), captures: new Set<string>() };
       }
-      return { targets, captures };
-    } catch {
-      return { targets: new Set<string>(), captures: new Set<string>() };
-    }
-  }, [dragSquare, fen, canInteract]);
+      return computeLegalSquares(fen, dragSquare);
+    },
+    [dragSquare, fen, canInteract],
+  );
+
+  // Legal moves for the click-selected piece (for dot overlays after selection).
+  const clickLegalInfo = useMemo(
+    () => {
+      if (!selectedSquare || !canInteract) {
+        return { targets: new Set<string>(), captures: new Set<string>() };
+      }
+      return computeLegalSquares(fen, selectedSquare);
+    },
+    [selectedSquare, fen, canInteract],
+  );
 
   // ── Square styles ──────────────────────────────────────────────────────────
   const customSquareStyles: Record<Square, CSSProperties> = {};
@@ -217,13 +259,20 @@ function Board({
     }
   }
 
-  legalMoveInfo.targets.forEach((sq) => {
-    if (legalMoveInfo.captures.has(sq)) {
+  // Drag dots take priority; click dots fill in the gaps
+  const activeLegal = dragSquare ? dragLegalInfo : clickLegalInfo;
+  activeLegal.targets.forEach((sq) => {
+    if (activeLegal.captures.has(sq)) {
       customSquareStyles[sq] = LEGAL_CAPTURE_RING;
     } else {
       customSquareStyles[sq] = LEGAL_MOVE_DOT;
     }
   });
+
+  // Highlight the click-selected source square
+  if (selectedSquare && !dragSquare) {
+    customSquareStyles[selectedSquare] = SELECTED_HIGHLIGHT;
+  }
 
   // ── Drag handler ───────────────────────────────────────────────────────────
   const handlePieceDrag = useCallback(
@@ -231,15 +280,16 @@ function Board({
       if (!canInteractRef.current || !square) {
         return;
       }
+      // Starting a drag clears any click selection to avoid visual confusion
+      setSelectedSquare(null);
       setDragSquare(square);
     },
     [],
   );
 
-  // ── Move handler ───────────────────────────────────────────────────────────
+  // ── Drop handler ───────────────────────────────────────────────────────────
   const onPieceDrop = useCallback(
     ({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean => {
-      // Always clear legal-move dots on drop (regardless of validity)
       setDragSquare(null);
 
       if (!canInteractRef.current || !onMove) {
@@ -269,6 +319,74 @@ function Board({
     [fen, onMove],
   );
 
+  // ── Click-to-move handler ──────────────────────────────────────────────────
+  const handleSquareClick = useCallback(
+    ({ square }: SquareHandlerArgs): void => {
+      if (!canInteractRef.current) {
+        return;
+      }
+
+      // If a piece is already selected, try to use this click as the destination
+      if (selectedSquare) {
+        // Clicking the same square again deselects
+        if (selectedSquare === square) {
+          setSelectedSquare(null);
+          return;
+        }
+
+        // If the square is a legal move target → execute the move
+        if (clickLegalInfo.targets.has(square)) {
+          try {
+            const chess = new Chess(fen);
+            const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
+
+            if (move && onMove) {
+              const uci = `${selectedSquare}${square}${move.promotion ?? ''}`;
+              setSelectedSquare(null);
+              playMoveSound();
+              onMove(uci);
+              return;
+            }
+          } catch {
+            // fall through to deselect
+          }
+        }
+
+        // If the square has another own piece → switch selection to it
+        try {
+          const chess = new Chess(fen);
+          const piece = chess.get(square as Parameters<typeof chess.get>[0]);
+          const currentTurn = chess.turn();
+
+          if (piece && piece.color === currentTurn) {
+            setSelectedSquare(square);
+            return;
+          }
+        } catch {
+          // fall through
+        }
+
+        // Otherwise deselect
+        setSelectedSquare(null);
+        return;
+      }
+
+      // Nothing selected yet: select if the square has a piece that can move
+      try {
+        const chess = new Chess(fen);
+        const piece = chess.get(square as Parameters<typeof chess.get>[0]);
+        const currentTurn = chess.turn();
+
+        if (piece && piece.color === currentTurn) {
+          setSelectedSquare(square);
+        }
+      } catch {
+        // ignore invalid fen / square
+      }
+    },
+    [selectedSquare, clickLegalInfo, fen, onMove],
+  );
+
   const introLabel = prevMoveSan ? `↩ ${prevMoveSan}` : '↩ Opponent moved';
 
   // ── Custom SVG arrows ──────────────────────────────────────────────────────
@@ -287,6 +405,7 @@ function Board({
           boardOrientation: orientation,
           onPieceDrag: handlePieceDrag,
           onPieceDrop: onPieceDrop,
+          onSquareClick: handleSquareClick,
           allowDragging: canInteract,
           squareStyles: customSquareStyles,
           animationDurationInMs: 500,

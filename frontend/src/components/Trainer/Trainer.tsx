@@ -763,19 +763,25 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
 
         {/* Scrollable body */}
         <div className="trainer__mobile-body">
-          {/* Blunder banner — compact horizontal layout */}
+          {/* 1. Blunder banner — compact horizontal layout */}
           <BlunderCard
             moveSan={currentBlunder.move_san}
             cpLoss={currentBlunder.cp_loss}
             classification={currentBlunder.classification}
             onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
             sequenceDisabled={isPlayingSequence}
+            compactSequenceLabel
           />
 
-          {/* Horizontal eval bar */}
+          {/* 2. Move feedback — right under the blunder message */}
+          <div className="trainer__mobile-fb">
+            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
+          </div>
+
+          {/* 3. Horizontal eval bar */}
           <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
 
-          {/* Board */}
+          {/* 4. Board */}
           <div className="trainer__mobile-board-wrap">
             <Board
               fen={displayFen}
@@ -791,88 +797,84 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             />
           </div>
 
-          {/* History navigation */}
-          <div className="trainer__mobile-nav-row">
-            <button
-              className="trainer__mobile-nav-btn"
-              type="button"
-              onClick={handleHistoryBack}
-              disabled={historyIndex === 0}
-              title="Previous position"
-            >
-              ‹
-            </button>
-            <button
-              className="trainer__mobile-nav-btn"
-              type="button"
-              onClick={handleHistoryForward}
-              disabled={historyIndex === positionHistory.length - 1 || botMode}
-              title="Next position"
-            >
-              ›
-            </button>
-          </div>
+          {/* 5. Inline settings panel — right under the board */}
+          <div className="trainer__mobile-panel">
+            {/* Nav row: previous / next history */}
+            <div className="trainer__mobile-panel-nav">
+              <button
+                className="trainer__mobile-nav-btn"
+                type="button"
+                onClick={handleHistoryBack}
+                disabled={historyIndex === 0}
+                title="Previous position"
+              >
+                ‹
+              </button>
+              <span className="trainer__mobile-panel-nav-label">
+                {botThinking ? 'Stockfish thinking…' : 'History'}
+              </span>
+              <button
+                className="trainer__mobile-nav-btn"
+                type="button"
+                onClick={handleHistoryForward}
+                disabled={historyIndex === positionHistory.length - 1 || botMode}
+                title="Next position"
+              >
+                ›
+              </button>
+            </div>
 
-          {/* Bot thinking indicator */}
-          {botThinking && (
-            <div className="trainer__mobile-bot-status">Stockfish thinking…</div>
-          )}
+            {/* Action row */}
+            <div className="trainer__mobile-panel-actions">
+              <button
+                className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
+                type="button"
+                onClick={() => setShowArrows((prev) => !prev)}
+              >
+                <span className="trainer__mobile-act-ic">⇗</span>
+                <span className="trainer__mobile-act-lbl">Moves</span>
+              </button>
 
-          {/* Move feedback — always visible, MoveLog has its own "Play a move" empty state */}
-          <div className="trainer__mobile-fb">
-            <MoveLog entries={moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx))} />
+              <button
+                className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
+                type="button"
+                onClick={() => setBotMode((prev) => !prev)}
+                title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
+              >
+                <span className="trainer__mobile-act-ic">♟</span>
+                <span className="trainer__mobile-act-lbl">vs Bot</span>
+              </button>
+
+              <button
+                className="trainer__mobile-act"
+                type="button"
+                onClick={handleReset}
+              >
+                <span className="trainer__mobile-act-ic">↺</span>
+                <span className="trainer__mobile-act-lbl">Reset</span>
+              </button>
+
+              <button
+                className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
+                type="button"
+                onClick={handleSaveFavorite}
+                disabled={isSaved}
+              >
+                <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
+                <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
+              </button>
+
+              <button
+                className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
+                type="button"
+                onClick={mobileActionHandler}
+              >
+                <span className="trainer__mobile-act-ic">▶▶</span>
+                <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Bottom action bar */}
-        <nav className="trainer__mobile-actionbar">
-          <button
-            className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
-            type="button"
-            onClick={() => setShowArrows((prev) => !prev)}
-          >
-            <span className="trainer__mobile-act-ic">⇗</span>
-            <span className="trainer__mobile-act-lbl">Moves</span>
-          </button>
-
-          <button
-            className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
-            type="button"
-            onClick={() => setBotMode((prev) => !prev)}
-            title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
-          >
-            <span className="trainer__mobile-act-ic">♟</span>
-            <span className="trainer__mobile-act-lbl">vs Bot</span>
-          </button>
-
-          <button
-            className="trainer__mobile-act"
-            type="button"
-            onClick={handleReset}
-          >
-            <span className="trainer__mobile-act-ic">↺</span>
-            <span className="trainer__mobile-act-lbl">Reset</span>
-          </button>
-
-          <button
-            className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
-            type="button"
-            onClick={handleSaveFavorite}
-            disabled={isSaved}
-          >
-            <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
-            <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
-          </button>
-
-          <button
-            className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
-            type="button"
-            onClick={mobileActionHandler}
-          >
-            <span className="trainer__mobile-act-ic">▶▶</span>
-            <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
-          </button>
-        </nav>
       </div>
 
       {currentBlunder && (

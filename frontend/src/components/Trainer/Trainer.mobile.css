@@ -5,7 +5,6 @@
   flex-direction: column;
   height: 100%;
   padding: 0;
-  position: relative;
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
@@ -34,7 +33,7 @@
   flex: 0 0 auto;
 }
 
-/* Exit mobile-preview button — only shown for admins */
+/* Exit mobile-preview button — admin only, embedded in header */
 .trainer__mobile-exit-btn {
   width: 34px;
   height: 34px;
@@ -54,6 +53,7 @@
   border-color: var(--gold);
 }
 
+/* Menu / back button */
 .trainer__mobile-menu-btn {
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 14px 120px;
+  padding: 10px 14px 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -106,7 +106,7 @@
   width: 0;
 }
 
-/* ── Compact BlunderCard — horizontal banner style ───────────────────────── */
+/* ── Compact BlunderCard — horizontal banner ─────────────────────────────── */
 
 .trainer--mobile .blunder-card {
   flex-direction: row;
@@ -145,6 +145,24 @@
   white-space: nowrap;
 }
 
+/* ── Move feedback panel (always visible, right under blunder card) ───────── */
+
+.trainer__mobile-fb {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border, rgba(255,255,255,.07));
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+/* Disable inner scroll on MoveLog so the outer body scrolls everything */
+.trainer__mobile-fb .move-log__scroll {
+  overflow-y: visible;
+  max-height: none;
+}
+
 /* ── Board takes full width ──────────────────────────────────────────────── */
 
 .trainer__mobile-board-wrap {
@@ -152,20 +170,38 @@
   position: relative;
 }
 
-/* ── History navigation row ──────────────────────────────────────────────── */
+/* ── Inline settings panel — right under the board ──────────────────────── */
 
-.trainer__mobile-nav-row {
+.trainer__mobile-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Nav row: ‹  History  › */
+.trainer__mobile-panel-nav {
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trainer__mobile-panel-nav-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .trainer__mobile-nav-btn {
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  padding: 6px 20px;
+  padding: 5px 18px;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
@@ -183,55 +219,12 @@
   cursor: default;
 }
 
-/* ── Bot status ──────────────────────────────────────────────────────────── */
-
-.trainer__mobile-bot-status {
-  font-size: 0.75rem;
-  color: var(--muted);
-  text-align: center;
-  font-style: italic;
-}
-
-/* ── Move feedback panel (always visible) ────────────────────────────────── */
-
-.trainer__mobile-fb {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border, rgba(255,255,255,.07));
-  border-radius: 12px;
-  padding: 12px 14px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
-}
-
-/* Disable inner scroll so the outer body scrolls everything */
-.trainer__mobile-fb .move-log__scroll {
-  overflow-y: visible;
-  max-height: none;
-}
-
-/* ── Bottom action bar ───────────────────────────────────────────────────── */
-
-/* Light mode overrides for the action bar */
-:root[data-theme="light"] .trainer__mobile-actionbar {
-  background: rgba(255, 255, 255, 0.96);
-  border-top-color: rgba(0, 0, 0, 0.07);
-}
-
-.trainer__mobile-actionbar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 45;
-  background: var(--bar-bg, rgba(20, 25, 38, 0.96));
-  border-top: 1px solid var(--bar-border, rgba(255, 255, 255, 0.06));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 9px 8px calc(9px + env(safe-area-inset-bottom, 18px));
+/* Action row: 5 icon buttons */
+.trainer__mobile-panel-actions {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 0;
+  padding: 6px 4px 8px;
 }
 
 .trainer__mobile-act {
@@ -241,7 +234,7 @@
   gap: 4px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 10px;
   padding: 7px 2px 6px;
   color: var(--muted);
   font: inherit;

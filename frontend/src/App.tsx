@@ -17,7 +17,16 @@ import Trainer from './components/Trainer/Trainer';
 import Admin from './components/Admin/Admin';
 import './App.css';
 
-function renderScreen(screen: Screen, isAuthenticated: boolean, isAdmin: boolean, adminView: boolean, isMobile: boolean): JSX.Element {
+interface ScreenProps {
+  isMobile: boolean;
+  isAdmin: boolean;
+  adminView: boolean;
+  onAdminToggle: () => void;
+}
+
+function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenProps): JSX.Element {
+  const { isMobile, isAdmin, adminView, onAdminToggle } = props;
+
   if (!isAuthenticated) {
     return <Login />;
   }
@@ -27,7 +36,14 @@ function renderScreen(screen: Screen, isAuthenticated: boolean, isAdmin: boolean
   }
 
   if (screen === 'setup') {
-    return <SessionSetup isMobile={isMobile} />;
+    return (
+      <SessionSetup
+        isMobile={isMobile}
+        isAdmin={isAdmin}
+        adminView={adminView}
+        onAdminToggle={onAdminToggle}
+      />
+    );
   }
 
   if (screen === 'loading') {
@@ -71,13 +87,26 @@ function App(): JSX.Element {
     setDarkMode(!darkMode);
   }
 
+  function handleAdminToggle(): void {
+    setAdminView((v) => !v);
+  }
+
+  const screenProps: ScreenProps = {
+    isMobile,
+    isAdmin,
+    adminView,
+    onAdminToggle: handleAdminToggle,
+  };
+
   return (
     <div className="app">
       <ErrorBanner />
       <main className="app__main">
-        {renderScreen(screen, isAuthenticated, isAdmin, adminView, isMobile)}
+        {renderScreen(screen, isAuthenticated, screenProps)}
       </main>
-      {isAdmin && isAuthenticated && (
+
+      {/* Fixed floating buttons — hidden on mobile (controls move into profile settings) */}
+      {!isMobile && isAdmin && isAuthenticated && (
         <button
           className={`mobile-toggle${mobileOverride ? ' mobile-toggle--on' : ''}`}
           type="button"
@@ -87,24 +116,26 @@ function App(): JSX.Element {
           📱
         </button>
       )}
-      {isAdmin && isAuthenticated && (
+      {!isMobile && isAdmin && isAuthenticated && (
         <button
           className="admin-toggle"
           type="button"
-          onClick={() => setAdminView((v) => !v)}
+          onClick={handleAdminToggle}
           title={adminView ? 'Back to app' : 'Admin dashboard'}
         >
           {adminView ? '⬅' : '⚙'}
         </button>
       )}
-      <button
-        className="theme-toggle"
-        type="button"
-        onClick={handleThemeToggle}
-        title="Toggle theme"
-      >
-        {darkMode ? '☼' : '☾'}
-      </button>
+      {!isMobile && (
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={handleThemeToggle}
+          title="Toggle theme"
+        >
+          {darkMode ? '☼' : '☾'}
+        </button>
+      )}
     </div>
   );
 }

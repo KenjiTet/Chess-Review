@@ -9,6 +9,8 @@ interface BlunderCardProps {
   classification: string;
   onShowBlunderSequence?: () => void;
   sequenceDisabled?: boolean;
+  /** When true renders a short "Show" label on the sequence button instead of the full text. */
+  compactSequenceLabel?: boolean;
 }
 
 function capCpLoss(cpLoss: number): string {
@@ -18,7 +20,7 @@ function capCpLoss(cpLoss: number): string {
   return String(cpLoss);
 }
 
-function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, sequenceDisabled }: BlunderCardProps): JSX.Element {
+function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, sequenceDisabled, compactSequenceLabel = false }: BlunderCardProps): JSX.Element {
   return (
     <div className="blunder-card">
       <div className="blunder-card__meta">
@@ -37,8 +39,9 @@ function BlunderCard({ moveSan, cpLoss, classification, onShowBlunderSequence, s
             type="button"
             onClick={onShowBlunderSequence}
             disabled={sequenceDisabled}
+            title="Show move sequence"
           >
-            ▶ Show Move Sequence
+            {compactSequenceLabel ? '▶ Show' : '▶ Show Move Sequence'}
           </button>
         )}
       </div>

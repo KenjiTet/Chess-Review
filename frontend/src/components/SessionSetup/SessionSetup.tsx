@@ -125,9 +125,12 @@ function PlayerCard({ username, avatar, platform }: PlayerCardProps): JSX.Elemen
 
 interface SessionSetupProps {
   isMobile?: boolean;
+  isAdmin?: boolean;
+  adminView?: boolean;
+  onAdminToggle?: () => void;
 }
 
-function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
+function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, onAdminToggle }: SessionSetupProps): JSX.Element {
   const buildSession = useSession((s) => s.buildSession);
   const loadFavoritePosition = useSession((s) => s.loadFavoritePosition);
 
@@ -142,8 +145,14 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
   const logout = useAuth((s) => s.logout);
   const isReviewed = useReviewed((s) => s.isReviewed);
 
+  const darkMode = useSettings((s) => s.darkMode);
+  const setDarkMode = useSettings((s) => s.setDarkMode);
+  const mobileOverride = useSettings((s) => s.mobileOverride);
+  const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
+
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
 
   const username = authUsername ?? '';
 
@@ -243,6 +252,68 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
             <span className="setup__mobile-profile-name">{username}</span>
             <span className="setup__mobile-profile-meta">{platformLabel}</span>
           </div>
+
+          {/* Settings button — opens dropdown with theme + admin controls */}
+          <div className="setup__mobile-settings-wrap">
+            <button
+              className="setup__mobile-settings-btn"
+              type="button"
+              onClick={() => setProfileSettingsOpen((v) => !v)}
+              aria-label="Settings"
+            >
+              ⚙
+            </button>
+            {profileSettingsOpen && (
+              <>
+                <div
+                  className="setup__mobile-settings-scrim"
+                  onClick={() => setProfileSettingsOpen(false)}
+                />
+                <div className="setup__mobile-settings-dropdown">
+                  {/* Theme toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDarkMode(!darkMode);
+                      setProfileSettingsOpen(false);
+                    }}
+                  >
+                    <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
+                    {darkMode ? 'Switch to light' : 'Switch to dark'}
+                  </button>
+
+                  {/* Admin panel toggle */}
+                  {isAdmin && onAdminToggle && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAdminToggle();
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <span className="setup__mobile-dd-ic">⚙</span>
+                      {adminView ? 'Exit admin' : 'Admin panel'}
+                    </button>
+                  )}
+
+                  {/* Mobile preview toggle */}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleMobileOverride();
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <span className="setup__mobile-dd-ic">{mobileOverride ? '🖥' : '📱'}</span>
+                      {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             className="setup__mobile-logout-btn"
             type="button"
