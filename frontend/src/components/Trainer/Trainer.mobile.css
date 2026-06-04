@@ -98,7 +98,8 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 14px 40px;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -172,13 +173,13 @@
   position: relative;
 }
 
-/* ── Inline settings panel — right under the board ──────────────────────── */
+/* ── Settings panel — sticky footer, always visible at the bottom ────────── */
 
 .trainer__mobile-panel {
+  flex: 0 0 auto;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
+  border-top: 1px solid var(--border);
+  /* No border-radius — flush against the bottom edge */
 }
 
 /* Nav row: ‹  History  › */

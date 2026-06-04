@@ -798,82 +798,83 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             />
           </div>
 
-          {/* 5. Inline settings panel — right under the board */}
-          <div className="trainer__mobile-panel">
-            {/* Nav row: previous / next history */}
-            <div className="trainer__mobile-panel-nav">
-              <button
-                className="trainer__mobile-nav-btn"
-                type="button"
-                onClick={handleHistoryBack}
-                disabled={historyIndex === 0}
-                title="Previous position"
-              >
-                ‹
-              </button>
-              <span className="trainer__mobile-panel-nav-label">
-                {botThinking ? 'Stockfish thinking…' : 'History'}
-              </span>
-              <button
-                className="trainer__mobile-nav-btn"
-                type="button"
-                onClick={handleHistoryForward}
-                disabled={historyIndex === positionHistory.length - 1 || botMode}
-                title="Next position"
-              >
-                ›
-              </button>
-            </div>
+        </div>
 
-            {/* Action row */}
-            <div className="trainer__mobile-panel-actions">
-              <button
-                className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
-                type="button"
-                onClick={() => setShowArrows((prev) => !prev)}
-              >
-                <span className="trainer__mobile-act-ic">⇗</span>
-                <span className="trainer__mobile-act-lbl">Moves</span>
-              </button>
+        {/* Settings panel — sticky footer, always visible at the bottom of the trainer */}
+        <div className="trainer__mobile-panel">
+          {/* Nav row: previous / next history */}
+          <div className="trainer__mobile-panel-nav">
+            <button
+              className="trainer__mobile-nav-btn"
+              type="button"
+              onClick={handleHistoryBack}
+              disabled={historyIndex === 0}
+              title="Previous position"
+            >
+              ‹
+            </button>
+            <span className="trainer__mobile-panel-nav-label">
+              {botThinking ? 'Stockfish thinking…' : 'History'}
+            </span>
+            <button
+              className="trainer__mobile-nav-btn"
+              type="button"
+              onClick={handleHistoryForward}
+              disabled={historyIndex === positionHistory.length - 1 || botMode}
+              title="Next position"
+            >
+              ›
+            </button>
+          </div>
 
-              <button
-                className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
-                type="button"
-                onClick={() => setBotMode((prev) => !prev)}
-                title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
-              >
-                <span className="trainer__mobile-act-ic">♟</span>
-                <span className="trainer__mobile-act-lbl">vs Bot</span>
-              </button>
+          {/* Action row */}
+          <div className="trainer__mobile-panel-actions">
+            <button
+              className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
+              type="button"
+              onClick={() => setShowArrows((prev) => !prev)}
+            >
+              <span className="trainer__mobile-act-ic">⇗</span>
+              <span className="trainer__mobile-act-lbl">Moves</span>
+            </button>
 
-              <button
-                className="trainer__mobile-act"
-                type="button"
-                onClick={handleReset}
-              >
-                <span className="trainer__mobile-act-ic">↺</span>
-                <span className="trainer__mobile-act-lbl">Reset</span>
-              </button>
+            <button
+              className={`trainer__mobile-act${botMode ? ' trainer__mobile-act--on' : ''}`}
+              type="button"
+              onClick={() => setBotMode((prev) => !prev)}
+              title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
+            >
+              <span className="trainer__mobile-act-ic">♟</span>
+              <span className="trainer__mobile-act-lbl">vs Bot</span>
+            </button>
 
-              <button
-                className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
-                type="button"
-                onClick={handleSaveFavorite}
-                disabled={isSaved}
-              >
-                <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
-                <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
-              </button>
+            <button
+              className="trainer__mobile-act"
+              type="button"
+              onClick={handleReset}
+            >
+              <span className="trainer__mobile-act-ic">↺</span>
+              <span className="trainer__mobile-act-lbl">Reset</span>
+            </button>
 
-              <button
-                className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
-                type="button"
-                onClick={mobileActionHandler}
-              >
-                <span className="trainer__mobile-act-ic">▶▶</span>
-                <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
-              </button>
-            </div>
+            <button
+              className={`trainer__mobile-act${isSaved ? ' trainer__mobile-act--on' : ''}`}
+              type="button"
+              onClick={handleSaveFavorite}
+              disabled={isSaved}
+            >
+              <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
+              <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+
+            <button
+              className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
+              type="button"
+              onClick={mobileActionHandler}
+            >
+              <span className="trainer__mobile-act-ic">▶▶</span>
+              <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
+            </button>
           </div>
         </div>
       </div>
