@@ -29,6 +29,15 @@ import useAuth from '../../hooks/useAuth';
 import './Trainer.css';
 import './Trainer.mobile.css';
 
+/** Inline SVG chess pawn — replaces the ♟ emoji to avoid font-rendering variance. */
+function PawnIcon({ size = 16 }: { size?: number }): JSX.Element {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 9c2.67 0 8 1.34 8 4v1H4v-1c0-2.66 5.33-4 8-4zM9 17h6l1.5 5H7.5L9 17z"/>
+    </svg>
+  );
+}
+
 interface HistoryEntry {
   fen: string;
   uci: string | null;
@@ -576,7 +585,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       <div className="trainer trainer--empty">
         <div className="trainer__done-overlay trainer__done-overlay--static">
           <div className="trainer__done-modal">
-            <div className="trainer__done-icon">{'♟'}</div>
+            <div className="trainer__done-icon"><PawnIcon size={32} /></div>
             <h2 className="trainer__done-title">
               {sessionDoneReason === 'no_blunders' ? 'Clean game!' : 'All blunders reviewed!'}
             </h2>
@@ -885,7 +894,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               onClick={() => setBotMode((prev) => !prev)}
               title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
             >
-              <span className="trainer__mobile-act-ic">♟</span>
+              <span className="trainer__mobile-act-ic"><PawnIcon size={18} /></span>
               <span className="trainer__mobile-act-lbl">vs Bot</span>
             </button>
 
@@ -1008,7 +1017,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               onClick={() => setBotMode((prev) => !prev)}
               title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
             >
-              {botMode ? '◈ Analysis' : '♟ vs Bot'}
+              {botMode ? '◈ Analysis' : <><PawnIcon size={14} /> vs Bot</>}
             </button>
 
             {botThinking && (

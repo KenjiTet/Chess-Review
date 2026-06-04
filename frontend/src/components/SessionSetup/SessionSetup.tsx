@@ -14,6 +14,7 @@ import { TimeClassIcon } from '../TimeClassIcons';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
+import settingsIcon from '../../assets/settings.svg';
 import './SessionSetup.css';
 import './SessionSetup.mobile.css';
 
@@ -261,7 +262,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               onClick={() => setProfileSettingsOpen((v) => !v)}
               aria-label="Settings"
             >
-              ⚙
+              <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
             </button>
             {profileSettingsOpen && (
               <>
@@ -291,7 +292,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                         setProfileSettingsOpen(false);
                       }}
                     >
-                      <span className="setup__mobile-dd-ic">⚙</span>
+                      <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
                       {adminView ? 'Exit admin' : 'Admin panel'}
                     </button>
                   )}
@@ -356,22 +357,22 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             </div>
           ) : (
             username && (
-              <GameHistory
-                username={username}
-                timeClass={timeClass}
-                isGuest={isGuest}
-                platform={platform ?? 'chesscom'}
-                isMobile
-                onTrainGame={handleTrainGame}
-                onGamesLoaded={handleGamesLoaded}
-              />
+              <div className="setup__mobile-games-card">
+                <GameHistory
+                  username={username}
+                  timeClass={timeClass}
+                  isGuest={isGuest}
+                  platform={platform ?? 'chesscom'}
+                  isMobile
+                  onTrainGame={handleTrainGame}
+                  onGamesLoaded={handleGamesLoaded}
+                />
+              </div>
             )
           )}
-        </div>
 
-        {/* Fixed start training button */}
-        <div className="setup__mobile-submit-bar">
-          <form onSubmit={handleSubmit}>
+          {/* Start Training button — inside the scroll body, anchored below the list */}
+          <form onSubmit={handleSubmit} className="setup__mobile-submit-form">
             <button className="setup__mobile-submit" type="submit">
               Start Training
             </button>
