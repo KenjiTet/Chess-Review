@@ -212,6 +212,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       cpLoss: fav.cpLoss,
       classification: fav.classification,
       moveNumber: fav.moveNumber,
+      prevFen: fav.prevFen,
+      prevMoveUci: fav.prevMoveUci,
+      uciPlayed: fav.uciPlayed,
     });
   }
 

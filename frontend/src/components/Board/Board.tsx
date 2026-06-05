@@ -198,7 +198,8 @@ function Board({
       return undefined;
     }
 
-    const phaseTimer = setTimeout(() => setIntroPhase(2), 1000);
+    // Play sound when the piece actually animates (phase 2 = opponent move animation).
+    const phaseTimer = setTimeout(() => { setIntroPhase(2); playMoveSound(); }, 1000);
     const doneTimer = setTimeout(() => setIntroTimedOut(true), 1800);
 
     return () => {

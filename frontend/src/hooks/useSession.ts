@@ -39,6 +39,9 @@ interface SessionStore {
     cpLoss: number;
     classification: string;
     moveNumber: number;
+    prevFen?: string | null;
+    prevMoveUci?: string | null;
+    uciPlayed?: string;
   }) => void;
   clearError: () => void;
   reset: () => void;
@@ -120,11 +123,11 @@ const useSession = create<SessionStore>((set, get) => ({
         }
 
         // If we're still on the loading screen, no blunders were found — show the no-blunders modal.
-        // If we're on the trainer screen, the user just finished the last blunder — show the done modal.
+        // If we're on the trainer screen, the user just finished the last blunder — go straight to menu.
         if (screen === 'loading') {
           set({ sessionDone: true, sessionDoneReason: 'no_blunders', sessionId: undefined, screen: 'trainer' });
         } else {
-          set({ sessionDone: true, sessionDoneReason: 'finished', sessionId: undefined });
+          get().reset();
         }
         return;
       }
@@ -170,6 +173,7 @@ const useSession = create<SessionStore>((set, get) => ({
 
     try {
       await apiSkipBlunder(sessionId);
+      set({ reviewedCount: get().reviewedCount + 1 });
       await get().fetchBlunder();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -189,10 +193,10 @@ const useSession = create<SessionStore>((set, get) => ({
         cp_loss: opts.cpLoss,
         classification: opts.classification,
         move_number: opts.moveNumber,
-        prev_fen: null,
-        prev_move_uci: null,
+        prev_fen: opts.prevFen ?? null,
+        prev_move_uci: opts.prevMoveUci ?? null,
         best_moves: [],
-        uci_played: '',
+        uci_played: opts.uciPlayed ?? '',
         eval_before_white_pov: 0,
       },
       screen: 'trainer',

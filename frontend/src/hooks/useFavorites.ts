@@ -15,6 +15,12 @@ export interface FavoritePosition {
   moveNumber: number;
   boardImageDataUrl: string;
   note?: string;
+  /** Position before the opponent's last move — used for the intro animation. */
+  prevFen?: string | null;
+  /** UCI of the opponent's last move — used for the intro animation and highlight. */
+  prevMoveUci?: string | null;
+  /** UCI of the blunder move — used for the red arrow overlay. */
+  uciPlayed?: string;
 }
 
 const BASE_KEY = 'recall_favorites';

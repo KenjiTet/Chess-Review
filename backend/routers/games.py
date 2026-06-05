@@ -50,11 +50,13 @@ def _blunder_data_from_cache(
     cache: dict,
     game_url: str,
     threshold: int,
+    player_color: str | None = None,
 ) -> tuple[int | None, str | None, str | None, dict[str, float]]:
     """Return (blunder_count, first_blunder_fen, first_blunder_color, computed_accuracy) from cache.
 
     computed_accuracy is a dict {"white": float, "black": float} derived from Stockfish data.
     Returns (None, None, None, {}) if the game is not in cache.
+    If player_color is provided, only blunders for that color are counted (matches trainer behaviour).
     """
     if not is_cached(cache, game_url, DEPTH):
         return None, None, None, {}
@@ -65,6 +67,10 @@ def _blunder_data_from_cache(
 
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
     computed_acc: dict[str, float] = compute_player_accuracy(move_data)
+
+    # Filter to the player's own blunders only, matching the trainer's behaviour.
+    if player_color is not None:
+        blunders = [b for b in blunders if b.get("color") == player_color]
 
     blunder_count: int = len(blunders)
 
@@ -162,10 +168,16 @@ def game_history(
 
         computed_acc: dict[str, float] = {}
 
+        # Determine which color the requesting player played so blunder counts match the trainer.
+        if white.get("username", "").lower() == username.lower():
+            player_color: str = "white"
+        else:
+            player_color = "black"
+
         if is_guest:
             blunder_count, first_fen, first_color = None, None, None
         else:
-            blunder_count, first_fen, first_color, computed_acc = _blunder_data_from_cache(cache, url, threshold)
+            blunder_count, first_fen, first_color, computed_acc = _blunder_data_from_cache(cache, url, threshold, player_color)
 
         accuracies: dict = game.get("accuracies", {})
 
@@ -232,16 +244,8 @@ def analyze_game_history(
     # cache stub: functions use SQLite directly and ignore this arg.
     cache: dict = {}
 
-    # Fast path: return cached blunder data immediately.
-    if not is_guest and is_cached(cache, game_url, DEPTH):
-        blunder_count, first_fen, first_color, _ = _blunder_data_from_cache(cache, game_url, threshold)
-        return GameAnalysisResult(
-            blunder_count=blunder_count or 0,
-            first_blunder_fen=first_fen,
-            first_blunder_color=first_color,
-        )
-
-    # Fetch game PGN from the appropriate platform.
+    # Always fetch the game dict first — we need it to determine the player's color
+    # so blunder counts match the trainer (which only shows the player's own blunders).
     try:
         if platform == "lichess":
             game: dict = lichess_svc.get_game_by_url(username, game_url)
@@ -251,6 +255,21 @@ def analyze_game_history(
         raise HTTPException(status_code=404, detail=str(exc))
     except req_lib.RequestException as exc:
         raise HTTPException(status_code=502, detail=f"API error: {exc}")
+
+    white_info: dict = game.get("white", {})
+    if white_info.get("username", "").lower() == username.lower():
+        player_color_analyze: str = "white"
+    else:
+        player_color_analyze = "black"
+
+    # Fast path: Stockfish data already cached — just re-filter by player color.
+    if not is_guest and is_cached(cache, game_url, DEPTH):
+        blunder_count, first_fen, first_color, _ = _blunder_data_from_cache(cache, game_url, threshold, player_color_analyze)
+        return GameAnalysisResult(
+            blunder_count=blunder_count or 0,
+            first_blunder_fen=first_fen,
+            first_blunder_color=first_color,
+        )
 
     pgn: str = game.get("pgn", "")
     if not pgn:
@@ -263,6 +282,8 @@ def analyze_game_history(
     fens, uci_moves = get_board_snapshots(pgn)
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
 
+    # Only count the requesting player's blunders, matching the trainer's behaviour.
+    blunders = [b for b in blunders if b.get("color") == player_color_analyze]
     blunder_count: int = len(blunders)
     first_fen: str | None = None
     first_color: str | None = None

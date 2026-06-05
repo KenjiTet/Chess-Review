@@ -228,13 +228,15 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   }, [currentBlunder]);
 
   // Refresh arrows whenever the board position changes (or arrows are toggled on).
-  // For the initial blunder position, reuse the cached best_moves to skip a round-trip.
+  // For the initial blunder position, reuse the cached best_moves to skip a round-trip
+  // unless they are empty (e.g. favorites loaded without pre-cached analysis).
   useEffect(() => {
     if (!showArrows || !localFen || !currentBlunder) {
       return undefined;
     }
 
-    if (localFen === currentBlunder.fen_before) {
+    const hasCachedArrows = currentBlunder.best_moves.length > 0;
+    if (localFen === currentBlunder.fen_before && hasCachedArrows) {
       // Arrows for the blunder position are derived directly in JSX from currentBlunder.best_moves
       return undefined;
     }
@@ -410,6 +412,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     setFirstMove(null);
     setMoveLog([]);
     setCurrentEval(currentBlunder.eval_before_white_pov ?? 0);
+    setCurrentArrows(currentBlunder.best_moves ?? []);
     setBotThinking(false);
     moveIdRef.current = 0;
     const resetHistory = buildInitialHistory(currentBlunder);
@@ -555,6 +558,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       moveNumber: currentBlunder.move_number,
       boardImageDataUrl,
       note: note !== '' ? note : undefined,
+      prevFen: currentBlunder.prev_fen,
+      prevMoveUci: currentBlunder.prev_move_uci,
+      uciPlayed: currentBlunder.uci_played,
     });
   }
 
@@ -642,7 +648,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   // Show the blunder arrow only when the board is at the exact blunder position
   const isAtBlunderPosition = historyIndex === initialHistory.blunderIdx && firstMove === null;
   const blunderArrowUci = isAtBlunderPosition ? (currentBlunder.uci_played ?? null) : null;
-  const progressPct = blunderCount > 0 ? (reviewedCount / blunderCount) * 100 : 0;
+  const progressPct = blunderCount > 0 ? ((reviewedCount + 1) / blunderCount) * 100 : 0;
 
   // Applied only once ResizeObserver has measured; avoids zero-size flash
   const boardDimStyle: CSSProperties | undefined = boardSize > 0 ? { width: boardSize, height: boardSize } : undefined;
@@ -652,21 +658,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   if (sessionId === undefined) {
     actionButton = (
       <button
-        className="trainer__panel-btn"
+        className="trainer__panel-btn trainer__panel-btn--primary"
         type="button"
         onClick={reset}
       >
-        ← Back
+        Finish
       </button>
     );
   } else if (firstMove === null) {
+    const isLastBlunder = reviewedCount + 1 >= blunderCount;
     actionButton = (
       <button
-        className="trainer__panel-btn"
+        className={`trainer__panel-btn${isLastBlunder ? ' trainer__panel-btn--primary' : ''}`}
         type="button"
         onClick={skipBlunder}
       >
-        Skip →
+        {isLastBlunder ? 'Finish' : 'Skip →'}
       </button>
     );
   } else {
@@ -709,13 +716,14 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     let mobileActionPrimary: boolean;
 
     if (sessionId === undefined) {
-      mobileActionLabel = '← Back';
+      mobileActionLabel = 'Finish';
       mobileActionHandler = reset;
-      mobileActionPrimary = false;
+      mobileActionPrimary = true;
     } else if (firstMove === null) {
-      mobileActionLabel = 'Skip →';
+      const isLastBlunder = reviewedCount + 1 >= blunderCount;
+      mobileActionLabel = isLastBlunder ? 'Finish' : 'Skip →';
       mobileActionHandler = skipBlunder;
-      mobileActionPrimary = false;
+      mobileActionPrimary = isLastBlunder;
     } else {
       const isLastBlunder = reviewedCount + 1 >= blunderCount;
       mobileActionLabel = isLastBlunder ? 'Finish' : 'Next →';
@@ -796,7 +804,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               prevMoveSan={prevMoveSan}
               onMove={handleMove}
               interactive={!botThinking && !isPlayingSequence}
-              arrowUcis={showArrows ? (localFen === currentBlunder.fen_before ? currentBlunder.best_moves : currentArrows) : []}
+              arrowUcis={showArrows ? currentArrows : []}
               lastMoveUci={displayLastMoveUci}
               blunderArrowUci={blunderArrowUci}
             />
@@ -988,7 +996,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             prevMoveSan={prevMoveSan}
             onMove={handleMove}
             interactive={!botThinking && !isPlayingSequence}
-            arrowUcis={showArrows ? (localFen === currentBlunder.fen_before ? currentBlunder.best_moves : currentArrows) : []}
+            arrowUcis={showArrows ? currentArrows : []}
             lastMoveUci={displayLastMoveUci}
             blunderArrowUci={blunderArrowUci}
           />
