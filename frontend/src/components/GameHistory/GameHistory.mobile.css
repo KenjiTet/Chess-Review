@@ -51,10 +51,10 @@
 
 /* Column widths as percentages — must mirror card columns exactly */
 .history__mob-col--tc       { flex: 0 0 10%; }
-.history__mob-col--players  { flex: 0 0 38%; min-width: 0; }
-.history__mob-col--acc      { flex: 0 0 14%; text-align: right; }
-.history__mob-col--blunders { flex: 0 0 19%; text-align: center; }
-.history__mob-col--result   { flex: 0 0 19%; text-align: right; }
+.history__mob-col--players  { flex: 0 0 15%; min-width: 0; }
+.history__mob-col--acc      { flex: 0 0 15%; text-align: right; }
+.history__mob-col--blunders { flex: 0 0 40%; text-align: center; }
+.history__mob-col--result   { flex: 0 0 20%; text-align: right; }
 
 /* ── Card — single inline row ────────────────────────────────────────────── */
 
