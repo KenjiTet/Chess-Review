@@ -132,7 +132,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const buildSession = useSession((s) => s.buildSession);
   const loadFavoritePosition = useSession((s) => s.loadFavoritePosition);
 
-  const nGames = useSettings((s) => s.nGames);
   const threshold = useSettings((s) => s.threshold);
   const setThreshold = useSettings((s) => s.setThreshold);
 
@@ -168,9 +167,12 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     }
 
     let cancelled = false;
-    setMobileRatingsLoading(true);
 
     async function loadRatings(): Promise<void> {
+      if (!cancelled) {
+        setMobileRatingsLoading(true);
+      }
+
       try {
         const result = await fetchUserProfile(username, platform ?? 'chesscom');
 
@@ -236,16 +238,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     setProfileStats({ winRate30d, gamesAnalysed, blundersDrilled });
   }
 
-  function findLastNonReviewedUrl(): string | undefined {
-    for (const game of gamesRef.current) {
-      if (!isReviewed(game.url)) {
-        return game.url;
-      }
-    }
-
-    return gamesRef.current[0]?.url;
-  }
-
   function resolveLoadingTitle(gameUrl: string | undefined): string {
     if (!gameUrl) {
       return 'Analysing your games…';
@@ -260,22 +252,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
     return 'Analysing your games…';
   }
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-
-    const gameUrl = findLastNonReviewedUrl();
-    const trainTimeClass = timeClass === 'all' ? 'rapid' : timeClass;
-
-    buildSession({
-      username,
-      time_class: trainTimeClass,
-      n_games: nGames,
-      threshold,
-      game_url: gameUrl,
-      platform: platform ?? 'chesscom',
-    }, resolveLoadingTitle(gameUrl));
-  };
 
   function handleTrainGame(gameUrl: string): void {
     buildSession({
