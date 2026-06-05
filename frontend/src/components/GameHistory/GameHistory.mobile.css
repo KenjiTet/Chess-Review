@@ -28,6 +28,56 @@
   gap: 0;
 }
 
+/* ── Mobile column header ────────────────────────────────────────────────── */
+
+.history__mobile-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.history__mob-col {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Match card column widths exactly */
+.history__mob-col--tc {
+  flex: 0 0 auto;
+  /* tc-col width: date text + 26px icon, take the wider of the two */
+  min-width: 36px;
+}
+
+.history__mob-col--players {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.history__mob-col--acc {
+  flex: 0 0 auto;
+  min-width: 38px;
+  text-align: right;
+}
+
+.history__mob-col--blunders {
+  flex: 0 0 auto;
+  min-width: 28px;
+  text-align: center;
+}
+
+.history__mob-col--result {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 /* ── Card — single inline row ────────────────────────────────────────────── */
 
 .game-card {
@@ -152,8 +202,41 @@
   font-weight: 600;
 }
 
-/* ── Inline stats column (acc + blunders) ────────────────────────────────── */
+/* ── Accuracy column — both players stacked ──────────────────────────────── */
 
+.game-card__acc-col {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 38px;
+}
+
+.game-card__acc-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.game-card__acc-val--me {
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+/* ── Blunder column ───────────────────────────────────────────────────────── */
+
+.game-card__blunder-col {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+}
+
+/* Keep inline-stats for skeleton cards */
 .game-card__inline-stats {
   flex: 0 0 auto;
   display: flex;
@@ -206,7 +289,6 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
-  margin-left: 10px;
 }
 
 /* Result pill */

@@ -260,7 +260,6 @@ function GameCard({
   onAnalyse: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
-  const myAccuracy = isWhite ? game.white_accuracy : game.black_accuracy;
 
   const isTappable = game.blunder_count !== null && game.blunder_count > 0;
 
@@ -281,10 +280,30 @@ function GameCard({
     onTrain();
   }
 
-  function renderInlineStats(): JSX.Element {
+  function formatAcc(val: number | null | undefined): string {
+    if (val !== null && val !== undefined) {
+      return `${val.toFixed(1)}%`;
+    }
+    return '—';
+  }
+
+  function renderAccCol(): JSX.Element {
+    return (
+      <div className="game-card__acc-col">
+        <span className={`game-card__acc-val${isWhite ? ' game-card__acc-val--me' : ''}`}>
+          {formatAcc(game.white_accuracy)}
+        </span>
+        <span className={`game-card__acc-val${!isWhite ? ' game-card__acc-val--me' : ''}`}>
+          {formatAcc(game.black_accuracy)}
+        </span>
+      </div>
+    );
+  }
+
+  function renderBlunderCol(): JSX.Element {
     if (isAnalysing) {
       return (
-        <div className="game-card__inline-stats">
+        <div className="game-card__blunder-col">
           <span className="game-card__spin" />
         </div>
       );
@@ -292,32 +311,26 @@ function GameCard({
 
     if (blunderCount === null) {
       return (
-        <div className="game-card__inline-stats">
-          {myAccuracy !== null && myAccuracy !== undefined ? (
-            <span className="game-card__istat game-card__istat--acc">{myAccuracy.toFixed(1)}%</span>
-          ) : (
-            <span className="game-card__istat game-card__istat--muted">—</span>
-          )}
+        <div className="game-card__blunder-col">
           <span className="game-card__istat game-card__istat--muted">-</span>
         </div>
       );
     }
 
+    if (blunderCount === 0) {
+      return (
+        <div className="game-card__blunder-col">
+          <span className="game-card__istat game-card__istat--clean"><CheckCircleSvg /></span>
+        </div>
+      );
+    }
+
     return (
-      <div className="game-card__inline-stats">
-        <span className="game-card__istat game-card__istat--acc">
-          {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
+      <div className="game-card__blunder-col">
+        <span className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls}`}>
+          <AlertTriangleSvg />
+          {blunderCount}
         </span>
-        {blunderCount > 0 ? (
-          <span className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls}`}>
-            <AlertTriangleSvg />
-            {blunderCount}
-          </span>
-        ) : (
-          <span className="game-card__istat game-card__istat--clean">
-            <CheckCircleSvg />
-          </span>
-        )}
       </div>
     );
   }
@@ -416,7 +429,8 @@ function GameCard({
         </div>
       </div>
 
-      {renderInlineStats()}
+      {renderAccCol()}
+      {renderBlunderCol()}
 
       <div className="game-card__right-col">
         <span className={`game-card__result game-card__result--${resultClass}`}>
@@ -569,10 +583,21 @@ function GameHistory({
     return () => observer.disconnect();
   }, [handleLoadMore, initialLoading]);
 
+  const mobileHeader = (
+    <div className="history__mobile-header">
+      <div className="history__mob-col history__mob-col--tc" />
+      <div className="history__mob-col history__mob-col--players">Player</div>
+      <div className="history__mob-col history__mob-col--acc">Acc</div>
+      <div className="history__mob-col history__mob-col--blunders">Blunders</div>
+      <div className="history__mob-col history__mob-col--result">Result</div>
+    </div>
+  );
+
   if (initialLoading) {
     if (isMobile) {
       return (
         <div className="history history--mobile">
+          {mobileHeader}
           <div className="history__cards-skeleton">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={`mob-skeleton-${i}`} className="game-card game-card--skeleton">
@@ -653,6 +678,8 @@ function GameHistory({
   if (isMobile) {
     return (
       <div className="history history--mobile">
+        {mobileHeader}
+
         {displayedGames.length === 0 && (
           <p className="history__empty">No games found.</p>
         )}
