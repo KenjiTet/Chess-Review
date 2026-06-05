@@ -34,6 +34,35 @@ def get_player_profile(username: str) -> dict:
         raise requests.RequestException(f"Failed to fetch profile for '{username}': {exc}") from exc
 
 
+def get_player_stats(username: str) -> dict:
+    """Fetch a player's game statistics (ratings) from Chess.com.
+
+    Args:
+        username: Chess.com username.
+
+    Returns:
+        Raw stats dict. Keys include chess_rapid, chess_blitz, chess_bullet,
+        each containing a 'last' sub-dict with a 'rating' key.
+
+    Raises:
+        ValueError: If the username is not found (404).
+        requests.RequestException: On network or HTTP errors.
+    """
+    url: str = f"{BASE_URL}/player/{username.lower()}/stats"
+
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+
+        if response.status_code == 404:
+            raise ValueError(f"Chess.com username '{username}' not found.")
+
+        response.raise_for_status()
+        return response.json()
+
+    except requests.RequestException as exc:
+        raise requests.RequestException(f"Failed to fetch stats for '{username}': {exc}") from exc
+
+
 def get_player_archives(username: str) -> list[str]:
     """Fetch all monthly archive URLs for a player, most recent first.
 

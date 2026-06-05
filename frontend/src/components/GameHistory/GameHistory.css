@@ -85,7 +85,7 @@
 
 .history__table {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -94,28 +94,29 @@
 }
 
 /* ── Shared grid columns ───────────────────────────────────────── */
-/* tc(28) | players(1fr) | result(60px) | accuracy(76px) | date(88px) | action(86px) */
+/* tc(30px) | players(1fr) | result(78px) | accuracy(96px) | blunders(104px) | date(118px) | action(116px) */
 
 .history__header,
 .history__row {
   display: grid;
-  grid-template-columns: 28px 1fr 60px 76px 88px 86px;
+  grid-template-columns: 30px 1fr 78px 96px 104px 118px 116px;
   align-items: center;
-  column-gap: 0.5rem;
-  padding: 0 0.75rem;
+  column-gap: 12px;
+  padding: 0 18px;
 }
 
 /* ── Header row ────────────────────────────────────────────────── */
 
 .history__header {
-  height: 32px;
-  background: var(--surface);
+  height: 38px;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
-  font-size: 0.64rem;
-  font-weight: 700;
+  font-size: 0.66rem;
+  font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--muted);
+  flex-shrink: 0;
 }
 
 /* ── Scrollable body ───────────────────────────────────────────── */
@@ -127,18 +128,18 @@
 }
 
 .history__body::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .history__body::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 /* ── Data rows ─────────────────────────────────────────────────── */
 
 .history__row {
-  min-height: 52px;
+  min-height: 60px;
   padding-top: 0.45rem;
   padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--border);
@@ -151,7 +152,12 @@
 }
 
 .history__row:hover {
-  background: rgba(226, 160, 63, 0.04);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+}
+
+/* Reviewed rows are dimmed */
+.history__row--reviewed {
+  opacity: 0.5;
 }
 
 /* ── Column base ───────────────────────────────────────────────── */
@@ -171,7 +177,7 @@
 .history__col--players {
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.22rem;
+  gap: 4px;
 }
 
 .history__col--result {
@@ -182,20 +188,16 @@
   justify-content: center;
 }
 
+.history__col--blunders {
+  justify-content: center;
+}
+
 .history__col--date {
   justify-content: flex-end;
 }
 
 .history__col--action {
   justify-content: flex-end;
-}
-
-/* ── Time class SVG icon ───────────────────────────────────────── */
-
-.history__tc-icon {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
 }
 
 /* ── Player lines ──────────────────────────────────────────────── */
@@ -211,8 +213,8 @@
 /* Piece color dot */
 .history__piece {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -224,49 +226,59 @@
 
 .history__piece--black {
   background: #1a1a1a;
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.55);
 }
 
 .history__player-name {
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--muted);
   font-weight: 500;
+  min-width: 0;
+}
+
+.history__player-elo {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  opacity: 0.8;
+  flex-shrink: 0;
+  margin-left: 2px;
 }
 
 /* Highlighted player = the logged-in user */
 .history__player-line--me .history__player-name {
-  color: var(--text);
+  color: var(--text-h);
   font-weight: 700;
 }
 
 /* ── Result pill ───────────────────────────────────────────────── */
 
 .history__result {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   border-radius: 6px;
-  padding: 0.2rem 0.45rem;
+  padding: 0.22rem 0.5rem;
   white-space: nowrap;
 }
 
 .history__result--win {
-  background: rgba(52, 199, 89, 0.12);
-  color: #34c759;
-  border: 1px solid rgba(52, 199, 89, 0.28);
+  background: rgba(34, 197, 94, 0.13);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .history__result--lose {
-  background: rgba(224, 82, 82, 0.10);
-  color: #e05252;
-  border: 1px solid rgba(224, 82, 82, 0.22);
+  background: rgba(239, 68, 68, 0.11);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.26);
 }
 
 .history__result--draw {
-  background: rgba(138, 150, 170, 0.10);
+  background: rgba(138, 150, 170, 0.12);
   color: var(--muted);
   border: 1px solid var(--border);
 }
@@ -277,85 +289,153 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 3px;
 }
 
 .history__acc-val {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--muted);
-  line-height: 1.1;
+  line-height: 1.05;
   white-space: nowrap;
 }
 
 /* The user's own accuracy is highlighted */
 .history__acc-val--me {
-  font-weight: 700;
-  color: var(--text);
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+/* ── Blunder count ─────────────────────────────────────────────── */
+
+.history__blunders {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  font-family: var(--mono);
+}
+
+.history__blunders svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.history__blunders--high { color: var(--error); }
+.history__blunders--mid  { color: var(--gold); }
+.history__blunders--low  { color: var(--success); }
+
+.history__clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.history__clean svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.history__dash {
+  color: var(--muted);
+  opacity: 0.6;
+  font-size: 0.9rem;
 }
 
 /* ── Date ──────────────────────────────────────────────────────── */
 
 .history__date {
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: var(--muted);
   white-space: nowrap;
 }
 
-/* ── Review button ─────────────────────────────────────────────── */
+/* ── Action buttons ────────────────────────────────────────────── */
 
-.history__review-btn {
-  padding: 0.3rem 0.65rem;
+.history__btn {
+  border: none;
+  border-radius: 7px;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+
+/* Gold filled — primary Review button */
+.history__btn--review {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   color: var(--gold-text);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.73rem;
-  font-weight: 700;
-  font-family: var(--sans);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(200, 134, 31, 0.3);
 }
 
-.history__review-btn:hover {
+.history__btn--review:hover {
   background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(200, 134, 31, 0.35);
 }
 
-.history__review-btn:active {
-  transform: translateY(0);
+/* Gold outline — Analyse button with magnifier icon */
+.history__btn--analyse {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 50%, var(--border));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.history__review-btn--done {
+.history__btn--analyse:hover {
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border-color: var(--gold);
+}
+
+.history__btn--analyse svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* Muted — Re-review button */
+.history__btn--rereview {
   background: transparent;
   color: var(--muted);
   border: 1px solid var(--border);
 }
 
-.history__review-btn--done:hover {
-  background: transparent;
+.history__btn--rereview:hover {
   border-color: var(--gold);
   color: var(--gold);
-  box-shadow: none;
-  transform: none;
 }
 
-/* ── No-blunders label ─────────────────────────────────────────── */
-
-.history__no-blunders {
-  font-size: 0.73rem;
-  font-weight: 600;
-  font-family: var(--sans);
+/* Disabled spinner state while Stockfish is running */
+.history__btn--analysing {
+  background: var(--bg);
   color: var(--muted);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  padding: 0.3rem 0.65rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: default;
+  pointer-events: none;
+}
+
+.history__spin {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: history-spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
 
 /* ── Skeleton loader ───────────────────────────────────────────── */
@@ -381,7 +461,7 @@
 .skeleton--xs   { width: 36px; height: 14px; }
 .skeleton--sm   { width: 80px; height: 12px; }
 .skeleton--md   { width: 120px; height: 12px; }
-.skeleton--btn  { width: 60px; height: 26px; border-radius: 6px; }
+.skeleton--btn  { width: 72px; height: 28px; border-radius: 7px; }
 
 .history__row--skeleton {
   pointer-events: none;

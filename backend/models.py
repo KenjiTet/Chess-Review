@@ -133,12 +133,22 @@ class GameHistoryEntry(BaseModel):
     result: str
     time_class: str
     white_username: str
+    white_rating: int | None = None
     black_username: str
+    black_rating: int | None = None
     white_accuracy: float | None = None
     black_accuracy: float | None = None
     blunder_count: int | None = None
     first_blunder_fen: str | None = None
     first_blunder_color: str | None = None
+
+
+class UserProfileResponse(BaseModel):
+    """Public profile and ratings for a Chess.com / Lichess player."""
+    joined_year: int | None = None
+    rapid_rating: int | None = None
+    blitz_rating: int | None = None
+    bullet_rating: int | None = None
 
 
 class GameAnalysisResult(BaseModel):

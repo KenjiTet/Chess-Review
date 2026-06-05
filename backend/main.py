@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from routers import admin, analysis, auth, games, session
+from routers import admin, analysis, auth, games, session, user
 from services.db import init_db
 
 # Initialise SQLite tables on every startup (idempotent).
@@ -38,6 +38,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(session.router, prefix="/api/session", tags=["session"])
 app.include_router(games.router, prefix="/api/games", tags=["games"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+app.include_router(user.router, prefix="/api/user", tags=["user"])
 
 
 @app.get("/api/health")

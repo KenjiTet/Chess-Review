@@ -1,0 +1,185 @@
+/* ── Profile band ────────────────────────────────────────────────── */
+
+.profile-band {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 22px;
+  align-items: center;
+  padding: 20px 26px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gold) 6%, var(--surface)) 0%,
+    var(--surface) 100%
+  );
+  flex-shrink: 0;
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────── */
+
+.profile-band__avatar {
+  width: 66px;
+  height: 66px;
+  border-radius: 18px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 25%, var(--surface-2, var(--bg)), var(--bg));
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 12%, transparent);
+}
+
+.profile-band__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-band__avatar-img--logo {
+  object-fit: contain;
+  padding: 11px;
+}
+
+/* ── Info (name + platform + ratings) ────────────────────────────── */
+
+.profile-band__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.profile-band__namerow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-band__name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.3px;
+}
+
+.profile-band__platform {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.profile-band__dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.6;
+}
+
+/* ── Rating pills ────────────────────────────────────────────────── */
+
+.profile-band__ratings {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-band__rating-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.profile-band__rating-pill b {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+/* Skeleton shimmer animation while ratings are loading */
+@keyframes pb-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.profile-band__rating-pill--skeleton {
+  width: 90px;
+  height: 33px;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    color-mix(in srgb, var(--border) 40%, transparent) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: pb-shimmer 1.4s ease infinite;
+}
+
+.profile-band__rating-pill span {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Stats ───────────────────────────────────────────────────────── */
+
+.profile-band__stats {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.profile-band__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 20px;
+  position: relative;
+}
+
+.profile-band__stat + .profile-band__stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14%;
+  height: 72%;
+  width: 1px;
+  background: var(--border);
+}
+
+.profile-band__stat-num {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gold);
+}
+
+.profile-band__stat-num--alt {
+  color: var(--text-h);
+}
+
+.profile-band__stat-lbl {
+  font-size: 0.66rem;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  text-align: center;
+}

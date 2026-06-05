@@ -8,6 +8,7 @@ import useAuth from '../../hooks/useAuth';
 import useReviewed from '../../hooks/useReviewed';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
+import ProfileBand from './ProfileBand';
 import type { GameHistoryEntry } from '../../api/client.ts';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -26,6 +27,14 @@ const TIME_CLASS_STORAGE_KEY = 'recall_time_class';
 function getSavedTimeClass(): TimeClass {
   // Always default to "all" — do not restore a previously saved selection.
   return 'all';
+}
+
+// ── Profile stats derived from loaded game list ────────────────────────────
+
+interface ProfileStats {
+  winRate30d: number | undefined;
+  gamesAnalysed: number;
+  blundersDrilled: number;
 }
 
 // ── Custom time-class select with icons ────────────────────────────────────
@@ -85,40 +94,26 @@ function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element
   );
 }
 
-// ── Player identity card ───────────────────────────────────────────────────
+// ── Tab SVG icons ──────────────────────────────────────────────────────────
 
-interface PlayerCardProps {
-  username: string;
-  avatar: string | undefined;
-  platform: string | undefined;
+function ListIconSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
 }
 
-function PlayerCard({ username, avatar, platform }: PlayerCardProps): JSX.Element {
-  const [imgFailed, setImgFailed] = useState<boolean>(false);
-
-  const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
-  const showAvatar = avatar && !imgFailed;
-
+function StarIconSvg(): JSX.Element {
   return (
-    <div className="setup__player-card">
-      <div className="setup__player-avatar">
-        {showAvatar ? (
-          <img
-            src={avatar}
-            alt={username}
-            className="setup__player-avatar-img"
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <img
-            src={fallbackSrc}
-            alt={platform ?? 'platform'}
-            className="setup__player-avatar-img setup__player-avatar-img--logo"
-          />
-        )}
-      </div>
-      <span className="setup__player-name">{username}</span>
-    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
   );
 }
 
@@ -154,6 +149,11 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
+  const [profileStats, setProfileStats] = useState<ProfileStats>({
+    winRate30d: undefined,
+    gamesAnalysed: 0,
+    blundersDrilled: 0,
+  });
 
   const username = authUsername ?? '';
 
@@ -177,6 +177,27 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
   function handleGamesLoaded(games: GameHistoryEntry[]): void {
     gamesRef.current = games;
+
+    // Win rate over the last 30 days.
+    const now = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const recent = games.filter((g) => now - new Date(g.date).getTime() < thirtyDaysMs);
+
+    let winRate30d: number | undefined;
+
+    if (recent.length > 0) {
+      winRate30d = (recent.filter((g) => g.result === 'win').length / recent.length) * 100;
+    }
+
+    // Games already analysed by Stockfish.
+    const gamesAnalysed = games.filter((g) => g.blunder_count !== null).length;
+
+    // Blunders in reviewed games (sum of blunder counts, from loaded list only).
+    const blundersDrilled = games
+      .filter((g) => isReviewed(g.url) && g.blunder_count !== null && g.blunder_count > 0)
+      .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
+
+    setProfileStats({ winRate30d, gamesAnalysed, blundersDrilled });
   }
 
   function findLastNonReviewedUrl(): string | undefined {
@@ -187,6 +208,21 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     }
 
     return gamesRef.current[0]?.url;
+  }
+
+  function resolveLoadingTitle(gameUrl: string | undefined): string {
+    if (!gameUrl) {
+      return 'Analysing your games…';
+    }
+
+    const game = gamesRef.current.find((g) => g.url === gameUrl);
+    const isAlreadyAnalysed = game?.blunder_count !== null && game?.blunder_count !== undefined;
+
+    if (isAlreadyAnalysed) {
+      return 'Loading game…';
+    }
+
+    return 'Analysing your games…';
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
@@ -202,7 +238,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       threshold,
       game_url: gameUrl,
       platform: platform ?? 'chesscom',
-    });
+    }, resolveLoadingTitle(gameUrl));
   };
 
   function handleTrainGame(gameUrl: string): void {
@@ -213,7 +249,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       threshold,
       game_url: gameUrl,
       platform: platform ?? 'chesscom',
-    });
+    }, resolveLoadingTitle(gameUrl));
   }
 
   function handleLogout(): void {
@@ -254,7 +290,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             <span className="setup__mobile-profile-meta">{platformLabel}</span>
           </div>
 
-          {/* Settings button — opens dropdown with theme + admin controls */}
+          {/* Settings button */}
           <div className="setup__mobile-settings-wrap">
             <button
               className="setup__mobile-settings-btn"
@@ -271,7 +307,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   onClick={() => setProfileSettingsOpen(false)}
                 />
                 <div className="setup__mobile-settings-dropdown">
-                  {/* Theme toggle */}
                   <button
                     type="button"
                     onClick={() => {
@@ -283,7 +318,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     {darkMode ? 'Switch to light' : 'Switch to dark'}
                   </button>
 
-                  {/* Admin panel toggle */}
                   {isAdmin && onAdminToggle && (
                     <button
                       type="button"
@@ -297,7 +331,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     </button>
                   )}
 
-                  {/* Mobile preview toggle */}
                   {isAdmin && (
                     <button
                       type="button"
@@ -326,7 +359,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* Scrollable body */}
         <div className="setup__mobile-body">
-          {/* Controls — wrapped in a card for visual containment */}
           <div className="setup__mobile-card">
             <div className="setup__mobile-control">
               <span className="setup__mobile-label">Time Control</span>
@@ -338,7 +370,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             </div>
           </div>
 
-          {/* Section header with tab toggle */}
           <div className="setup__mobile-section">
             <h2>{showFavorites ? 'Saved Positions' : 'Recent Games'}</h2>
             <button
@@ -350,7 +381,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             </button>
           </div>
 
-          {/* Content */}
           {showFavorites ? (
             <div className="setup__mobile-favorites-wrap">
               <Favorites onOpen={handleOpenFavorite} />
@@ -363,6 +393,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   timeClass={timeClass}
                   isGuest={isGuest}
                   platform={platform ?? 'chesscom'}
+                  threshold={threshold}
                   isMobile
                   onTrainGame={handleTrainGame}
                   onGamesLoaded={handleGamesLoaded}
@@ -371,7 +402,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             )
           )}
 
-          {/* Start Training button — inside the scroll body, anchored below the list */}
           <form onSubmit={handleSubmit} className="setup__mobile-submit-form">
             <button className="setup__mobile-submit" type="submit">
               Start Training
@@ -382,6 +412,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     );
   }
 
+  // ── Desktop layout ─────────────────────────────────────────────────────────
   return (
     <div className="setup">
       <div className="setup__hero">
@@ -392,7 +423,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         <p className="setup__hero-sub">Review your blunders like a daily puzzle</p>
       </div>
 
-      {/* User identity badge — fixed bottom-left */}
+      {/* User identity chip — fixed bottom-left */}
       <div className="setup__user-row">
         {username && (
           <span className="setup__user-name">{username}</span>
@@ -403,70 +434,138 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       </div>
 
       <form className="setup__card" onSubmit={handleSubmit}>
-        {/* ── Controls row: player + time + favorites toggle ── */}
-        <div className="setup__controls-row">
-          {/* Player identity — no box, inline with controls */}
-          <div className="setup__field setup__field--player">
-            <label className="setup__label">Player</label>
-            <PlayerCard username={username} avatar={avatar} platform={platform} />
+        {/* ── Profile band ── */}
+        <ProfileBand
+          username={username}
+          avatar={avatar}
+          platform={platform}
+          winRate30d={profileStats.winRate30d}
+          gamesAnalysed={profileStats.gamesAnalysed}
+          blundersDrilled={profileStats.blundersDrilled}
+        />
+
+        {/* ── Toolbar ── */}
+        <div className="setup__toolbar">
+          <div className="setup__field">
+            <label className="setup__label">Time Control</label>
+            <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
           </div>
 
-          <div className="setup__field setup__field--time">
-            <label className="setup__label" htmlFor="setup-timeclass">Time Control</label>
-            <TimeClassSelect
-              value={timeClass}
-              onChange={handleTimeClassChange}
-            />
-          </div>
-
-          <div className="setup__field setup__field--threshold">
+          <div className="setup__field">
             <label className="setup__label">Sensitivity</label>
             <ThresholdPicker value={threshold} onChange={setThreshold} />
           </div>
 
-          {/* Favorites toggle — star icon button */}
-          <div className="setup__field setup__field--fav">
+          <div className="setup__field">
             <label className="setup__label">&nbsp;</label>
+            <div className="setup__settings-wrap">
+              <button
+                type="button"
+                className="setup__icon-btn"
+                title="Settings"
+                onClick={() => setProfileSettingsOpen((v) => !v)}
+              >
+                ⚙
+              </button>
+              {profileSettingsOpen && (
+                <>
+                  <div
+                    className="setup__settings-scrim"
+                    onClick={() => setProfileSettingsOpen(false)}
+                  />
+                  <div className="setup__settings-dropdown">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDarkMode(!darkMode);
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <span className="setup__dd-ic">{darkMode ? '☀' : '☾'}</span>
+                      {darkMode ? 'Switch to light' : 'Switch to dark'}
+                    </button>
+
+                    {isAdmin && onAdminToggle && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onAdminToggle();
+                          setProfileSettingsOpen(false);
+                        }}
+                      >
+                        <img src={settingsIcon} alt="" className="setup__dd-settings-ic" />
+                        {adminView ? 'Exit admin' : 'Admin panel'}
+                      </button>
+                    )}
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleMobileOverride();
+                          setProfileSettingsOpen(false);
+                        }}
+                      >
+                        <span className="setup__dd-ic">📱</span>
+                        {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="setup__tabs">
             <button
               type="button"
-              className={`setup__fav-btn${showFavorites ? ' setup__fav-btn--active' : ''}`}
-              onClick={() => setShowFavorites((v) => !v)}
-              title={showFavorites ? 'Back to recent games' : 'View saved positions'}
+              className={`setup__tab${!showFavorites ? ' setup__tab--on' : ''}`}
+              onClick={() => setShowFavorites(false)}
             >
-              {showFavorites ? '★' : '☆'}
+              <ListIconSvg />
+              Recent games
+            </button>
+            <button
+              type="button"
+              className={`setup__tab${showFavorites ? ' setup__tab--on' : ''}`}
+              onClick={() => setShowFavorites(true)}
+            >
+              <StarIconSvg />
+              Saved
             </button>
           </div>
         </div>
 
-        {/* ── Content panel: history or favorites ── */}
-        <div className="setup__content-panel">
-          {showFavorites ? (
-            <>
-              <div className="setup__section-title">Saved Positions</div>
-              <div className="setup__favorites-wrap">
-                <Favorites onOpen={handleOpenFavorite} />
-              </div>
-            </>
-          ) : (
-            username && (
-              <>
-                <div className="setup__section-title">Recent Games</div>
-                <GameHistory
-                  username={username}
-                  timeClass={timeClass}
-                  isGuest={isGuest}
-                  platform={platform ?? 'chesscom'}
-                  onTrainGame={handleTrainGame}
-                  onGamesLoaded={handleGamesLoaded}
-                />
-              </>
-            )
-          )}
-        </div>
+        {/* ── Table area ── */}
+        {!showFavorites && (
+          <div className="setup__tablewrap">
+            {username && (
+              <GameHistory
+                username={username}
+                timeClass={timeClass}
+                isGuest={isGuest}
+                platform={platform ?? 'chesscom'}
+                threshold={threshold}
+                onTrainGame={handleTrainGame}
+                onGamesLoaded={handleGamesLoaded}
+              />
+            )}
+          </div>
+        )}
 
-        <button className="setup__submit" type="submit">
-          Start Training
-        </button>
+        {/* ── Favorites panel ── */}
+        {showFavorites && (
+          <div className="setup__favs">
+            <Favorites onOpen={handleOpenFavorite} />
+          </div>
+        )}
+
+        {/* ── Footer / submit ── */}
+        <div className="setup__footer">
+          <button className="setup__submit" type="submit">
+            Start Training
+          </button>
+        </div>
       </form>
     </div>
   );

@@ -1,8 +1,8 @@
-/** Scrollable game history table — shows all games; blunder counts are populated on demand (per-game review). */
+/** Scrollable game history table — shows all games with blunder counts and review status. */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { fetchGameHistory } from '../../api/client';
+import { fetchGameHistory, fetchGameAnalysis } from '../../api/client';
 import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -17,6 +17,8 @@ interface GameHistoryProps {
   timeClass: string;
   isGuest: boolean;
   platform: string;
+  /** Blunder threshold in centipawns — used when fetching history and when triggering analysis. */
+  threshold: number;
   isMobile?: boolean;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
@@ -34,18 +36,130 @@ function formatDate(iso: string): string {
   }
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ── Inline SVG icons ───────────────────────────────────────────────────────
+
+function AlertTriangleSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function CheckCircleSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function MagnifierSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+// ── Blunder cell ───────────────────────────────────────────────────────────
+
+function BlunderCell({ blunderCount }: { blunderCount: number | null }): JSX.Element {
+  if (blunderCount === null) {
+    return <span className="history__dash">—</span>;
+  }
+
+  if (blunderCount === 0) {
+    return (
+      <span className="history__clean">
+        <CheckCircleSvg />
+        Clean
+      </span>
+    );
+  }
+
+  const cls = blunderCount >= 4 ? 'high' : blunderCount >= 2 ? 'mid' : 'low';
+
+  return (
+    <span className={`history__blunders history__blunders--${cls}`}>
+      <AlertTriangleSvg />
+      {blunderCount}
+    </span>
+  );
+}
+
+// ── Action cell ────────────────────────────────────────────────────────────
+
+function ActionCell({
+  game,
+  isAnalysing,
+  isReviewed,
+  onTrain,
+  onAnalyse,
+}: {
+  game: GameHistoryEntry;
+  isAnalysing: boolean;
+  isReviewed: boolean;
+  onTrain: () => void;
+  onAnalyse: () => void;
+}): JSX.Element {
+  if (isAnalysing) {
+    return (
+      <span className="history__btn history__btn--analysing">
+        <span className="history__spin" />
+        Analysing…
+      </span>
+    );
+  }
+
+  if (game.blunder_count === null) {
+    return (
+      <button className="history__btn history__btn--analyse" type="button" onClick={onAnalyse}>
+        <MagnifierSvg />
+        Analyse
+      </button>
+    );
+  }
+
+  if (game.blunder_count === 0) {
+    return <></>;
+  }
+
+  if (isReviewed) {
+    return (
+      <button className="history__btn history__btn--rereview" type="button" onClick={onTrain}>
+        Re-review
+      </button>
+    );
+  }
+
+  return (
+    <button className="history__btn history__btn--review" type="button" onClick={onTrain}>
+      Review
+    </button>
+  );
+}
+
+// ── Desktop row ────────────────────────────────────────────────────────────
 
 function GameRow({
   game,
   username,
   isReviewed,
+  isAnalysing,
   onTrain,
+  onAnalyse,
 }: {
   game: GameHistoryEntry;
   username: string;
   isReviewed: boolean;
+  isAnalysing: boolean;
   onTrain: () => void;
+  onAnalyse: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
 
@@ -53,7 +167,7 @@ function GameRow({
   const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
 
   return (
-    <div className="history__row">
+    <div className={`history__row${isReviewed && game.blunder_count !== null && game.blunder_count > 0 ? ' history__row--reviewed' : ''}`}>
       {/* Time class icon */}
       <div className="history__col history__col--tc">
         <TimeClassIcon tc={game.time_class} size={16} />
@@ -64,10 +178,12 @@ function GameRow({
         <div className={`history__player-line${isWhite ? ' history__player-line--me' : ''}`}>
           <span className="history__piece history__piece--white" />
           <span className="history__player-name">{game.white_username}</span>
+          <span className="history__player-elo">({game.white_rating ?? ''})</span>
         </div>
         <div className={`history__player-line${!isWhite ? ' history__player-line--me' : ''}`}>
           <span className="history__piece history__piece--black" />
           <span className="history__player-name">{game.black_username}</span>
+          <span className="history__player-elo">({game.black_rating ?? ''})</span>
         </div>
       </div>
 
@@ -90,24 +206,25 @@ function GameRow({
         </div>
       </div>
 
+      {/* Blunders */}
+      <div className="history__col history__col--blunders">
+        <BlunderCell blunderCount={game.blunder_count} />
+      </div>
+
       {/* Date */}
       <div className="history__col history__col--date">
         <span className="history__date">{formatDate(game.date)}</span>
       </div>
 
-      {/* Review button */}
+      {/* Action */}
       <div className="history__col history__col--action">
-        {game.blunder_count === 0 ? (
-          <span className="history__no-blunders">No blunders</span>
-        ) : (
-          <button
-            className={`history__review-btn${isReviewed ? ' history__review-btn--done' : ''}`}
-            type="button"
-            onClick={onTrain}
-          >
-            {isReviewed ? 'Re-review' : 'Review'}
-          </button>
-        )}
+        <ActionCell
+          game={game}
+          isAnalysing={isAnalysing}
+          isReviewed={isReviewed}
+          onTrain={onTrain}
+          onAnalyse={onAnalyse}
+        />
       </div>
     </div>
   );
@@ -155,7 +272,7 @@ function GameCard({
         <TimeClassIcon tc={game.time_class} size={16} />
       </div>
 
-      {/* Players — white on top, black on bottom (mirrors desktop) */}
+      {/* Players */}
       <div className="game-card__main">
         <div className="game-card__player-line">
           <span className="game-card__piece game-card__piece--white" />
@@ -196,6 +313,7 @@ function GameHistory({
   timeClass,
   isGuest,
   platform,
+  threshold,
   isMobile = false,
   onTrainGame,
   onGamesLoaded,
@@ -207,12 +325,13 @@ function GameHistory({
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  /** Tracks which game URLs are currently being analysed (shows spinner). */
+  const [analysingUrls, setAnalysingUrls] = useState<Set<string>>(new Set());
 
   const onGamesLoadedRef = useRef(onGamesLoaded);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef<boolean>(false);
-  // Mirrors displayedGames.length so the observer callback can read it without a setState side-effect
   const gamesLengthRef = useRef<number>(0);
 
   useLayoutEffect(() => {
@@ -234,7 +353,7 @@ function GameHistory({
       setHasMore(true);
 
       try {
-        const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, 300, isGuest, platform);
+        const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, threshold, isGuest, platform);
 
         if (signal.cancelled) {
           return;
@@ -252,12 +371,12 @@ function GameHistory({
       }
     }
 
-    load();
+    void load();
 
     return () => {
       signal.cancelled = true;
     };
-  }, [username, timeClass, isGuest, platform]);
+  }, [username, timeClass, isGuest, platform, threshold]);
 
   const handleLoadMore = useCallback(async (currentLength: number): Promise<void> => {
     if (loadingMoreRef.current) {
@@ -268,7 +387,7 @@ function GameHistory({
     setLoadingMore(true);
 
     try {
-      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, currentLength, 300, isGuest, platform);
+      const more = await fetchGameHistory(username, timeClass, FETCH_SIZE, currentLength, threshold, isGuest, platform);
       setDisplayedGames((prev) => [...prev, ...more]);
       setHasMore(more.length === FETCH_SIZE);
     } catch {
@@ -277,9 +396,34 @@ function GameHistory({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [username, timeClass, isGuest, platform]);
+  }, [username, timeClass, isGuest, platform, threshold]);
 
-  // IntersectionObserver: load more when the sentinel scrolls into view inside the body container
+  async function handleAnalyse(gameUrl: string): Promise<void> {
+    setAnalysingUrls((prev) => new Set([...prev, gameUrl]));
+
+    try {
+      const result = await fetchGameAnalysis(gameUrl, username, threshold, isGuest, platform);
+
+      setDisplayedGames((prev) =>
+        prev.map((g) => {
+          if (g.url !== gameUrl) {
+            return g;
+          }
+          return { ...g, blunder_count: result.blunder_count };
+        }),
+      );
+    } catch {
+      // Silently fail — the game stays in the un-analysed state.
+    } finally {
+      setAnalysingUrls((prev) => {
+        const next = new Set(prev);
+        next.delete(gameUrl);
+        return next;
+      });
+    }
+  }
+
+  // IntersectionObserver: load more when the sentinel scrolls into view.
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const body = bodyRef.current;
@@ -333,6 +477,7 @@ function GameHistory({
             <div className="history__col history__col--players">Players</div>
             <div className="history__col history__col--result">Result</div>
             <div className="history__col history__col--acc">Accuracy</div>
+            <div className="history__col history__col--blunders">Blunders</div>
             <div className="history__col history__col--date">Date</div>
             <div className="history__col history__col--action" />
           </div>
@@ -350,6 +495,9 @@ function GameHistory({
                   <div className="skeleton skeleton--xs" />
                 </div>
                 <div className="history__col history__col--acc">
+                  <div className="skeleton skeleton--xs" />
+                </div>
+                <div className="history__col history__col--blunders">
                   <div className="skeleton skeleton--xs" />
                 </div>
                 <div className="history__col history__col--date">
@@ -420,11 +568,12 @@ function GameHistory({
             <div className="history__col history__col--players">Players</div>
             <div className="history__col history__col--result">Result</div>
             <div className="history__col history__col--acc">Accuracy</div>
+            <div className="history__col history__col--blunders">Blunders</div>
             <div className="history__col history__col--date">Date</div>
             <div className="history__col history__col--action" />
           </div>
 
-          {/* Scrollable body — sentinel at bottom triggers infinite scroll */}
+          {/* Scrollable body */}
           <div ref={bodyRef} className="history__body">
             {displayedGames.map((game, idx) => (
               <GameRow
@@ -432,7 +581,9 @@ function GameHistory({
                 game={game}
                 username={username}
                 isReviewed={isReviewedFn(game.url)}
+                isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
+                onAnalyse={() => void handleAnalyse(game.url)}
               />
             ))}
 

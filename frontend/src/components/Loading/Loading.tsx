@@ -8,6 +8,7 @@ import './Loading.css';
 function Loading(): JSX.Element {
   const loadingPct = useSession((s) => s.loadingPct);
   const loadingStatus = useSession((s) => s.loadingStatus);
+  const loadingTitle = useSession((s) => s.loadingTitle);
 
   // Smoothly animate the displayed percentage so it doesn't freeze during
   // long synchronous Stockfish analysis (which emits no SSE events).
@@ -43,7 +44,7 @@ function Loading(): JSX.Element {
   return (
     <div className="loading">
       <span className="loading__icon">♚</span>
-      <h2 className="loading__title">Analysing your games…</h2>
+      <h2 className="loading__title">{loadingTitle}</h2>
 
       <div className="loading__bar-track">
         <div className="loading__bar-fill" style={{ width: `${displayPct}%` }} />

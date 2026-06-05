@@ -16,6 +16,8 @@ interface SessionStore {
   screen: Screen;
   loadingPct: number;
   loadingStatus: string;
+  /** Title shown on the loading screen — varies based on whether Stockfish will run. */
+  loadingTitle: string;
   error: string | undefined;
   blunderCount: number;
   reviewedCount: number;
@@ -26,7 +28,7 @@ interface SessionStore {
   /** The last request used to build a session, so the user can replay next game. */
   lastSessionRequest: SessionCreateRequest | undefined;
 
-  buildSession: (req: SessionCreateRequest) => Promise<void>;
+  buildSession: (req: SessionCreateRequest, loadingTitle?: string) => Promise<void>;
   fetchBlunder: () => Promise<void>;
   submitAttempt: (uciMove: string) => Promise<void>;
   skipBlunder: () => Promise<void>;
@@ -48,6 +50,7 @@ const useSession = create<SessionStore>((set, get) => ({
   screen: 'setup',
   loadingPct: 0,
   loadingStatus: '',
+  loadingTitle: 'Analysing your games…',
   error: undefined,
   blunderCount: 0,
   reviewedCount: 0,
@@ -55,8 +58,16 @@ const useSession = create<SessionStore>((set, get) => ({
   sessionDoneReason: undefined,
   lastSessionRequest: undefined,
 
-  buildSession: async (req: SessionCreateRequest) => {
-    set({ screen: 'loading', loadingPct: 0, loadingStatus: 'Starting...', error: undefined, sessionDone: false, lastSessionRequest: req });
+  buildSession: async (req: SessionCreateRequest, loadingTitle?: string) => {
+    set({
+      screen: 'loading',
+      loadingPct: 0,
+      loadingStatus: 'Starting...',
+      loadingTitle: loadingTitle ?? 'Analysing your games…',
+      error: undefined,
+      sessionDone: false,
+      lastSessionRequest: req,
+    });
 
     try {
       const response = await streamBuildSession(req, (event) => {
@@ -202,6 +213,7 @@ const useSession = create<SessionStore>((set, get) => ({
       screen: 'setup',
       loadingPct: 0,
       loadingStatus: '',
+      loadingTitle: 'Analysing your games…',
       error: undefined,
       blunderCount: 0,
       reviewedCount: 0,

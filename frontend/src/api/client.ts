@@ -26,7 +26,9 @@ export interface GameHistoryEntry {
   result: 'win' | 'lose' | 'draw';
   time_class: string;
   white_username: string;
+  white_rating: number | null;
   black_username: string;
+  black_rating: number | null;
   white_accuracy: number | null;
   black_accuracy: number | null;
   blunder_count: number | null;
@@ -380,6 +382,45 @@ export interface BlunderLineResponse {
 export function getBlunderLine(fen: string, blunderUci: string): Promise<BlunderLineResponse> {
   const params = new URLSearchParams({ fen, blunder_uci: blunderUci });
   return fetchJson<BlunderLineResponse>(`${BASE_URL}/api/analysis/blunder-line?${params}`);
+}
+
+// ── User profile ───────────────────────────────────────────────────────────
+
+export interface UserProfileResponse {
+  joined_year: number | null;
+  rapid_rating: number | null;
+  blitz_rating: number | null;
+  bullet_rating: number | null;
+}
+
+export interface GameAnalysisResult {
+  blunder_count: number;
+  first_blunder_fen: string | null;
+  first_blunder_color: string | null;
+}
+
+/** Fetch a player's public profile and ratings. */
+export function fetchUserProfile(username: string, platform: string = 'chesscom'): Promise<UserProfileResponse> {
+  const params = new URLSearchParams({ username, platform });
+  return fetchJson<UserProfileResponse>(`${BASE_URL}/api/user/profile?${params}`);
+}
+
+/** Analyse a single game with Stockfish and return its blunder count (reads from cache on hit). */
+export function fetchGameAnalysis(
+  gameUrl: string,
+  username: string,
+  threshold: number,
+  isGuest: boolean = false,
+  platform: string = 'chesscom',
+): Promise<GameAnalysisResult> {
+  const params = new URLSearchParams({
+    game_url: gameUrl,
+    username,
+    threshold: String(threshold),
+    is_guest: String(isGuest),
+    platform,
+  });
+  return fetchJson<GameAnalysisResult>(`${BASE_URL}/api/games/analyze?${params}`);
 }
 
 // ── Admin ──────────────────────────────────────────────────────────────────
