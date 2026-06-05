@@ -13,6 +13,7 @@ import type { GameHistoryEntry } from '../../api/client.ts';
 import type { UserProfileResponse } from '../../api/client.ts';
 import { fetchUserProfile } from '../../api/client';
 import type { FavoritePosition } from '../../hooks/useFavorites';
+import type { FavLayout } from '../Favorites/Favorites';
 import { TimeClassIcon } from '../TimeClassIcons';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import chesscomLogo from '../../assets/chesscom_logo.png';
@@ -148,6 +149,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
 
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
+  const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
   const [profileStats, setProfileStats] = useState<ProfileStats>({
@@ -440,16 +442,42 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* Scrollable body */}
         <div className="setup__mobile-body">
-          <div className="setup__mobile-card">
-            <div className="setup__mobile-control">
-              <span className="setup__mobile-label">Time Control</span>
-              <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+          {!showFavorites && (
+            <div className="setup__mobile-card">
+              <div className="setup__mobile-control">
+                <span className="setup__mobile-label">Time Control</span>
+                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+              </div>
+              <div className="setup__mobile-control">
+                <span className="setup__mobile-label">Sensitivity</span>
+                <ThresholdPicker value={threshold} onChange={setThreshold} />
+              </div>
             </div>
-            <div className="setup__mobile-control">
-              <span className="setup__mobile-label">Sensitivity</span>
-              <ThresholdPicker value={threshold} onChange={setThreshold} />
+          )}
+
+          {showFavorites && (
+            <div className="setup__mobile-card setup__mobile-card--layout">
+              <div className="setup__mobile-control">
+                <span className="setup__mobile-label">Layout</span>
+                <div className="setup__seg setup__seg--mobile">
+                  <button
+                    type="button"
+                    className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
+                    onClick={() => setFavLayout('blocks')}
+                  >
+                    Blocks
+                  </button>
+                  <button
+                    type="button"
+                    className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
+                    onClick={() => setFavLayout('inline')}
+                  >
+                    Inline
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="setup__mobile-section">
             <h2>{showFavorites ? 'Saved Positions' : 'Recent Games'}</h2>
@@ -474,7 +502,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
           {showFavorites ? (
             <div className="setup__mobile-favorites-wrap">
-              <Favorites onOpen={handleOpenFavorite} />
+              <Favorites onOpen={handleOpenFavorite} layout={favLayout} />
             </div>
           ) : (
             username && (
@@ -529,15 +557,41 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* ── Toolbar ── */}
         <div className="setup__toolbar">
-          <div className="setup__field">
-            <label className="setup__label">Time Control</label>
-            <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
-          </div>
+          {!showFavorites && (
+            <>
+              <div className="setup__field">
+                <label className="setup__label">Time Control</label>
+                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+              </div>
 
-          <div className="setup__field">
-            <label className="setup__label">Sensitivity</label>
-            <ThresholdPicker value={threshold} onChange={setThreshold} />
-          </div>
+              <div className="setup__field">
+                <label className="setup__label">Sensitivity</label>
+                <ThresholdPicker value={threshold} onChange={setThreshold} />
+              </div>
+            </>
+          )}
+
+          {showFavorites && (
+            <div className="setup__field">
+              <label className="setup__label">Layout</label>
+              <div className="setup__seg">
+                <button
+                  type="button"
+                  className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
+                  onClick={() => setFavLayout('blocks')}
+                >
+                  Blocks
+                </button>
+                <button
+                  type="button"
+                  className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
+                  onClick={() => setFavLayout('inline')}
+                >
+                  Inline
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="setup__field">
             <label className="setup__label">&nbsp;</label>
@@ -639,7 +693,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {/* ── Favorites panel ── */}
         {showFavorites && (
           <div className="setup__favs">
-            <Favorites onOpen={handleOpenFavorite} />
+            <Favorites onOpen={handleOpenFavorite} layout={favLayout} />
           </div>
         )}
       </div>

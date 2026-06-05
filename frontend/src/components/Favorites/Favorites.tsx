@@ -1,21 +1,25 @@
-/** Scrollable list of bookmarked blunder positions. */
+/** Scrollable list/grid of bookmarked blunder positions. */
 
 import type { JSX, MouseEvent } from 'react';
 import useFavorites from '../../hooks/useFavorites';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import './Favorites.css';
 
+export type FavLayout = 'blocks' | 'inline';
+
 function formatDate(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-interface FavoriteItemProps {
+// ── Block card ─────────────────────────────────────────────────────────────
+
+interface FavCardProps {
   fav: FavoritePosition;
   onOpen?: (fav: FavoritePosition) => void;
 }
 
-function FavoriteItem({ fav, onOpen }: FavoriteItemProps): JSX.Element {
+function FavCard({ fav, onOpen }: FavCardProps): JSX.Element {
   const removeFavorite = useFavorites((s) => s.removeFavorite);
 
   function handleRemove(e: MouseEvent<HTMLButtonElement>): void {
@@ -29,13 +33,24 @@ function FavoriteItem({ fav, onOpen }: FavoriteItemProps): JSX.Element {
 
   return (
     <div
-      className={`fav-item${onOpen ? ' fav-item--clickable' : ''}`}
+      className={`fav-card${onOpen ? ' fav-card--clickable' : ''}`}
       onClick={handleOpen}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleOpen();
+        }
+      }}
     >
-      <div className="fav-item__header">
-        <span className="fav-item__date">{formatDate(fav.date)}</span>
+      <div className="fav-card__board-wrap">
+        <img
+          className="fav-card__board"
+          src={fav.boardImageDataUrl}
+          alt={`Board — ${fav.blunderDescription}`}
+        />
         <button
-          className="fav-item__remove"
+          className="fav-card__remove"
           type="button"
           onClick={handleRemove}
           title="Remove"
@@ -44,31 +59,90 @@ function FavoriteItem({ fav, onOpen }: FavoriteItemProps): JSX.Element {
         </button>
       </div>
 
-      <div className="fav-item__body">
-        <img
-          className="fav-item__board"
-          src={fav.boardImageDataUrl}
-          alt={`Board — ${fav.blunderDescription}`}
-        />
-        <div className="fav-item__info">
-          <span className={`fav-item__badge fav-item__badge--${fav.classification}`}>
-            {fav.classification}
-          </span>
-          <p className="fav-item__desc">{fav.blunderDescription}</p>
-          {fav.note && (
-            <p className="fav-item__note">{fav.note}</p>
-          )}
-        </div>
+      <div className="fav-card__footer">
+        <span className={`fav-card__badge fav-card__badge--${fav.classification}`}>
+          {fav.classification} · {fav.cpLoss}cp
+        </span>
+        <p className="fav-card__desc">{fav.blunderDescription}</p>
+        {fav.note && (
+          <p className="fav-card__note">{fav.note}</p>
+        )}
+        <span className="fav-card__date">{formatDate(fav.date)}</span>
       </div>
     </div>
   );
 }
 
-interface FavoritesProps {
+// ── Inline row ─────────────────────────────────────────────────────────────
+
+interface FavRowProps {
+  fav: FavoritePosition;
   onOpen?: (fav: FavoritePosition) => void;
 }
 
-function Favorites({ onOpen }: FavoritesProps): JSX.Element {
+function FavRow({ fav, onOpen }: FavRowProps): JSX.Element {
+  const removeFavorite = useFavorites((s) => s.removeFavorite);
+
+  function handleRemove(e: MouseEvent<HTMLButtonElement>): void {
+    e.stopPropagation();
+    removeFavorite(fav.id);
+  }
+
+  function handleOpen(): void {
+    onOpen?.(fav);
+  }
+
+  return (
+    <div
+      className={`fav-row${onOpen ? ' fav-row--clickable' : ''}`}
+      onClick={handleOpen}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleOpen();
+        }
+      }}
+    >
+      <img
+        className="fav-row__board"
+        src={fav.boardImageDataUrl}
+        alt={`Board — ${fav.blunderDescription}`}
+      />
+
+      <div className="fav-row__info">
+        <div className="fav-row__meta-row">
+          <span className={`fav-row__badge fav-row__badge--${fav.classification}`}>
+            {fav.classification} · {fav.cpLoss}cp
+          </span>
+          <span className="fav-row__date">{formatDate(fav.date)}</span>
+        </div>
+        <p className="fav-row__desc">{fav.blunderDescription}</p>
+        {fav.note && (
+          <p className="fav-row__note">{fav.note}</p>
+        )}
+      </div>
+
+      <button
+        className="fav-row__remove"
+        type="button"
+        onClick={handleRemove}
+        title="Remove"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
+
+interface FavoritesProps {
+  onOpen?: (fav: FavoritePosition) => void;
+  layout?: FavLayout;
+}
+
+function Favorites({ onOpen, layout = 'blocks' }: FavoritesProps): JSX.Element {
   const favorites = useFavorites((s) => s.favorites);
 
   if (favorites.length === 0) {
@@ -83,10 +157,20 @@ function Favorites({ onOpen }: FavoritesProps): JSX.Element {
     );
   }
 
+  if (layout === 'blocks') {
+    return (
+      <div className="fav-grid">
+        {favorites.map((fav, idx) => (
+          <FavCard key={`fav-card-${fav.id}-${idx}`} fav={fav} onOpen={onOpen} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="fav-list">
+    <div className="fav-rows">
       {favorites.map((fav, idx) => (
-        <FavoriteItem key={`fav-item-${fav.id}-${idx}`} fav={fav} onOpen={onOpen} />
+        <FavRow key={`fav-row-${fav.id}-${idx}`} fav={fav} onOpen={onOpen} />
       ))}
     </div>
   );

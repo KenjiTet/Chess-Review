@@ -347,6 +347,41 @@
   font-weight: 700;
 }
 
+/* ── Segmented layout control ─────────────────────────────────────────── */
+
+.setup__seg {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 3px;
+  height: 40px;
+}
+
+.setup__seg-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.setup__seg-btn--on {
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold);
+}
+
+.setup__seg-btn:not(.setup__seg-btn--on):hover {
+  color: var(--text);
+}
+
 /* ── User chip — fixed at bottom-left ─────────────────────────────────── */
 
 .setup__user-row {

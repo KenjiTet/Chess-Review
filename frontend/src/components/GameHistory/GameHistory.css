@@ -155,10 +155,6 @@
   background: color-mix(in srgb, var(--gold) 5%, transparent);
 }
 
-/* Reviewed rows are dimmed */
-.history__row--reviewed {
-  opacity: 0.5;
-}
 
 /* ── Column base ───────────────────────────────────────────────── */
 

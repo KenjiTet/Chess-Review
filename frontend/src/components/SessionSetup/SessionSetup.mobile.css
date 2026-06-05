@@ -384,3 +384,21 @@
   flex: 1;
   min-height: 200px;
 }
+
+/* ── Layout card (replaces the TC/Sensitivity card on Saved tab) ─────────── */
+
+.setup__mobile-card--layout {
+  grid-template-columns: 1fr;
+}
+
+/* Mobile seg control — full width trigger */
+.setup__seg--mobile {
+  height: 36px;
+  width: 100%;
+}
+
+.setup__seg--mobile .setup__seg-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0;
+}

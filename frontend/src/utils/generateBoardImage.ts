@@ -11,7 +11,8 @@ const LIGHT_SQ = '#f0d9b5';
 const DARK_SQ = '#b58863';
 
 export function generateBoardImage(fen: string, orientation: 'white' | 'black' = 'white'): string {
-  const SIZE = 200;
+  // Render at 2× physical pixels so the image looks crisp when upscaled in the UI.
+  const SIZE = 400;
   const SQ = SIZE / 8;
 
   const canvas = document.createElement('canvas');
@@ -63,7 +64,7 @@ export function generateBoardImage(fen: string, orientation: 'white' | 'black' =
 
       if (piece.color === 'w') {
         ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2.5;
         ctx.strokeText(char, cx, cy);
         ctx.fillStyle = '#ffffff';
       } else {
