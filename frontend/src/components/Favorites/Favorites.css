@@ -29,8 +29,8 @@
 
 .fav-grid {
   display: grid;
-  /* min 140px ensures 2 columns fit on mobile (~320px containers); max 210px caps desktop card width */
-  grid-template-columns: repeat(auto-fill, minmax(140px, 210px));
+  /* 1fr max lets columns stretch to fill available space, ensuring 2 per row on mobile */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 14px;
   align-content: start;
 }
