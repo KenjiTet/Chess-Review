@@ -59,7 +59,6 @@ function App(): JSX.Element {
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
   const mobileOverride = useSettings((s) => s.mobileOverride);
-  const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
   const username = useAuth((s) => s.username);
   const isAdmin = useAuth((s) => s.isAdmin);
   const getNamespace = useAuth((s) => s.getNamespace);
@@ -134,10 +133,6 @@ function App(): JSX.Element {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
-
-  function handleThemeToggle(): void {
-    setDarkMode(!darkMode);
-  }
 
   function handleAdminToggle(): void {
     setAdminView((v) => !v);
