@@ -1,6 +1,6 @@
 /** Setup screen — player identity, time control, game history, favorites. */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { JSX } from 'react';
 import useSession from '../../hooks/useSession';
 import useSettings from '../../hooks/useSettings';
@@ -10,6 +10,8 @@ import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
 import ProfileBand from './ProfileBand';
 import type { GameHistoryEntry } from '../../api/client.ts';
+import type { UserProfileResponse } from '../../api/client.ts';
+import { fetchUserProfile } from '../../api/client';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import { TimeClassIcon } from '../TimeClassIcons';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
@@ -154,8 +156,42 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     gamesAnalysed: 0,
     blundersDrilled: 0,
   });
+  const [mobileRatings, setMobileRatings] = useState<UserProfileResponse | undefined>(undefined);
+  const [mobileRatingsLoading, setMobileRatingsLoading] = useState<boolean>(true);
 
   const username = authUsername ?? '';
+
+  // Fetch ratings for the mobile ELO strip.
+  useEffect(() => {
+    if (!isMobile || !username) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setMobileRatingsLoading(true);
+
+    async function loadRatings(): Promise<void> {
+      try {
+        const result = await fetchUserProfile(username, platform ?? 'chesscom');
+
+        if (!cancelled) {
+          setMobileRatings(result);
+        }
+      } catch {
+        // Silently fail — strip stays empty.
+      } finally {
+        if (!cancelled) {
+          setMobileRatingsLoading(false);
+        }
+      }
+    }
+
+    void loadRatings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMobile, username, platform]);
 
   function handleTimeClassChange(tc: TimeClass): void {
     setTimeClass(tc);
@@ -260,101 +296,170 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   if (isMobile) {
     const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
     const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
+    const memberSince = mobileRatings?.joined_year;
+    const winRateLabel = profileStats.winRate30d !== undefined ? `${Math.round(profileStats.winRate30d)}%` : '—';
 
     return (
       <div className="setup--mobile">
-        {/* Profile card */}
+        {/* Profile header */}
         <div className="setup__mobile-profile">
-          <div className="setup__mobile-avatar">
-            {avatar ? (
-              <img
-                src={avatar}
-                alt={username}
-                className="setup__mobile-avatar-img"
-                onError={(e) => {
-                  const target = e.currentTarget as HTMLImageElement;
-                  target.src = fallbackSrc;
-                  target.className = 'setup__mobile-avatar-logo';
-                }}
-              />
-            ) : (
-              <img
-                src={fallbackSrc}
-                alt={platformLabel}
-                className="setup__mobile-avatar-logo"
-              />
-            )}
-          </div>
-          <div className="setup__mobile-profile-txt">
-            <span className="setup__mobile-profile-name">{username}</span>
-            <span className="setup__mobile-profile-meta">{platformLabel}</span>
-          </div>
-
-          {/* Settings button */}
-          <div className="setup__mobile-settings-wrap">
-            <button
-              className="setup__mobile-settings-btn"
-              type="button"
-              onClick={() => setProfileSettingsOpen((v) => !v)}
-              aria-label="Settings"
-            >
-              <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
-            </button>
-            {profileSettingsOpen && (
-              <>
-                <div
-                  className="setup__mobile-settings-scrim"
-                  onClick={() => setProfileSettingsOpen(false)}
+          {/* Top row: avatar + name/meta + gear + logout */}
+          <div className="setup__mobile-profile-row">
+            <div className="setup__mobile-avatar">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={username}
+                  className="setup__mobile-avatar-img"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.src = fallbackSrc;
+                    target.className = 'setup__mobile-avatar-logo';
+                  }}
                 />
-                <div className="setup__mobile-settings-dropdown">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDarkMode(!darkMode);
-                      setProfileSettingsOpen(false);
-                    }}
-                  >
-                    <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
-                    {darkMode ? 'Switch to light' : 'Switch to dark'}
-                  </button>
+              ) : (
+                <img
+                  src={fallbackSrc}
+                  alt={platformLabel}
+                  className="setup__mobile-avatar-logo"
+                />
+              )}
+            </div>
+            <div className="setup__mobile-profile-txt">
+              <span className="setup__mobile-profile-name">{username}</span>
+              <span className="setup__mobile-profile-meta">
+                {platformLabel}
+                {memberSince !== undefined && memberSince !== null && (
+                  <> · Member since {memberSince}</>
+                )}
+              </span>
+            </div>
 
-                  {isAdmin && onAdminToggle && (
+            {/* Settings button */}
+            <div className="setup__mobile-settings-wrap">
+              <button
+                className="setup__mobile-settings-btn"
+                type="button"
+                onClick={() => setProfileSettingsOpen((v) => !v)}
+                aria-label="Settings"
+              >
+                <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
+              </button>
+              {profileSettingsOpen && (
+                <>
+                  <div
+                    className="setup__mobile-settings-scrim"
+                    onClick={() => setProfileSettingsOpen(false)}
+                  />
+                  <div className="setup__mobile-settings-dropdown">
                     <button
                       type="button"
                       onClick={() => {
-                        onAdminToggle();
+                        setDarkMode(!darkMode);
                         setProfileSettingsOpen(false);
                       }}
                     >
-                      <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
-                      {adminView ? 'Exit admin' : 'Admin panel'}
+                      <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
+                      {darkMode ? 'Switch to light' : 'Switch to dark'}
                     </button>
-                  )}
 
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleMobileOverride();
-                        setProfileSettingsOpen(false);
-                      }}
-                    >
-                      <span className="setup__mobile-dd-ic">{mobileOverride ? '🖥' : '📱'}</span>
-                      {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+                    {isAdmin && onAdminToggle && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onAdminToggle();
+                          setProfileSettingsOpen(false);
+                        }}
+                      >
+                        <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
+                        {adminView ? 'Exit admin' : 'Admin panel'}
+                      </button>
+                    )}
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toggleMobileOverride();
+                          setProfileSettingsOpen(false);
+                        }}
+                      >
+                        <span className="setup__mobile-dd-ic">{mobileOverride ? '🖥' : '📱'}</span>
+                        {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              className="setup__mobile-logout-btn"
+              type="button"
+              onClick={handleLogout}
+            >
+              Log out
+            </button>
           </div>
 
-          <button
-            className="setup__mobile-logout-btn"
-            type="button"
-            onClick={handleLogout}
-          >
-            Log out
-          </button>
+          {/* ELO strip */}
+          <div className="setup__mobile-elostrip">
+            {/* Rapid */}
+            <div className="setup__mobile-elostrip__cell">
+              <span className="setup__mobile-elostrip__ic">
+                <TimeClassIcon tc="rapid" size={15} />
+              </span>
+              {mobileRatingsLoading ? (
+                <span className="setup__mobile-elostrip__skeleton" />
+              ) : (
+                <span className="setup__mobile-elostrip__num">
+                  {mobileRatings?.rapid_rating ?? '—'}
+                </span>
+              )}
+              <span className="setup__mobile-elostrip__lbl">Rapid</span>
+            </div>
+
+            {/* Blitz */}
+            <div className="setup__mobile-elostrip__cell">
+              <span className="setup__mobile-elostrip__ic">
+                <TimeClassIcon tc="blitz" size={15} />
+              </span>
+              {mobileRatingsLoading ? (
+                <span className="setup__mobile-elostrip__skeleton" />
+              ) : (
+                <span className="setup__mobile-elostrip__num">
+                  {mobileRatings?.blitz_rating ?? '—'}
+                </span>
+              )}
+              <span className="setup__mobile-elostrip__lbl">Blitz</span>
+            </div>
+
+            {/* Bullet */}
+            <div className="setup__mobile-elostrip__cell">
+              <span className="setup__mobile-elostrip__ic">
+                <TimeClassIcon tc="bullet" size={15} />
+              </span>
+              {mobileRatingsLoading ? (
+                <span className="setup__mobile-elostrip__skeleton" />
+              ) : (
+                <span className="setup__mobile-elostrip__num">
+                  {mobileRatings?.bullet_rating ?? '—'}
+                </span>
+              )}
+              <span className="setup__mobile-elostrip__lbl">Bullet</span>
+            </div>
+
+            {/* Win rate */}
+            <div className="setup__mobile-elostrip__cell">
+              <span className="setup__mobile-elostrip__ic setup__mobile-elostrip__ic--pct">
+                {winRateLabel}
+              </span>
+              <span className="setup__mobile-elostrip__num setup__mobile-elostrip__num--gold">
+                Win
+              </span>
+              <span className="setup__mobile-elostrip__lbl">30 days</span>
+            </div>
+          </div>
         </div>
 
         {/* Scrollable body */}
@@ -377,7 +482,17 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               className="setup__mobile-tab-btn"
               onClick={() => setShowFavorites((v) => !v)}
             >
-              {showFavorites ? 'Recent games' : '★ Saved'}
+              {showFavorites ? (
+                <>
+                  <ListIconSvg />
+                  Recent games
+                </>
+              ) : (
+                <>
+                  <StarIconSvg />
+                  Saved
+                </>
+              )}
             </button>
           </div>
 

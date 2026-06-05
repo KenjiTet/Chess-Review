@@ -236,71 +236,189 @@ function GameCard({
   game,
   username,
   isReviewed,
+  isAnalysing,
   onTrain,
+  onAnalyse,
 }: {
   game: GameHistoryEntry;
   username: string;
   isReviewed: boolean;
+  isAnalysing: boolean;
   onTrain: () => void;
+  onAnalyse: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
   const myAccuracy = isWhite ? game.white_accuracy : game.black_accuracy;
 
-  const noBlunders = game.blunder_count === 0;
+  const isTappable = game.blunder_count !== null && game.blunder_count > 0;
+
+  const resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw';
+  const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
+
+  const blunderCount = game.blunder_count;
+  const blunderCls = blunderCount !== null && blunderCount >= 4
+    ? 'high'
+    : blunderCount !== null && blunderCount >= 2
+      ? 'mid'
+      : 'low';
 
   function handleClick(): void {
-    if (noBlunders) {
+    if (!isTappable) {
       return;
     }
     onTrain();
   }
 
+  function renderBottomAction(): JSX.Element {
+    if (isAnalysing) {
+      return (
+        <span className="game-card__btn game-card__btn--analysing">
+          <span className="game-card__spin" />
+          Engine
+        </span>
+      );
+    }
+
+    if (blunderCount === null) {
+      return (
+        <button
+          className="game-card__btn game-card__btn--analyse"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAnalyse();
+          }}
+        >
+          <MagnifierSvg />
+          Analyse
+        </button>
+      );
+    }
+
+    if (blunderCount === 0) {
+      return (
+        <span className="game-card__clean">
+          <CheckCircleSvg />
+          Clean
+        </span>
+      );
+    }
+
+    if (isReviewed) {
+      return (
+        <button
+          className="game-card__btn game-card__btn--rereview"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTrain();
+          }}
+        >
+          Re-review
+        </button>
+      );
+    }
+
+    return (
+      <button
+        className="game-card__btn game-card__btn--review"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onTrain();
+        }}
+      >
+        Review
+      </button>
+    );
+  }
+
+  function renderBottomStats(): JSX.Element {
+    if (isAnalysing) {
+      return (
+        <div className="game-card__mstats">
+          <span className="game-card__notanalysed">Analysing…</span>
+        </div>
+      );
+    }
+
+    if (blunderCount === null) {
+      return (
+        <div className="game-card__mstats">
+          <span className="game-card__notanalysed">Not analysed yet</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="game-card__mstats">
+        <div className="game-card__mstat">
+          <span className="game-card__mstat-lbl">My accuracy</span>
+          <span className="game-card__mstat-val">
+            {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
+          </span>
+        </div>
+        {blunderCount > 0 && (
+          <div className="game-card__mstat">
+            <span className="game-card__mstat-lbl">Blunders</span>
+            <span className={`game-card__mstat-val game-card__mstat-val--${blunderCls}`}>
+              <AlertTriangleSvg />
+              {blunderCount}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`game-card${noBlunders ? ' game-card--no-blunders' : ''}${isReviewed ? ' game-card--reviewed' : ''}`}
+      className={`game-card${isTappable ? ' game-card--tappable' : ''}${isReviewed && blunderCount !== null && blunderCount > 0 ? ' game-card--reviewed' : ''}`}
       onClick={handleClick}
-      role={noBlunders ? undefined : 'button'}
-      tabIndex={noBlunders ? undefined : 0}
+      role={isTappable ? 'button' : undefined}
+      tabIndex={isTappable ? 0 : undefined}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           handleClick();
         }
       }}
     >
-      {/* Time class icon */}
-      <div className="game-card__tc-icon">
-        <TimeClassIcon tc={game.time_class} size={16} />
+      {/* Top: tc icon + players + result */}
+      <div className="game-card__top">
+        <div className="game-card__tc">
+          <TimeClassIcon tc={game.time_class} size={16} />
+        </div>
+
+        <div className="game-card__players">
+          <div className="game-card__player-line">
+            <span className="game-card__piece game-card__piece--white" />
+            <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
+              {game.white_username}
+              {game.white_rating !== null && game.white_rating !== undefined && (
+                <span className="game-card__elo"> ({game.white_rating})</span>
+              )}
+            </span>
+          </div>
+          <div className="game-card__player-line">
+            <span className="game-card__piece game-card__piece--black" />
+            <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
+              {game.black_username}
+              {game.black_rating !== null && game.black_rating !== undefined && (
+                <span className="game-card__elo"> ({game.black_rating})</span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <span className={`game-card__result game-card__result--${resultClass}`}>
+          {resultLabel}
+        </span>
       </div>
 
-      {/* Players */}
-      <div className="game-card__main">
-        <div className="game-card__player-line">
-          <span className="game-card__piece game-card__piece--white" />
-          <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
-            {game.white_username}
-          </span>
-          {isReviewed && isWhite && (
-            <span className="game-card__badge">Reviewed</span>
-          )}
-        </div>
-        <div className="game-card__player-line">
-          <span className="game-card__piece game-card__piece--black" />
-          <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
-            {game.black_username}
-          </span>
-          {isReviewed && !isWhite && (
-            <span className="game-card__badge">Reviewed</span>
-          )}
-        </div>
-      </div>
-
-      {/* Right: accuracy + date */}
-      <div className="game-card__right">
-        <div className="game-card__acc">
-          {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
-          <small>accuracy</small>
-        </div>
-        <div className="game-card__date">{formatDate(game.date)}</div>
+      {/* Bottom: stats + action */}
+      <div className="game-card__bottom">
+        {renderBottomStats()}
+        {renderBottomAction()}
       </div>
     </div>
   );
@@ -454,12 +572,12 @@ function GameHistory({
           <div className="history__cards-skeleton">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={`mob-skeleton-${i}`} className="game-card game-card--skeleton">
-                <div className="game-card__tc-icon" />
-                <div className="game-card__main">
-                  <div className="skeleton-line skeleton-line--md" />
-                  <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 5 }} />
-                </div>
-                <div className="game-card__right">
+                <div className="game-card__top">
+                  <div className="game-card__tc" />
+                  <div className="game-card__players">
+                    <div className="skeleton-line skeleton-line--md" />
+                    <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 5 }} />
+                  </div>
                   <div className="skeleton-line skeleton-line--acc" />
                 </div>
               </div>
@@ -538,7 +656,9 @@ function GameHistory({
                 game={game}
                 username={username}
                 isReviewed={isReviewedFn(game.url)}
+                isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
+                onAnalyse={() => void handleAnalyse(game.url)}
               />
             ))}
 

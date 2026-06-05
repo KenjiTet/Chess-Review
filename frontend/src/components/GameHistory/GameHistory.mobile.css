@@ -11,7 +11,7 @@
 .history--mobile .history__body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   overflow-y: auto;
   max-height: 50vh;
   padding-bottom: 4px;
@@ -26,47 +26,63 @@
 .history--mobile .history__cards-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
-/* Card */
+/* ── Card ────────────────────────────────────────────────────────────────── */
 
 .game-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 11px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  border-radius: 14px;
+  padding: 12px;
+  transition: border-color 0.15s;
   color: inherit;
 }
 
-.game-card:hover {
-  border-color: var(--gold);
-  background: var(--surface-2);
+.game-card--tappable {
+  cursor: pointer;
 }
 
-/* Time class icon */
+.game-card--tappable:hover {
+  border-color: var(--gold);
+}
 
-.game-card__tc-icon {
+.game-card--reviewed {
+  opacity: 0.55;
+}
+
+/* ── Top section ─────────────────────────────────────────────────────────── */
+
+.game-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Time class icon box */
+.game-card__tc {
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--muted);
+  border-radius: 9px;
 }
 
-/* Players column — mirrors desktop layout */
+.game-card__tc svg {
+  width: 16px;
+  height: 16px;
+}
 
-.game-card__main {
+/* Players column */
+.game-card__players {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -81,8 +97,7 @@
   min-width: 0;
 }
 
-/* Piece color dot — same as desktop history__piece */
-
+/* Piece color dot */
 .game-card__piece {
   flex: 0 0 auto;
   width: 9px;
@@ -106,81 +121,196 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
-/* Highlight the current user's name */
 .game-card__player-name--me {
   font-weight: 800;
   color: var(--text-h);
 }
 
-/* Right side */
-
-.game-card__right {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
-
-.game-card__acc {
+/* Inline ELO in parentheses */
+.game-card__elo {
   font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text-h);
-  text-align: right;
-}
-
-.game-card__acc small {
-  display: block;
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-size: 10.5px;
   color: var(--muted);
-  text-transform: uppercase;
-  font-weight: 700;
-  text-align: right;
-}
-
-.game-card__date {
-  font-size: 11px;
-  color: var(--muted);
+  opacity: 0.8;
   font-weight: 600;
 }
 
-/* No-blunders card state */
-
-.game-card--no-blunders {
-  opacity: 0.55;
-  cursor: default;
+/* Result pill */
+.game-card__result {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border-radius: 6px;
+  padding: 3px 8px;
 }
 
-.game-card--no-blunders:hover {
-  border-color: var(--border);
-  background: var(--surface);
+.game-card__result--win {
+  background: rgba(34, 197, 94, 0.13);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
-/* Re-review indicator */
+.game-card__result--lose {
+  background: rgba(239, 68, 68, 0.11);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.26);
+}
 
-.game-card__badge {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--surface-2);
+.game-card__result--draw {
+  background: rgba(138, 150, 170, 0.12);
   color: var(--muted);
   border: 1px solid var(--border);
 }
 
-/* Skeleton card */
+/* ── Bottom section ──────────────────────────────────────────────────────── */
+
+.game-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.game-card__mstats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.game-card__mstat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.game-card__mstat-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.game-card__mstat-val {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-h);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.game-card__mstat-val svg {
+  width: 13px;
+  height: 13px;
+}
+
+.game-card__mstat-val--high { color: var(--error); }
+.game-card__mstat-val--mid  { color: var(--gold); }
+.game-card__mstat-val--low  { color: var(--success); }
+
+.game-card__notanalysed {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────────── */
+
+.game-card__btn {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.game-card__btn--review {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: var(--gold-text, #1a1f2e);
+  box-shadow: 0 2px 8px rgba(200, 134, 31, 0.3);
+}
+
+.game-card__btn--analyse {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 50%, var(--border));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.game-card__btn--analyse svg {
+  width: 13px;
+  height: 13px;
+}
+
+.game-card__btn--rereview {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.game-card__btn--analysing {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: default;
+}
+
+/* Spinner */
+.game-card__spin {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: game-card-spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes game-card-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Clean label */
+.game-card__clean {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.game-card__clean svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Skeleton card ───────────────────────────────────────────────────────── */
 
 .game-card--skeleton {
   pointer-events: none;
 }
 
-.game-card--skeleton .game-card__tc-icon {
+.game-card--skeleton .game-card__tc {
   background: var(--surface-2);
   border-color: var(--border);
 }

@@ -14,17 +14,22 @@
 .setup__mobile-profile {
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 44px 16px 16px;
-  /* Subtle gradient to visually anchor the profile at the top */
   background: linear-gradient(
     to bottom,
-    var(--surface-2, rgba(255,255,255,0.04)) 0%,
+    color-mix(in srgb, var(--gold) 9%, var(--surface)) 0%,
     var(--surface) 100%
   );
+}
+
+/* Top row: avatar + text + gear + logout */
+.setup__mobile-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .setup__mobile-avatar {
@@ -95,6 +100,90 @@
 .setup__mobile-logout-btn:hover {
   border-color: var(--error-border, rgba(239, 68, 68, 0.3));
   color: var(--error, #ef4444);
+}
+
+/* ── ELO strip ───────────────────────────────────────────────────────────── */
+
+.setup__mobile-elostrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.setup__mobile-elostrip__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 4px;
+  position: relative;
+}
+
+.setup__mobile-elostrip__cell + .setup__mobile-elostrip__cell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--border);
+}
+
+.setup__mobile-elostrip__ic {
+  height: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.setup__mobile-elostrip__ic svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Win-rate % label used instead of SVG icon */
+.setup__mobile-elostrip__ic--pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.setup__mobile-elostrip__num {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-h);
+  line-height: 1;
+}
+
+.setup__mobile-elostrip__num--gold {
+  color: var(--gold);
+  font-size: 13px;
+}
+
+.setup__mobile-elostrip__lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/* Skeleton shimmer for loading state */
+.setup__mobile-elostrip__skeleton {
+  display: block;
+  width: 36px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  animation: elostrip-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes elostrip-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 /* ── Scrollable body ─────────────────────────────────────────────────────── */
@@ -179,6 +268,14 @@
   font-family: inherit;
   padding: 0;
   transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.setup__mobile-tab-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 .setup__mobile-tab-btn:hover {
