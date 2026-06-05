@@ -57,7 +57,6 @@ function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenPro
 function App(): JSX.Element {
   const screen = useSession((s) => s.screen);
   const darkMode = useSettings((s) => s.darkMode);
-  const setDarkMode = useSettings((s) => s.setDarkMode);
   const mobileOverride = useSettings((s) => s.mobileOverride);
   const username = useAuth((s) => s.username);
   const isAdmin = useAuth((s) => s.isAdmin);
