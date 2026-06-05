@@ -106,6 +106,14 @@ body {
   min-height: 100svh;
 }
 
+/* Creates 1px of page-level overflow on mobile so the browser can register a
+   scroll gesture — without this the nav bar stays hidden with no way to recall it. */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 1px;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   body {
     background-image: url('./assets/bg-light.png');
