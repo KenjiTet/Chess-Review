@@ -343,6 +343,7 @@
 }
 
 .tc-select__option--active {
+  background: var(--bg);
   color: var(--gold);
   font-weight: 700;
 }

@@ -330,3 +330,24 @@
 .trainer__mobile-act--skip {
   color: var(--text);
 }
+
+/* Share icon button — same shape as other mobile actions */
+.trainer__mobile-act--share {
+  color: var(--muted);
+}
+
+.trainer__mobile-act-share-ic {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__mobile-act-share-ic {
+  filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
+}
+
+.trainer__mobile-act--share:hover .trainer__mobile-act-share-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}

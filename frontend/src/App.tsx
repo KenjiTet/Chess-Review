@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import useSession from './hooks/useSession';
 import type { Screen } from './hooks/useSession';
+import { decodeSharePayload } from './utils/sharePosition';
 import useSettings from './hooks/useSettings';
 import useAuth from './hooks/useAuth';
 import useFavorites from './hooks/useFavorites';
@@ -68,6 +69,21 @@ function App(): JSX.Element {
   const isMobileViewport = useIsMobile();
   const isMobile = isMobileViewport || mobileOverride;
 
+  // On first mount, stash any ?share= param so we can load it after auth.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareParam = params.get('share');
+
+    if (shareParam) {
+      sessionStorage.setItem('recall_pending_share', shareParam);
+      // Remove the param from the URL without a page reload.
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('share');
+      window.history.replaceState(null, '', clean.toString());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // On first mount, reload user-namespaced stores if a session was already stored.
   useEffect(() => {
     if (isAuthenticated) {
@@ -78,6 +94,42 @@ function App(): JSX.Element {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // After auth resolves, load any pending shared position.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const pending = sessionStorage.getItem('recall_pending_share');
+
+    if (!pending) {
+      return;
+    }
+
+    sessionStorage.removeItem('recall_pending_share');
+
+    const payload = decodeSharePayload(pending);
+
+    if (!payload) {
+      return;
+    }
+
+    useSession.getState().loadFavoritePosition({
+      fen: payload.fen,
+      color: payload.color,
+      moveSan: payload.move_san,
+      cpLoss: payload.cp_loss,
+      classification: payload.classification,
+      moveNumber: payload.move_number,
+      prevFen: payload.prev_fen,
+      prevMoveUci: payload.prev_move_uci,
+      uciPlayed: payload.uci_played,
+      bestMoves: payload.best_moves,
+      evalScore: payload.eval_before_white_pov,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');

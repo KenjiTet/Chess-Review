@@ -22,6 +22,9 @@ import MoveLog, { type MoveLogEntry } from '../MoveLog/MoveLog';
 import { evaluateMove, getPositionEval, getStockfishMove, getBestMoves, getBlunderLine, type BlunderLineResponse } from '../../api/client';
 import { playMoveSound } from '../../utils/sounds';
 import { generateBoardImage } from '../../utils/generateBoardImage';
+import { buildShareUrl } from '../../utils/sharePosition';
+import ShareModal from '../ShareModal/ShareModal';
+import shareIconUrl from '../../assets/share_icon.svg';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import useSettings from '../../hooks/useSettings';
@@ -149,6 +152,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   const [botThinking, setBotThinking] = useState<boolean>(false);
   const [isPlayingSequence, setIsPlayingSequence] = useState<boolean>(false);
   const [saveModalOpen, setSaveModalOpen] = useState<boolean>(false);
+  const [shareModalOpen, setShareModalOpen] = useState<boolean>(false);
 
   // Position history for < > navigation — seeded with prev/blunder/blunder-result context
   const initialHistory = buildInitialHistory(currentBlunder);
@@ -568,6 +572,31 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     setSaveModalOpen(false);
   }
 
+  // ── Share position ──────────────────────────────────────────────────────────
+  function handleShare(): void {
+    if (!currentBlunder) {
+      return;
+    }
+
+    setShareModalOpen(true);
+  }
+
+  const shareUrl = currentBlunder
+    ? buildShareUrl({
+        fen: currentBlunder.fen_before,
+        color: currentBlunder.color,
+        move_san: currentBlunder.move_san,
+        cp_loss: currentBlunder.cp_loss,
+        classification: currentBlunder.classification,
+        move_number: currentBlunder.move_number,
+        prev_fen: currentBlunder.prev_fen,
+        prev_move_uci: currentBlunder.prev_move_uci,
+        uci_played: currentBlunder.uci_played,
+        best_moves: currentBlunder.best_moves,
+        eval_before_white_pov: currentBlunder.eval_before_white_pov,
+      })
+    : '';
+
   // ── History navigation ──────────────────────────────────────────────────────
   function handleHistoryBack(): void {
     if (historyIndex > 0) {
@@ -920,9 +949,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               type="button"
               onClick={handleSaveFavorite}
               disabled={isSaved}
+              title={isSaved ? 'Already saved' : 'Save position'}
             >
               <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
-              <span className="trainer__mobile-act-lbl">{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+
+            <button
+              className="trainer__mobile-act trainer__mobile-act--share"
+              type="button"
+              onClick={handleShare}
+              title="Share position"
+            >
+              <img
+                className="trainer__mobile-act-share-ic"
+                src={shareIconUrl}
+                alt="Share"
+              />
             </button>
 
             <button
@@ -944,6 +986,15 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
           blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
           onConfirm={handleConfirmSave}
           onCancel={handleCancelSave}
+        />
+      )}
+      {currentBlunder && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          url={shareUrl}
+          classification={currentBlunder.classification}
+          blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
+          onClose={() => { setShareModalOpen(false); }}
         />
       )}
       </>
@@ -1045,14 +1096,29 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             {/* Actions */}
             <div className="trainer__panel-header">Actions</div>
 
-            <button
-              className={`trainer__panel-btn${isSaved ? ' trainer__panel-btn--saved' : ''}`}
-              type="button"
-              onClick={handleSaveFavorite}
-              disabled={isSaved}
-            >
-              {isSaved ? '★ Saved' : '☆ Save Position'}
-            </button>
+            <div className="trainer__panel-save-row">
+              <button
+                className={`trainer__panel-btn trainer__panel-btn--save${isSaved ? ' trainer__panel-btn--saved' : ''}`}
+                type="button"
+                onClick={handleSaveFavorite}
+                disabled={isSaved}
+              >
+                {isSaved ? '★ Saved' : '☆ Save Position'}
+              </button>
+
+              <button
+                className="trainer__panel-share-btn"
+                type="button"
+                onClick={handleShare}
+                title="Share position"
+              >
+                <img
+                  className="trainer__panel-share-ic"
+                  src={shareIconUrl}
+                  alt="Share"
+                />
+              </button>
+            </div>
 
             {actionButton}
           </div>
@@ -1090,6 +1156,15 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
         onConfirm={handleConfirmSave}
         onCancel={handleCancelSave}
+      />
+    )}
+    {currentBlunder && (
+      <ShareModal
+        isOpen={shareModalOpen}
+        url={shareUrl}
+        classification={currentBlunder.classification}
+        blunderDescription={`Move ${currentBlunder.move_number} (${currentBlunder.color === 'w' ? 'White' : 'Black'}) — ${currentBlunder.move_san} · ${currentBlunder.cp_loss} cp loss`}
+        onClose={() => { setShareModalOpen(false); }}
       />
     )}
     </>

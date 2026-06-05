@@ -42,6 +42,8 @@ interface SessionStore {
     prevFen?: string | null;
     prevMoveUci?: string | null;
     uciPlayed?: string;
+    bestMoves?: string[];
+    evalScore?: number;
   }) => void;
   clearError: () => void;
   reset: () => void;
@@ -195,9 +197,9 @@ const useSession = create<SessionStore>((set, get) => ({
         move_number: opts.moveNumber,
         prev_fen: opts.prevFen ?? null,
         prev_move_uci: opts.prevMoveUci ?? null,
-        best_moves: [],
+        best_moves: opts.bestMoves ?? [],
         uci_played: opts.uciPlayed ?? '',
-        eval_before_white_pov: 0,
+        eval_before_white_pov: opts.evalScore ?? 0,
       },
       screen: 'trainer',
       sessionId: undefined,

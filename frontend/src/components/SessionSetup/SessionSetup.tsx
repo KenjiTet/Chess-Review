@@ -38,6 +38,8 @@ interface ProfileStats {
   winRate30d: number | undefined;
   gamesAnalysed: number;
   blundersDrilled: number;
+  /** Average blunders per analysed game across all loaded games. */
+  avgBlunders: number | undefined;
 }
 
 // ── Custom time-class select with icons ────────────────────────────────────
@@ -156,6 +158,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     winRate30d: undefined,
     gamesAnalysed: 0,
     blundersDrilled: 0,
+    avgBlunders: undefined,
   });
   const [mobileRatings, setMobileRatings] = useState<UserProfileResponse | undefined>(undefined);
   const [mobileRatingsLoading, setMobileRatingsLoading] = useState<boolean>(true);
@@ -240,7 +243,13 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       .filter((g) => isReviewed(g.url) && g.blunder_count !== null && g.blunder_count > 0)
       .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
 
-    setProfileStats({ winRate30d, gamesAnalysed, blundersDrilled });
+    // Average blunders per game across all analysed games.
+    const totalBlunders = games
+      .filter((g) => g.blunder_count !== null && g.blunder_count !== undefined)
+      .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
+    const avgBlunders = gamesAnalysed > 0 ? totalBlunders / gamesAnalysed : undefined;
+
+    setProfileStats({ winRate30d, gamesAnalysed, blundersDrilled, avgBlunders });
   }
 
   function resolveLoadingTitle(gameUrl: string | undefined): string {
@@ -278,7 +287,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
     const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
     const memberSince = mobileRatings?.joined_year;
-    const winRateLabel = profileStats.winRate30d !== undefined ? `${Math.round(profileStats.winRate30d)}%` : '—';
 
     return (
       <div className="setup--mobile">
@@ -430,15 +438,15 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <span className="setup__mobile-elostrip__lbl">Bullet</span>
             </div>
 
-            {/* Win rate */}
+            {/* Avg blunders */}
             <div className="setup__mobile-elostrip__cell">
               <span className="setup__mobile-elostrip__ic setup__mobile-elostrip__ic--pct">
-                {winRateLabel}
+                {profileStats.avgBlunders !== undefined ? profileStats.avgBlunders.toFixed(1) : '—'}
               </span>
               <span className="setup__mobile-elostrip__num setup__mobile-elostrip__num--gold">
-                Win
+                Avg
               </span>
-              <span className="setup__mobile-elostrip__lbl">30 days</span>
+              <span className="setup__mobile-elostrip__lbl">Blunders</span>
             </div>
           </div>
         </div>
@@ -556,6 +564,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           winRate30d={profileStats.winRate30d}
           gamesAnalysed={profileStats.gamesAnalysed}
           blundersDrilled={profileStats.blundersDrilled}
+          avgBlunders={profileStats.avgBlunders}
         />
 
         {/* ── Toolbar ── */}

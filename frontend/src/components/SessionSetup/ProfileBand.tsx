@@ -21,6 +21,8 @@ interface ProfileBandProps {
   gamesAnalysed: number;
   /** Total blunders across reviewed games in the loaded list. */
   blundersDrilled: number;
+  /** Average blunders per game across all analysed games in the loaded list. */
+  avgBlunders: number | undefined;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -30,8 +32,8 @@ function ProfileBand({
   avatar,
   platform,
   winRate30d,
-  gamesAnalysed,
   blundersDrilled,
+  avgBlunders,
 }: ProfileBandProps): JSX.Element {
   const [imgFailed, setImgFailed] = useState<boolean>(false);
   const [ratings, setRatings] = useState<UserProfileResponse | undefined>(undefined);
@@ -148,12 +150,14 @@ function ProfileBand({
           <span className="profile-band__stat-lbl">Win rate<br />Loaded Games</span>
         </div>
         <div className="profile-band__stat">
-          <span className="profile-band__stat-num profile-band__stat-num--alt">{gamesAnalysed}</span>
-          <span className="profile-band__stat-lbl">Games<br />analysed</span>
-        </div>
-        <div className="profile-band__stat">
           <span className="profile-band__stat-num profile-band__stat-num--alt">{blundersDrilled}</span>
           <span className="profile-band__stat-lbl">Blunders<br />drilled</span>
+        </div>
+        <div className="profile-band__stat">
+          <span className="profile-band__stat-num profile-band__stat-num--alt">
+            {avgBlunders !== undefined ? avgBlunders.toFixed(1) : '—'}
+          </span>
+          <span className="profile-band__stat-lbl">Avg blunders<br />per game</span>
         </div>
       </div>
     </div>
