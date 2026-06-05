@@ -408,28 +408,30 @@ function GameCard({
         </div>
       </div>
 
-      <div className="game-card__players">
-        <div className="game-card__player-line">
-          <span className="game-card__piece game-card__piece--white" />
-          <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
-            {game.white_username}
-            {game.white_rating !== null && game.white_rating !== undefined && (
-              <span className="game-card__elo"> ({game.white_rating})</span>
-            )}
-          </span>
+      <div className="game-card__players-acc">
+        <div className="game-card__players">
+          <div className="game-card__player-line">
+            <span className="game-card__piece game-card__piece--white" />
+            <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
+              {game.white_username}
+              {game.white_rating !== null && game.white_rating !== undefined && (
+                <span className="game-card__elo"> ({game.white_rating})</span>
+              )}
+            </span>
+          </div>
+          <div className="game-card__player-line">
+            <span className="game-card__piece game-card__piece--black" />
+            <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
+              {game.black_username}
+              {game.black_rating !== null && game.black_rating !== undefined && (
+                <span className="game-card__elo"> ({game.black_rating})</span>
+              )}
+            </span>
+          </div>
         </div>
-        <div className="game-card__player-line">
-          <span className="game-card__piece game-card__piece--black" />
-          <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
-            {game.black_username}
-            {game.black_rating !== null && game.black_rating !== undefined && (
-              <span className="game-card__elo"> ({game.black_rating})</span>
-            )}
-          </span>
-        </div>
-      </div>
 
-      {renderAccCol()}
+        {renderAccCol()}
+      </div>
       {renderBlunderCol()}
 
       <div className="game-card__right-col">
@@ -586,8 +588,10 @@ function GameHistory({
   const mobileHeader = (
     <div className="history__mobile-header">
       <div className="history__mob-col history__mob-col--tc" />
-      <div className="history__mob-col history__mob-col--players">Player</div>
-      <div className="history__mob-col history__mob-col--acc">Acc</div>
+      <div className="history__mob-col history__mob-col--players-acc">
+        <div className="history__mob-col history__mob-col--players">Player</div>
+        <div className="history__mob-col history__mob-col--acc">Acc</div>
+      </div>
       <div className="history__mob-col history__mob-col--blunders">Blunders</div>
       <div className="history__mob-col history__mob-col--result">Result</div>
     </div>

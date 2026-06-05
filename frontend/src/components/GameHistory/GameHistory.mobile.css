@@ -55,6 +55,15 @@
   width: 36px;
 }
 
+/* players+acc share one flex:1 cell in the header, mirroring the card wrapper */
+.history__mob-col--players-acc {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+}
+
 .history__mob-col--players {
   flex: 1 1 0;
   min-width: 0;
@@ -144,6 +153,16 @@
 .game-card__tc svg {
   width: 14px;
   height: 14px;
+}
+
+/* Players + acc wrapper — tight internal gap, takes remaining space */
+.game-card__players-acc {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
 }
 
 /* Players column */
