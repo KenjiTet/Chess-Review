@@ -187,6 +187,7 @@ function GameRow({
         </div>
       </div>
 
+
       {/* Result */}
       <div className="history__col history__col--result">
         <span className={`history__result history__result--${resultClass}`}>
