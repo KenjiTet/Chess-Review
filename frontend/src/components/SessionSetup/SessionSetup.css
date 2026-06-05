@@ -121,6 +121,16 @@
   color: var(--gold);
 }
 
+/* Theme toggle — muted by default, gold on hover */
+.setup__icon-btn.setup__theme-btn {
+  color: var(--muted);
+}
+
+.setup__icon-btn.setup__theme-btn:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
 /* Settings dropdown (desktop) */
 .setup__settings-scrim {
   position: fixed;

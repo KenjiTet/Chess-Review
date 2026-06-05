@@ -102,8 +102,12 @@
   transition: background 0.15s, opacity 0.15s;
 }
 
-.blunder-card__sequence-btn:hover:not(:disabled) {
+[data-theme='dark'] .blunder-card__sequence-btn {
   background: rgba(245, 158, 11, 0.08);
+}
+
+.blunder-card__sequence-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.18);
 }
 
 .blunder-card__sequence-btn:disabled {

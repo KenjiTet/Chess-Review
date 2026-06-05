@@ -370,7 +370,7 @@
 /* Gold filled — primary Review button */
 .history__btn--review {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-  color: var(--gold-text);
+  color: #fff;
   box-shadow: 0 2px 8px rgba(200, 134, 31, 0.3);
 }
 

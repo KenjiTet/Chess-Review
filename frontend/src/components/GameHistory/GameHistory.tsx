@@ -281,14 +281,50 @@ function GameCard({
     onTrain();
   }
 
-  function renderBottomAction(): JSX.Element {
+  function renderInlineStats(): JSX.Element {
     if (isAnalysing) {
       return (
-        <span className="game-card__btn game-card__btn--analysing">
+        <div className="game-card__inline-stats">
           <span className="game-card__spin" />
-          Engine
-        </span>
+        </div>
       );
+    }
+
+    if (blunderCount === null) {
+      return (
+        <div className="game-card__inline-stats">
+          {myAccuracy !== null && myAccuracy !== undefined ? (
+            <span className="game-card__istat game-card__istat--acc">{myAccuracy.toFixed(1)}%</span>
+          ) : (
+            <span className="game-card__istat game-card__istat--muted">—</span>
+          )}
+          <span className="game-card__istat game-card__istat--muted">-</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="game-card__inline-stats">
+        <span className="game-card__istat game-card__istat--acc">
+          {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
+        </span>
+        {blunderCount > 0 ? (
+          <span className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls}`}>
+            <AlertTriangleSvg />
+            {blunderCount}
+          </span>
+        ) : (
+          <span className="game-card__istat game-card__istat--clean">
+            <CheckCircleSvg />
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  function renderAction(): JSX.Element {
+    if (isAnalysing) {
+      return <span className="game-card__btn game-card__btn--analysing">Engine</span>;
     }
 
     if (blunderCount === null) {
@@ -308,12 +344,7 @@ function GameCard({
     }
 
     if (blunderCount === 0) {
-      return (
-        <span className="game-card__clean">
-          <CheckCircleSvg />
-          Clean
-        </span>
-      );
+      return <span className="game-card__clean"><CheckCircleSvg />Clean</span>;
     }
 
     if (isReviewed) {
@@ -345,50 +376,6 @@ function GameCard({
     );
   }
 
-  function renderBottomStats(): JSX.Element {
-    if (isAnalysing) {
-      return (
-        <div className="game-card__mstats">
-          <span className="game-card__notanalysed">Analysing…</span>
-        </div>
-      );
-    }
-
-    if (blunderCount === null) {
-      return (
-        <div className="game-card__mstats">
-          {myAccuracy !== null && myAccuracy !== undefined && (
-            <div className="game-card__mstat">
-              <span className="game-card__mstat-lbl">My accuracy</span>
-              <span className="game-card__mstat-val">{`${myAccuracy.toFixed(1)}%`}</span>
-            </div>
-          )}
-          <span className="game-card__notanalysed">Not analysed yet</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="game-card__mstats">
-        <div className="game-card__mstat">
-          <span className="game-card__mstat-lbl">My accuracy</span>
-          <span className="game-card__mstat-val">
-            {myAccuracy !== null && myAccuracy !== undefined ? `${myAccuracy.toFixed(1)}%` : '—'}
-          </span>
-        </div>
-        {blunderCount > 0 && (
-          <div className="game-card__mstat">
-            <span className="game-card__mstat-lbl">Blunders</span>
-            <span className={`game-card__mstat-val game-card__mstat-val--${blunderCls}`}>
-              <AlertTriangleSvg />
-              {blunderCount}
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
       className={`game-card${isTappable ? ' game-card--tappable' : ''}${isReviewed && blunderCount !== null && blunderCount > 0 ? ' game-card--reviewed' : ''}`}
@@ -401,45 +388,41 @@ function GameCard({
         }
       }}
     >
-      {/* Top: tc icon + players + result */}
-      <div className="game-card__top">
+      <div className="game-card__tc-col">
+        <span className="game-card__date">{formatDateShort(game.date)}</span>
         <div className="game-card__tc">
           <TimeClassIcon tc={game.time_class} size={16} />
         </div>
+      </div>
 
-        <div className="game-card__players">
-          <div className="game-card__player-line">
-            <span className="game-card__piece game-card__piece--white" />
-            <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
-              {game.white_username}
-              {game.white_rating !== null && game.white_rating !== undefined && (
-                <span className="game-card__elo"> ({game.white_rating})</span>
-              )}
-            </span>
-          </div>
-          <div className="game-card__player-line">
-            <span className="game-card__piece game-card__piece--black" />
-            <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
-              {game.black_username}
-              {game.black_rating !== null && game.black_rating !== undefined && (
-                <span className="game-card__elo"> ({game.black_rating})</span>
-              )}
-            </span>
-          </div>
+      <div className="game-card__players">
+        <div className="game-card__player-line">
+          <span className="game-card__piece game-card__piece--white" />
+          <span className={`game-card__player-name${isWhite ? ' game-card__player-name--me' : ''}`}>
+            {game.white_username}
+            {game.white_rating !== null && game.white_rating !== undefined && (
+              <span className="game-card__elo"> ({game.white_rating})</span>
+            )}
+          </span>
         </div>
-
-        <div className="game-card__result-col">
-          <span className="game-card__date">{formatDateShort(game.date)}</span>
-          <span className={`game-card__result game-card__result--${resultClass}`}>
-            {resultLabel}
+        <div className="game-card__player-line">
+          <span className="game-card__piece game-card__piece--black" />
+          <span className={`game-card__player-name${!isWhite ? ' game-card__player-name--me' : ''}`}>
+            {game.black_username}
+            {game.black_rating !== null && game.black_rating !== undefined && (
+              <span className="game-card__elo"> ({game.black_rating})</span>
+            )}
           </span>
         </div>
       </div>
 
-      {/* Bottom: stats + action */}
-      <div className="game-card__bottom">
-        {renderBottomStats()}
-        {renderBottomAction()}
+      {renderInlineStats()}
+
+      <div className="game-card__right-col">
+        <span className={`game-card__result game-card__result--${resultClass}`}>
+          {resultLabel}
+        </span>
+        {renderAction()}
       </div>
     </div>
   );
@@ -593,13 +576,18 @@ function GameHistory({
           <div className="history__cards-skeleton">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={`mob-skeleton-${i}`} className="game-card game-card--skeleton">
-                <div className="game-card__top">
-                  <div className="game-card__tc" />
-                  <div className="game-card__players">
-                    <div className="skeleton-line skeleton-line--md" />
-                    <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 5 }} />
-                  </div>
+                <div className="game-card__tc" />
+                <div className="game-card__players">
+                  <div className="skeleton-line skeleton-line--md" />
+                  <div className="skeleton-line skeleton-line--sm" style={{ marginTop: 4 }} />
+                </div>
+                <div className="game-card__inline-stats">
                   <div className="skeleton-line skeleton-line--acc" />
+                  <div className="skeleton-line skeleton-line--acc" style={{ marginTop: 2 }} />
+                </div>
+                <div className="game-card__right-col">
+                  <div className="skeleton-line skeleton-line--sm" />
+                  <div className="skeleton-line skeleton-line--acc" style={{ marginTop: 2 }} />
                 </div>
               </div>
             ))}

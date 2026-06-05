@@ -411,13 +411,13 @@
 }
 
 .trainer__mobile-skip-btn--primary {
-  color: var(--gold-text, #1a1f2e);
+  color: #fff;
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   border-color: transparent;
 }
 
 .trainer__mobile-skip-btn--primary:hover {
-  color: var(--gold-text, #1a1f2e);
+  color: #fff;
   background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
 }
 
