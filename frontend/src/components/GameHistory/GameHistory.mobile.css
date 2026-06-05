@@ -34,7 +34,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   padding: 5px 10px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -49,43 +49,12 @@
   white-space: nowrap;
 }
 
-/* Fixed column widths — must mirror game-card column widths exactly */
-.history__mob-col--tc {
-  flex: 0 0 36px;
-  width: 36px;
-}
-
-/* players+acc share one flex:1 cell in the header, mirroring the card wrapper */
-.history__mob-col--players-acc {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  gap: 3px;
-}
-
-.history__mob-col--players {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.history__mob-col--acc {
-  flex: 0 0 46px;
-  width: 46px;
-  text-align: right;
-}
-
-.history__mob-col--blunders {
-  flex: 0 0 54px;
-  width: 54px;
-  text-align: center;
-}
-
-.history__mob-col--result {
-  flex: 0 0 76px;
-  width: 76px;
-  text-align: right;
-}
+/* Column widths as percentages — must mirror card columns exactly */
+.history__mob-col--tc       { flex: 0 0 10%; }
+.history__mob-col--players  { flex: 0 0 38%; min-width: 0; }
+.history__mob-col--acc      { flex: 0 0 14%; text-align: right; }
+.history__mob-col--blunders { flex: 0 0 19%; text-align: center; }
+.history__mob-col--result   { flex: 0 0 19%; text-align: right; }
 
 /* ── Card — single inline row ────────────────────────────────────────────── */
 
@@ -93,7 +62,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 0;
   background: var(--surface);
   border: none;
   border-bottom: 1px solid var(--border);
@@ -121,8 +90,7 @@
 
 /* Left column: date above time class icon */
 .game-card__tc-col {
-  flex: 0 0 36px;
-  width: 36px;
+  flex: 0 0 10%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -155,19 +123,9 @@
   height: 14px;
 }
 
-/* Players + acc wrapper — tight internal gap, takes remaining space */
-.game-card__players-acc {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
-}
-
 /* Players column */
 .game-card__players {
-  flex: 1 1 0;
+  flex: 0 0 38%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -221,8 +179,7 @@
 /* ── Accuracy column — both players stacked ──────────────────────────────── */
 
 .game-card__acc-col {
-  flex: 0 0 46px;
-  width: 46px;
+  flex: 0 0 14%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -245,8 +202,7 @@
 /* ── Blunder column ───────────────────────────────────────────────────────── */
 
 .game-card__blunder-col {
-  flex: 0 0 54px;
-  width: 54px;
+  flex: 0 0 19%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,10 +255,8 @@
 
 /* ── Right column (date + result + action) ───────────────────────────────── */
 
-/* Fixed width = widest button ("Re-review") so all rows align */
 .game-card__right-col {
-  flex: 0 0 76px;
-  width: 76px;
+  flex: 0 0 19%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
