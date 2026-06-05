@@ -357,6 +357,12 @@ function GameCard({
     if (blunderCount === null) {
       return (
         <div className="game-card__mstats">
+          {myAccuracy !== null && myAccuracy !== undefined && (
+            <div className="game-card__mstat">
+              <span className="game-card__mstat-lbl">My accuracy</span>
+              <span className="game-card__mstat-val">{`${myAccuracy.toFixed(1)}%`}</span>
+            </div>
+          )}
           <span className="game-card__notanalysed">Not analysed yet</span>
         </div>
       );

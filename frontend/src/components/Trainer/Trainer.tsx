@@ -673,7 +673,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         type="button"
         onClick={skipBlunder}
       >
-        {isLastBlunder ? 'Finish' : 'Skip →'}
+        {isLastBlunder ? 'Finish' : <><span className="trainer__panel-btn-ic">▶▶</span>Skip</>}
       </button>
     );
   } else {
@@ -684,7 +684,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         type="button"
         onClick={handleNext}
       >
-        {isLastBlunder ? 'Finish' : 'Next →'}
+        {isLastBlunder ? 'Finish' : <><span className="trainer__panel-btn-ic">▶▶</span>Next</>}
       </button>
     );
   }
@@ -721,12 +721,12 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       mobileActionPrimary = true;
     } else if (firstMove === null) {
       const isLastBlunder = reviewedCount + 1 >= blunderCount;
-      mobileActionLabel = isLastBlunder ? 'Finish' : 'Skip →';
+      mobileActionLabel = isLastBlunder ? 'Finish' : 'Skip';
       mobileActionHandler = skipBlunder;
       mobileActionPrimary = isLastBlunder;
     } else {
       const isLastBlunder = reviewedCount + 1 >= blunderCount;
-      mobileActionLabel = isLastBlunder ? 'Finish' : 'Next →';
+      mobileActionLabel = isLastBlunder ? 'Finish' : 'Next';
       mobileActionHandler = handleNext;
       mobileActionPrimary = true;
     }

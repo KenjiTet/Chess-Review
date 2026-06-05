@@ -265,6 +265,12 @@
   color: var(--gold);
 }
 
+.trainer__panel-btn-ic {
+  margin-right: 0.3rem;
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
 .trainer__panel-btn--saved {
   border-color: var(--gold);
   color: var(--gold);
