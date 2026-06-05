@@ -71,11 +71,30 @@
   font-size: 0.8rem;
   font-weight: 600;
   transition: border-color 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .trainer__menu-btn:hover {
   border-color: var(--gold);
   color: var(--gold);
+}
+
+.trainer__menu-btn-ic {
+  width: 14px;
+  height: 14px;
+  display: block;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__menu-btn-ic {
+  filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
+}
+
+.trainer__menu-btn:hover .trainer__menu-btn-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
 }
 
 /* Centered content column — same width as the header */
@@ -150,37 +169,55 @@
   flex-direction: column;
 }
 
-/* Navigation buttons sit directly below the panel */
+/* Navigation buttons — now inside the panel */
 
-.trainer__nav-row {
+.trainer__panel-nav-row {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 .trainer__nav-btn {
+  flex: 1;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
   color: var(--text);
-  padding: 0.42rem 1.1rem;
+  padding: 0.42rem 0;
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
   font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .trainer__nav-btn:hover:not(:disabled) {
   border-color: var(--gold);
-  color: var(--gold);
+}
+
+.trainer__nav-btn:hover:not(:disabled) .trainer__nav-btn-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
 }
 
 .trainer__nav-btn:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+.trainer__nav-btn-ic {
+  width: 14px;
+  height: 14px;
+  display: block;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__nav-btn-ic {
+  filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
 }
 
 /* Settings panel */
@@ -251,13 +288,24 @@
 .trainer__panel-btn--primary {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   border-color: transparent;
-  color: var(--gold-text);
+  color: #fff;
 }
 
 .trainer__panel-btn--primary:hover {
   background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
   border-color: transparent;
-  color: var(--gold-text);
+  color: #fff;
+}
+
+/* Primary button resets svg icon filter to white */
+.trainer__panel-btn--primary .trainer__panel-btn-svg {
+  filter: brightness(0) invert(1);
+}
+
+/* Wider "next" button that fills available space in actions row */
+.trainer__panel-btn--next {
+  flex: 1;
+  width: auto;
 }
 
 .trainer__panel-btn--active {
@@ -271,28 +319,47 @@
   opacity: 0.8;
 }
 
-.trainer__panel-btn--saved {
-  border-color: var(--gold);
-  color: var(--gold);
-  opacity: 0.7;
-  cursor: default;
+/* Buttons that show an SVG icon alongside text */
+.trainer__panel-btn--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
 }
 
-/* Save + share inline row */
-.trainer__panel-save-row {
+.trainer__panel-btn-svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+  flex-shrink: 0;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__panel-btn-svg {
+  filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
+}
+
+.trainer__panel-btn:hover .trainer__panel-btn-svg {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.trainer__panel-btn--active .trainer__panel-btn-svg {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+/* 3-button actions row: [save icon] [share icon] [next wider] */
+.trainer__panel-actions-row {
   display: flex;
   gap: 6px;
   align-items: stretch;
 }
 
-.trainer__panel-btn--save {
-  flex: 1;
-}
-
-/* Icon-only share button — sits beside the save button */
-.trainer__panel-share-btn {
+/* Small icon-only square buttons (save, share) */
+.trainer__panel-icon-btn {
   flex-shrink: 0;
   width: 32px;
+  height: 32px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -301,11 +368,32 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: border-color 0.15s ease;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.trainer__panel-share-btn:hover {
+.trainer__panel-icon-btn:hover {
   border-color: var(--gold);
+  color: var(--gold);
+}
+
+.trainer__panel-icon-btn:hover .trainer__panel-share-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.trainer__panel-icon-btn--saved {
+  border-color: var(--gold);
+  color: var(--gold);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.trainer__panel-btn--saved {
+  border-color: var(--gold);
+  color: var(--gold);
+  opacity: 0.7;
+  cursor: default;
 }
 
 .trainer__panel-share-ic {
@@ -318,10 +406,6 @@
 
 [data-theme='dark'] .trainer__panel-share-ic {
   filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
-}
-
-.trainer__panel-share-btn:hover .trainer__panel-share-ic {
-  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
 }
 
 .trainer__bot-status {

@@ -160,32 +160,12 @@ function App(): JSX.Element {
       {/* Fixed floating buttons — hidden on mobile (controls move into profile settings) */}
       {!isMobile && isAdmin && isAuthenticated && (
         <button
-          className={`mobile-toggle${mobileOverride ? ' mobile-toggle--on' : ''}`}
-          type="button"
-          onClick={toggleMobileOverride}
-          title={mobileOverride ? 'Exit mobile preview' : 'Preview mobile layout'}
-        >
-          📱
-        </button>
-      )}
-      {!isMobile && isAdmin && isAuthenticated && (
-        <button
           className="admin-toggle"
           type="button"
           onClick={handleAdminToggle}
           title={adminView ? 'Back to app' : 'Admin dashboard'}
         >
           {adminView ? '⬅' : '⚙'}
-        </button>
-      )}
-      {!isMobile && (
-        <button
-          className="theme-toggle"
-          type="button"
-          onClick={handleThemeToggle}
-          title="Toggle theme"
-        >
-          {darkMode ? '☼' : '☾'}
         </button>
       )}
     </div>

@@ -372,6 +372,38 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.setup__seg-btn-ic {
+  width: 13px;
+  height: 13px;
+  display: block;
+  flex-shrink: 0;
+  filter: invert(55%) sepia(0%) saturate(0%) brightness(70%);
+  transition: filter 0.15s ease;
+}
+
+.setup__seg-btn--on .setup__seg-btn-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.setup__seg-btn:not(.setup__seg-btn--on):hover .setup__seg-btn-ic {
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(50%);
+}
+
+[data-theme='dark'] .setup__seg-btn-ic {
+  filter: invert(65%) sepia(0%) saturate(0%) brightness(100%);
+}
+
+[data-theme='dark'] .setup__seg-btn--on .setup__seg-btn-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+[data-theme='dark'] .setup__seg-btn:not(.setup__seg-btn--on):hover .setup__seg-btn-ic {
+  filter: invert(85%) sepia(0%) saturate(0%) brightness(120%);
 }
 
 .setup__seg-btn--on {

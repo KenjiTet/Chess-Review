@@ -19,6 +19,8 @@ import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
 import settingsIcon from '../../assets/settings.svg';
+import blocIconUrl from '../../assets/bloc_icon.svg';
+import inlineIconUrl from '../../assets/inline_icon.svg';
 import './SessionSetup.css';
 import './SessionSetup.mobile.css';
 
@@ -476,6 +478,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
                     onClick={() => setFavLayout('blocks')}
                   >
+                    <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
                     Blocks
                   </button>
                   <button
@@ -483,6 +486,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
                     onClick={() => setFavLayout('inline')}
                   >
+                    <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
                     Inline
                   </button>
                 </div>
@@ -592,6 +596,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
                   onClick={() => setFavLayout('blocks')}
                 >
+                  <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
                   Blocks
                 </button>
                 <button
@@ -599,6 +604,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
                   onClick={() => setFavLayout('inline')}
                 >
+                  <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
                   Inline
                 </button>
               </div>

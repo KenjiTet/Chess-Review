@@ -25,6 +25,13 @@ import { generateBoardImage } from '../../utils/generateBoardImage';
 import { buildShareUrl } from '../../utils/sharePosition';
 import ShareModal from '../ShareModal/ShareModal';
 import shareIconUrl from '../../assets/share_icon.svg';
+import arrowIconUrl from '../../assets/arrow_icon.svg';
+import botIconUrl from '../../assets/bot_icon.svg';
+import resetIconUrl from '../../assets/reset_icon.svg';
+import arrowLeftIconUrl from '../../assets/arrow_left_icon.svg';
+import arrowRightIconUrl from '../../assets/arrow_right_icon.svg';
+import menuIconUrl from '../../assets/menu_icon.svg';
+import doneIconUrl from '../../assets/done_icon.svg';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import useSettings from '../../hooks/useSettings';
@@ -683,37 +690,44 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   const boardDimStyle: CSSProperties | undefined = boardSize > 0 ? { width: boardSize, height: boardSize } : undefined;
   const sideHeightStyle: CSSProperties | undefined = boardSize > 0 ? { height: boardSize } : undefined;
 
+  const finishContent = (
+    <>
+      <img className="trainer__panel-btn-svg" src={doneIconUrl} alt="" />
+      Finish
+    </>
+  );
+
   let actionButton: JSX.Element;
   if (sessionId === undefined) {
     actionButton = (
       <button
-        className="trainer__panel-btn trainer__panel-btn--primary"
+        className="trainer__panel-btn trainer__panel-btn--primary trainer__panel-btn--next trainer__panel-btn--icon"
         type="button"
         onClick={reset}
       >
-        Finish
+        {finishContent}
       </button>
     );
   } else if (firstMove === null) {
     const isLastBlunder = reviewedCount + 1 >= blunderCount;
     actionButton = (
       <button
-        className={`trainer__panel-btn${isLastBlunder ? ' trainer__panel-btn--primary' : ''}`}
+        className={`trainer__panel-btn trainer__panel-btn--next${isLastBlunder ? ' trainer__panel-btn--primary trainer__panel-btn--icon' : ''}`}
         type="button"
         onClick={skipBlunder}
       >
-        {isLastBlunder ? 'Finish' : <><span className="trainer__panel-btn-ic">▶▶</span>Skip</>}
+        {isLastBlunder ? finishContent : <><span className="trainer__panel-btn-ic">▶▶</span>Skip</>}
       </button>
     );
   } else {
     const isLastBlunder = reviewedCount + 1 >= blunderCount;
     actionButton = (
       <button
-        className="trainer__panel-btn trainer__panel-btn--primary"
+        className="trainer__panel-btn trainer__panel-btn--primary trainer__panel-btn--next trainer__panel-btn--icon"
         type="button"
         onClick={handleNext}
       >
-        {isLastBlunder ? 'Finish' : <><span className="trainer__panel-btn-ic">▶▶</span>Next</>}
+        {isLastBlunder ? finishContent : <><span className="trainer__panel-btn-ic">▶▶</span>Next</>}
       </button>
     );
   }
@@ -1016,7 +1030,8 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         </div>
 
         <button className="trainer__menu-btn" type="button" onClick={reset} title="Back to menu">
-          ⌂ Menu
+          <img className="trainer__menu-btn-ic" src={menuIconUrl} alt="" />
+          Menu
         </button>
       </header>
 
@@ -1063,20 +1078,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             {/* Options */}
             <div className="trainer__panel-header">Options</div>
             <button
-              className="trainer__panel-btn"
+              className={`trainer__panel-btn trainer__panel-btn--icon${showArrows ? ' trainer__panel-btn--active' : ''}`}
               type="button"
               onClick={() => setShowArrows((prev) => !prev)}
             >
-              {showArrows ? 'Hide Moves' : 'Show Moves'}
+              <img className="trainer__panel-btn-svg" src={arrowIconUrl} alt="" />
+              Hints
             </button>
 
             <button
-              className={`trainer__panel-btn${botMode ? ' trainer__panel-btn--active' : ''}`}
+              className={`trainer__panel-btn trainer__panel-btn--icon${botMode ? ' trainer__panel-btn--active' : ''}`}
               type="button"
               onClick={() => setBotMode((prev) => !prev)}
               title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
             >
-              {botMode ? '◈ Analysis' : <><PawnIcon size={14} /> vs Bot</>}
+              <img className="trainer__panel-btn-svg" src={botIconUrl} alt="" />
+              vs Bot
             </button>
 
             {botThinking && (
@@ -1084,11 +1101,12 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             )}
 
             <button
-              className="trainer__panel-btn"
+              className="trainer__panel-btn trainer__panel-btn--icon"
               type="button"
               onClick={handleReset}
             >
-              Reset Position
+              <img className="trainer__panel-btn-svg" src={resetIconUrl} alt="" />
+              Reset
             </button>
 
             <hr className="trainer__panel-divider" />
@@ -1096,18 +1114,19 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             {/* Actions */}
             <div className="trainer__panel-header">Actions</div>
 
-            <div className="trainer__panel-save-row">
+            <div className="trainer__panel-actions-row">
               <button
-                className={`trainer__panel-btn trainer__panel-btn--save${isSaved ? ' trainer__panel-btn--saved' : ''}`}
+                className={`trainer__panel-icon-btn${isSaved ? ' trainer__panel-icon-btn--saved' : ''}`}
                 type="button"
                 onClick={handleSaveFavorite}
                 disabled={isSaved}
+                title={isSaved ? 'Already saved' : 'Save position'}
               >
-                {isSaved ? '★ Saved' : '☆ Save Position'}
+                {isSaved ? '★' : '☆'}
               </button>
 
               <button
-                className="trainer__panel-share-btn"
+                className="trainer__panel-icon-btn"
                 type="button"
                 onClick={handleShare}
                 title="Share position"
@@ -1118,31 +1137,31 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                   alt="Share"
                 />
               </button>
+
+              {actionButton}
             </div>
 
-            {actionButton}
-          </div>
-
-          {/* History navigation — directly below the panel */}
-          <div className="trainer__nav-row">
-            <button
-              className="trainer__nav-btn"
-              type="button"
-              onClick={handleHistoryBack}
-              disabled={historyIndex === 0}
-              title="Previous position"
-            >
-              ‹
-            </button>
-            <button
-              className="trainer__nav-btn"
-              type="button"
-              onClick={handleHistoryForward}
-              disabled={historyIndex === positionHistory.length - 1 || botMode}
-              title="Next position"
-            >
-              ›
-            </button>
+            {/* History navigation — inside the panel, full width */}
+            <div className="trainer__panel-nav-row">
+              <button
+                className="trainer__nav-btn"
+                type="button"
+                onClick={handleHistoryBack}
+                disabled={historyIndex === 0}
+                title="Previous position"
+              >
+                <img className="trainer__nav-btn-ic" src={arrowLeftIconUrl} alt="Previous" />
+              </button>
+              <button
+                className="trainer__nav-btn"
+                type="button"
+                onClick={handleHistoryForward}
+                disabled={historyIndex === positionHistory.length - 1 || botMode}
+                title="Next position"
+              >
+                <img className="trainer__nav-btn-ic" src={arrowRightIconUrl} alt="Next" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
