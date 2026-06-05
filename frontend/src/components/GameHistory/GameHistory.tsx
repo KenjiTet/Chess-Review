@@ -36,6 +36,17 @@ function formatDate(iso: string): string {
   }
 }
 
+function formatDateShort(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'long',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 // ── Inline SVG icons ───────────────────────────────────────────────────────
 
 function AlertTriangleSvg(): JSX.Element {
@@ -411,9 +422,12 @@ function GameCard({
           </div>
         </div>
 
-        <span className={`game-card__result game-card__result--${resultClass}`}>
-          {resultLabel}
-        </span>
+        <div className="game-card__result-col">
+          <span className="game-card__date">{formatDateShort(game.date)}</span>
+          <span className={`game-card__result game-card__result--${resultClass}`}>
+            {resultLabel}
+          </span>
+        </div>
       </div>
 
       {/* Bottom: stats + action */}

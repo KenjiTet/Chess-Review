@@ -330,7 +330,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <span className="setup__mobile-profile-meta">
                 {platformLabel}
                 {memberSince !== undefined && memberSince !== null && (
-                  <> · Member since {memberSince}</>
+                  <> · Since {memberSince}</>
                 )}
               </span>
             </div>
@@ -502,26 +502,18 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             </div>
           ) : (
             username && (
-              <div className="setup__mobile-games-card">
-                <GameHistory
-                  username={username}
-                  timeClass={timeClass}
-                  isGuest={isGuest}
-                  platform={platform ?? 'chesscom'}
-                  threshold={threshold}
-                  isMobile
-                  onTrainGame={handleTrainGame}
-                  onGamesLoaded={handleGamesLoaded}
-                />
-              </div>
+              <GameHistory
+                username={username}
+                timeClass={timeClass}
+                isGuest={isGuest}
+                platform={platform ?? 'chesscom'}
+                threshold={threshold}
+                isMobile
+                onTrainGame={handleTrainGame}
+                onGamesLoaded={handleGamesLoaded}
+              />
             )
           )}
-
-          <form onSubmit={handleSubmit} className="setup__mobile-submit-form">
-            <button className="setup__mobile-submit" type="submit">
-              Start Training
-            </button>
-          </form>
         </div>
       </div>
     );
@@ -548,7 +540,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         </button>
       </div>
 
-      <form className="setup__card" onSubmit={handleSubmit}>
+      <div className="setup__card">
         {/* ── Profile band ── */}
         <ProfileBand
           username={username}
@@ -674,14 +666,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             <Favorites onOpen={handleOpenFavorite} />
           </div>
         )}
-
-        {/* ── Footer / submit ── */}
-        <div className="setup__footer">
-          <button className="setup__submit" type="submit">
-            Start Training
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
