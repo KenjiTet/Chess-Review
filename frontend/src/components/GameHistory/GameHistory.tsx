@@ -85,12 +85,7 @@ function BlunderCell({ blunderCount }: { blunderCount: number | null }): JSX.Ele
   }
 
   if (blunderCount === 0) {
-    return (
-      <span className="history__clean">
-        <CheckCircleSvg />
-        Clean
-      </span>
-    );
+    return <span className="history__blunders history__blunders--low">0</span>;
   }
 
   const cls = blunderCount >= 4 ? 'high' : blunderCount >= 2 ? 'mid' : 'low';
@@ -137,7 +132,12 @@ function ActionCell({
   }
 
   if (game.blunder_count === 0) {
-    return <></>;
+    return (
+      <span className="history__clean">
+        <CheckCircleSvg />
+        Clean
+      </span>
+    );
   }
 
   if (isReviewed) {
@@ -320,7 +320,7 @@ function GameCard({
     if (blunderCount === 0) {
       return (
         <div className="game-card__blunder-col">
-          <span className="game-card__istat game-card__istat--clean"><CheckCircleSvg /></span>
+          <span className="game-card__istat game-card__istat--clean">0</span>
         </div>
       );
     }

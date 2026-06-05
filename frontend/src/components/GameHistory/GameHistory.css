@@ -94,14 +94,14 @@
 }
 
 /* ── Shared grid columns ───────────────────────────────────────── */
-/* tc(30px) | players(1fr) | result(78px) | accuracy(96px) | blunders(104px) | date(118px) | action(116px) */
+/* tc(4%) | players(30%) | result(10%) | accuracy(13%) | blunders(14%) | date(15%) | action(14%) */
 
 .history__header,
 .history__row {
   display: grid;
-  grid-template-columns: 30px 1fr 78px 96px 104px 118px 116px;
+  grid-template-columns: 5% 25% 15% 13% 14% 15% 14%;
   align-items: center;
-  column-gap: 12px;
+  column-gap: 0;
   padding: 0 18px;
 }
 
@@ -189,11 +189,11 @@
 }
 
 .history__col--date {
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .history__col--action {
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 /* ── Player lines ──────────────────────────────────────────────── */
@@ -328,8 +328,8 @@
   align-items: center;
   gap: 5px;
   font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 700;
+  color: var(--success);
 }
 
 .history__clean svg {
