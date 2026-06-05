@@ -92,21 +92,16 @@
   border-radius: 2px;
 }
 
-/* ── Scrollable body ─────────────────────────────────────────────────────── */
+/* ── Body — no scroll; board fills remaining space ───────────────────────── */
 
 .trainer__mobile-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 10px 14px 16px;
+  overflow: hidden;
+  padding: 8px 14px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.trainer__mobile-body::-webkit-scrollbar {
-  width: 0;
+  gap: 6px;
 }
 
 /* ── Compact BlunderCard — horizontal banner ─────────────────────────────── */
@@ -205,10 +200,23 @@
   font-size: 13px;
 }
 
-/* ── Board takes full width ──────────────────────────────────────────────── */
+/* ── Board area — fills remaining flex space, keeps board square ─────────── */
+
+.trainer__mobile-board-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
 
 .trainer__mobile-board-wrap {
-  width: 100%;
+  /* Square sized to fill available height, constrained by width */
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  max-width: 100%;
+  width: auto;
   position: relative;
 }
 
@@ -266,7 +274,7 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0;
-  padding: 6px 4px 8px;
+  padding: 4px 4px 0;
 }
 
 .trainer__mobile-act {
@@ -331,6 +339,27 @@
   color: var(--text);
 }
 
+/* SVG icon — same images used in the desktop panel */
+.trainer__mobile-act-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__mobile-act-svg {
+  filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
+}
+
+.trainer__mobile-act--on .trainer__mobile-act-svg {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.trainer__mobile-act:hover:not(:disabled) .trainer__mobile-act-svg {
+  filter: invert(55%) sepia(0%) saturate(0%) brightness(80%);
+}
+
 /* Share icon button — same shape as other mobile actions */
 .trainer__mobile-act--share {
   color: var(--muted);
@@ -350,4 +379,49 @@
 
 .trainer__mobile-act--share:hover .trainer__mobile-act-share-ic {
   filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+/* Skip / Next / Finish row */
+.trainer__mobile-panel-skip {
+  padding: 6px 12px 10px;
+}
+
+.trainer__mobile-skip-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  font-family: var(--sans);
+}
+
+.trainer__mobile-skip-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.trainer__mobile-skip-btn--primary {
+  color: var(--gold-text, #1a1f2e);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  border-color: transparent;
+}
+
+.trainer__mobile-skip-btn--primary:hover {
+  color: var(--gold-text, #1a1f2e);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+}
+
+.trainer__mobile-skip-ic {
+  font-size: 13px;
+  line-height: 1;
 }

@@ -837,20 +837,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
           {/* 2. Horizontal eval bar */}
           <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
 
-          {/* 4. Board */}
-          <div className="trainer__mobile-board-wrap">
-            <Board
-              fen={displayFen}
-              orientation={orientation}
-              prevFen={currentBlunder.prev_fen}
-              prevMoveUci={currentBlunder.prev_move_uci}
-              prevMoveSan={prevMoveSan}
-              onMove={handleMove}
-              interactive={!botThinking && !isPlayingSequence}
-              arrowUcis={showArrows ? currentArrows : []}
-              lastMoveUci={displayLastMoveUci}
-              blunderArrowUci={blunderArrowUci}
-            />
+            {/* 4. Board */}
+          <div className="trainer__mobile-board-area">
+            <div className="trainer__mobile-board-wrap">
+              <Board
+                fen={displayFen}
+                orientation={orientation}
+                prevFen={currentBlunder.prev_fen}
+                prevMoveUci={currentBlunder.prev_move_uci}
+                prevMoveSan={prevMoveSan}
+                onMove={handleMove}
+                interactive={!botThinking && !isPlayingSequence}
+                arrowUcis={showArrows ? currentArrows : []}
+                lastMoveUci={displayLastMoveUci}
+                blunderArrowUci={blunderArrowUci}
+              />
+            </div>
           </div>
 
         </div>
@@ -928,15 +930,15 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             </button>
           </div>
 
-          {/* Action row */}
+          {/* Action row — 5 icon buttons */}
           <div className="trainer__mobile-panel-actions">
             <button
               className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
               type="button"
               onClick={() => setShowArrows((prev) => !prev)}
             >
-              <span className="trainer__mobile-act-ic">⇗</span>
-              <span className="trainer__mobile-act-lbl">Moves</span>
+              <img className="trainer__mobile-act-svg" src={arrowIconUrl} alt="" />
+              <span className="trainer__mobile-act-lbl">Hints</span>
             </button>
 
             <button
@@ -945,7 +947,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               onClick={() => setBotMode((prev) => !prev)}
               title={botMode ? 'Switch to analysis mode' : 'Play vs Stockfish'}
             >
-              <span className="trainer__mobile-act-ic"><PawnIcon size={18} /></span>
+              <img className="trainer__mobile-act-svg" src={botIconUrl} alt="" />
               <span className="trainer__mobile-act-lbl">vs Bot</span>
             </button>
 
@@ -954,7 +956,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               type="button"
               onClick={handleReset}
             >
-              <span className="trainer__mobile-act-ic">↺</span>
+              <img className="trainer__mobile-act-svg" src={resetIconUrl} alt="" />
               <span className="trainer__mobile-act-lbl">Reset</span>
             </button>
 
@@ -966,6 +968,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               title={isSaved ? 'Already saved' : 'Save position'}
             >
               <span className="trainer__mobile-act-ic">{isSaved ? '★' : '☆'}</span>
+              <span className="trainer__mobile-act-lbl">Save</span>
             </button>
 
             <button
@@ -979,15 +982,19 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                 src={shareIconUrl}
                 alt="Share"
               />
+              <span className="trainer__mobile-act-lbl">Share</span>
             </button>
+          </div>
 
+          {/* Skip / Next / Finish — full-width row below the icon buttons */}
+          <div className="trainer__mobile-panel-skip">
             <button
-              className={`trainer__mobile-act trainer__mobile-act--skip${mobileActionPrimary ? ' trainer__mobile-act--primary' : ''}`}
+              className={`trainer__mobile-skip-btn${mobileActionPrimary ? ' trainer__mobile-skip-btn--primary' : ''}`}
               type="button"
               onClick={mobileActionHandler}
             >
-              <span className="trainer__mobile-act-ic">▶▶</span>
-              <span className="trainer__mobile-act-lbl">{mobileActionLabel}</span>
+              <span className="trainer__mobile-skip-ic">▶▶</span>
+              {mobileActionLabel}
             </button>
           </div>
         </div>
