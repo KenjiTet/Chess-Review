@@ -36,7 +36,6 @@ import doneIconUrl from '../../assets/done_icon.svg';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import useSettings from '../../hooks/useSettings';
-import useAuth from '../../hooks/useAuth';
 import './Trainer.css';
 import './Trainer.mobile.css';
 
@@ -142,9 +141,6 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
 
   const threshold = useSettings((s) => s.threshold);
   const setThreshold = useSettings((s) => s.setThreshold);
-  const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
-  const mobileOverride = useSettings((s) => s.mobileOverride);
-  const isAdmin = useAuth((s) => s.isAdmin);
 
   // ── Local board state ───────────────────────────────────────────────────────
   // Initialize directly from currentBlunder so the board has the correct FEN
