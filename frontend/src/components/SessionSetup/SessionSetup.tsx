@@ -76,6 +76,22 @@ function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element
   const [open, setOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent): void {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
   function handleToggle(): void {
     setOpen((prev) => !prev);
   }

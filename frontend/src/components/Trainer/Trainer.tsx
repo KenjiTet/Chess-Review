@@ -30,6 +30,7 @@ import botIconUrl from '../../assets/bot_icon.svg';
 import resetIconUrl from '../../assets/reset_icon.svg';
 import arrowLeftIconUrl from '../../assets/arrow_left_icon.svg';
 import arrowRightIconUrl from '../../assets/arrow_right_icon.svg';
+import playIconUrl from '../../assets/play_icon.svg';
 import menuIconUrl from '../../assets/menu_icon.svg';
 import doneIconUrl from '../../assets/done_icon.svg';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
@@ -774,70 +775,25 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       mobileActionPrimary = true;
     }
 
+    const BADGE_COLORS: Record<string, string> = {
+      best: '#22c55e',
+      good: '#84cc16',
+      inaccuracy: '#f59e0b',
+      mistake: '#f97316',
+      blunder: '#ef4444',
+    };
+
+    const blunderColor = BADGE_COLORS[currentBlunder.classification] ?? undefined;
+
     return (
       <>
       <div className="trainer trainer--mobile">
-        {/* Header */}
-        <header className="trainer__mobile-hdr">
-          <div className="trainer__mobile-hdr-top">
-            <div className="trainer__brand">
-              <span className="trainer__brand-icon">♚</span>
-              <div>
-                <div className="trainer__brand-title">Chess Blunder Trainer</div>
-                <div className="trainer__brand-sub">
-                  Blunder {reviewedCount + 1} / {blunderCount}
-                </div>
-              </div>
-            </div>
-            <div className="trainer__mobile-hdr-actions">
-              {/* Admin: exit mobile preview. Always in the header so it's never hidden. */}
-              {isAdmin && mobileOverride && (
-                <button
-                  className="trainer__mobile-exit-btn"
-                  type="button"
-                  onClick={toggleMobileOverride}
-                  title="Exit mobile preview"
-                >
-                  🖥
-                </button>
-              )}
-              <button
-                className="trainer__mobile-menu-btn"
-                type="button"
-                onClick={reset}
-                aria-label="Back to menu"
-              >
-                <span className="trainer__mobile-menu-bars">
-                  <i /><i /><i />
-                </span>
-                Menu
-              </button>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="trainer__progress-track">
-            <div className="trainer__progress-fill" style={{ width: `${progressPct}%` }} />
-          </div>
-        </header>
-
-        {/* Scrollable body */}
+        {/* Body — board fills all available space */}
         <div className="trainer__mobile-body">
-          {/* 1. Blunder banner — compact horizontal layout */}
-          <BlunderCard
-            moveSan={currentBlunder.move_san}
-            cpLoss={currentBlunder.cp_loss}
-            classification={currentBlunder.classification}
-            onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
-            sequenceDisabled={isPlayingSequence}
-            compactSequenceLabel
-            compactPrompt
-          />
-
-          {/* 2. Horizontal eval bar */}
+          {/* Horizontal eval bar */}
           <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
 
-            {/* 4. Board */}
+          {/* Board */}
           <div className="trainer__mobile-board-area">
             <div className="trainer__mobile-board-wrap">
               <Board
@@ -854,12 +810,11 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               />
             </div>
           </div>
-
         </div>
 
-        {/* Settings panel — sticky footer, always visible at the bottom of the trainer */}
+        {/* Settings panel — sticky footer */}
         <div className="trainer__mobile-panel">
-          {/* Nav row: ‹  [inline move feedback]  › */}
+          {/* Nav row: ‹  [blunder info / move feedback]  [show sequence]  › */}
           <div className="trainer__mobile-panel-nav">
             <button
               className="trainer__mobile-nav-btn"
@@ -868,10 +823,10 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               disabled={historyIndex === 0}
               title="Previous position"
             >
-              ‹
+              <img className="trainer__mobile-nav-ic" src={arrowLeftIconUrl} alt="Previous" />
             </button>
 
-            {/* Inline move feedback — shows last evaluated move between the nav buttons */}
+            {/* Centre: blunder info + Show button when no move played, move feedback otherwise */}
             <div className="trainer__mobile-inline-fb">
               {(() => {
                 const visibleEntries = moveLog.slice(0, Math.max(0, historyIndex - moveLogBaseIdx));
@@ -882,27 +837,44 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                 }
 
                 if (lastEntry === null) {
-                  return <span className="trainer__mobile-inline-fb__empty">Play a move</span>;
+                  return (
+                    <div className="trainer__mobile-inline-fb__entry">
+                      <span className="trainer__mobile-inline-fb__san">{currentBlunder.move_san}</span>
+                      {blunderColor !== undefined && (
+                        <span
+                          className="trainer__mobile-inline-fb__badge"
+                          style={{ color: blunderColor, borderColor: `${blunderColor}55`, background: `${blunderColor}18` }}
+                        >
+                          {currentBlunder.classification}
+                        </span>
+                      )}
+                      <span className="trainer__mobile-inline-fb__cp" style={blunderColor !== undefined ? { color: blunderColor } : undefined}>
+                        -{currentBlunder.cp_loss} cp
+                      </span>
+                      <button
+                        className="trainer__mobile-seq-btn"
+                        type="button"
+                        onClick={() => { void handleShowBlunderSequence(); }}
+                        disabled={isPlayingSequence}
+                        title="Show blunder sequence"
+                      >
+                        <img className="trainer__mobile-seq-ic" src={playIconUrl} alt="" />
+                        <span className="trainer__mobile-seq-lbl">Show</span>
+                      </button>
+                    </div>
+                  );
                 }
 
-                const BADGE_COLORS: Record<string, string> = {
-                  best: '#22c55e',
-                  good: '#84cc16',
-                  inaccuracy: '#f59e0b',
-                  mistake: '#f97316',
-                  blunder: '#ef4444',
-                };
-
-                const color = lastEntry.classification !== null ? BADGE_COLORS[lastEntry.classification] : undefined;
+                const moveColor = lastEntry.classification !== null ? BADGE_COLORS[lastEntry.classification] : undefined;
 
                 return (
                   <div className="trainer__mobile-inline-fb__entry">
                     <span className="trainer__mobile-inline-fb__san">{lastEntry.san}</span>
-                    {lastEntry.classification !== null && color !== undefined
+                    {lastEntry.classification !== null && moveColor !== undefined
                       ? (
                         <span
                           className="trainer__mobile-inline-fb__badge"
-                          style={{ color, borderColor: `${color}55`, background: `${color}18` }}
+                          style={{ color: moveColor, borderColor: `${moveColor}55`, background: `${moveColor}18` }}
                         >
                           {lastEntry.classification}
                         </span>
@@ -910,7 +882,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                       : <span className="trainer__mobile-inline-fb__pending">⏳</span>
                     }
                     {lastEntry.cpLoss !== null && (
-                      <span className="trainer__mobile-inline-fb__cp" style={color !== undefined ? { color } : undefined}>
+                      <span className="trainer__mobile-inline-fb__cp" style={moveColor !== undefined ? { color: moveColor } : undefined}>
                         -{lastEntry.cpLoss} cp
                       </span>
                     )}
@@ -926,11 +898,18 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
               disabled={historyIndex === positionHistory.length - 1 || botMode}
               title="Next position"
             >
-              ›
+              <img className="trainer__mobile-nav-ic" src={arrowRightIconUrl} alt="Next" />
             </button>
           </div>
 
-          {/* Action row — 5 icon buttons */}
+          {/* Progress bar — separator between nav and options, with side margins */}
+          <div className="trainer__mobile-panel-progress">
+            <div className="trainer__progress-track">
+              <div className="trainer__progress-fill" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+
+          {/* Action row — 6 icon buttons including Menu */}
           <div className="trainer__mobile-panel-actions">
             <button
               className={`trainer__mobile-act${showArrows ? ' trainer__mobile-act--on' : ''}`}
@@ -983,6 +962,18 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                 alt="Share"
               />
               <span className="trainer__mobile-act-lbl">Share</span>
+            </button>
+
+            <button
+              className="trainer__mobile-act"
+              type="button"
+              onClick={reset}
+              title="Back to menu"
+            >
+              <span className="trainer__mobile-act-menu-bars">
+                <i /><i /><i />
+              </span>
+              <span className="trainer__mobile-act-lbl">Menu</span>
             </button>
           </div>
 

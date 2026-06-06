@@ -98,7 +98,8 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  padding: 8px 14px 0;
+  /* Top safe-area padding (replaces header) */
+  padding: env(safe-area-inset-top, 44px) 14px 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -235,7 +236,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
 }
 
 .trainer__mobile-panel-nav-label {
@@ -247,21 +247,21 @@
 }
 
 .trainer__mobile-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  padding: 5px 18px;
-  font-size: 1.1rem;
-  font-weight: 700;
+  padding: 6px 14px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-  font-family: var(--sans);
+  transition: border-color 0.15s, opacity 0.15s;
+  flex-shrink: 0;
 }
 
 .trainer__mobile-nav-btn:hover:not(:disabled) {
   border-color: var(--gold);
-  color: var(--gold);
 }
 
 .trainer__mobile-nav-btn:disabled {
@@ -269,10 +269,35 @@
   cursor: default;
 }
 
-/* Action row: 5 icon buttons */
+/* Arrow icons inside nav buttons */
+.trainer__mobile-nav-ic {
+  width: 18px;
+  height: 18px;
+  display: block;
+  filter: invert(30%) sepia(0%) saturate(0%) brightness(60%);
+}
+
+[data-theme='dark'] .trainer__mobile-nav-ic {
+  filter: invert(80%) sepia(0%) saturate(0%) brightness(130%);
+}
+
+.trainer__mobile-nav-btn:hover:not(:disabled) .trainer__mobile-nav-ic {
+  filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.trainer__mobile-nav-btn:disabled .trainer__mobile-nav-ic {
+  filter: invert(60%) sepia(0%) saturate(0%) brightness(80%);
+}
+
+/* Progress bar wrapper — sits between nav row and action row */
+.trainer__mobile-panel-progress {
+  padding: 4px 5% 2px;
+}
+
+/* Action row: 6 icon buttons (Hints, vs Bot, Reset, Save, Share, Menu) */
 .trainer__mobile-panel-actions {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 0;
   padding: 4px 4px 0;
 }
@@ -300,14 +325,16 @@
   cursor: default;
 }
 
+/* Unified icon slot — star character for Save */
 .trainer__mobile-act-ic {
-  font-size: 18px;
-  line-height: 1;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .trainer__mobile-act-lbl {
@@ -339,46 +366,111 @@
   color: var(--text);
 }
 
-/* SVG icon — same images used in the desktop panel */
+/* Hints / Bot / Reset — thick-stroke SVGs, keep smaller */
 .trainer__mobile-act-svg {
   width: 20px;
   height: 20px;
   display: block;
+  flex-shrink: 0;
   filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
   transition: filter 0.15s ease;
 }
 
-[data-theme='dark'] .trainer__mobile-act-svg {
+/* Share — thin-stroke SVG, slightly larger than thick-stroke icons but stays in slot */
+.trainer__mobile-act-share-ic {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
+  filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
+  transition: filter 0.15s ease;
+}
+
+[data-theme='dark'] .trainer__mobile-act-svg,
+[data-theme='dark'] .trainer__mobile-act-share-ic {
   filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
 }
 
-.trainer__mobile-act--on .trainer__mobile-act-svg {
+.trainer__mobile-act--on .trainer__mobile-act-svg,
+.trainer__mobile-act--on .trainer__mobile-act-share-ic {
   filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
 }
 
-.trainer__mobile-act:hover:not(:disabled) .trainer__mobile-act-svg {
+.trainer__mobile-act:hover:not(:disabled) .trainer__mobile-act-svg,
+.trainer__mobile-act:hover:not(:disabled) .trainer__mobile-act-share-ic {
   filter: invert(55%) sepia(0%) saturate(0%) brightness(80%);
 }
 
-/* Share icon button — same shape as other mobile actions */
-.trainer__mobile-act--share {
+/* Sequence button — horizontal pill: icon + "Show" on one line */
+.trainer__mobile-seq-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
   color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
-.trainer__mobile-act-share-ic {
-  width: 20px;
-  height: 20px;
+.trainer__mobile-seq-btn:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+
+.trainer__mobile-seq-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.trainer__mobile-seq-ic {
+  width: 10px;
+  height: 10px;
   display: block;
   filter: invert(40%) sepia(0%) saturate(0%) brightness(60%);
   transition: filter 0.15s ease;
 }
 
-[data-theme='dark'] .trainer__mobile-act-share-ic {
+[data-theme='dark'] .trainer__mobile-seq-ic {
   filter: invert(75%) sepia(0%) saturate(0%) brightness(120%);
 }
 
-.trainer__mobile-act--share:hover .trainer__mobile-act-share-ic {
+.trainer__mobile-seq-btn:hover:not(:disabled) .trainer__mobile-seq-ic {
   filter: invert(70%) sepia(60%) saturate(400%) hue-rotate(5deg) brightness(95%);
+}
+
+.trainer__mobile-seq-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Hamburger bars inside the Menu action button — sized to match the 20px icon slot */
+.trainer__mobile-act-menu-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.trainer__mobile-act-menu-bars i {
+  display: block;
+  width: 15px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
 }
 
 /* Skip / Next / Finish row */
@@ -392,7 +484,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--surface);
+  /* Same gray style as the nav buttons */
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -410,10 +503,16 @@
   color: var(--gold);
 }
 
+/* Gold gradient only for Finish / Next (primary action) */
 .trainer__mobile-skip-btn--primary {
   color: #fff;
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
   border-color: transparent;
+}
+
+.trainer__mobile-skip-btn--primary:hover {
+  color: #fff;
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
 }
 
 .trainer__mobile-skip-btn--primary:hover {

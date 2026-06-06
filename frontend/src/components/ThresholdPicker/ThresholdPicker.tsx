@@ -1,6 +1,6 @@
 /** Dropdown select for blunder threshold (cp loss), styled like TimeClassSelect. */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { JSX } from 'react';
 import './ThresholdPicker.css';
 
@@ -14,6 +14,23 @@ interface ThresholdPickerProps {
 
 function ThresholdPicker({ value, onChange }: ThresholdPickerProps): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent): void {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
 
   function handleToggle(): void {
     setOpen((prev) => !prev);
@@ -25,7 +42,7 @@ function ThresholdPicker({ value, onChange }: ThresholdPickerProps): JSX.Element
   }
 
   return (
-    <div className="threshold-picker">
+    <div ref={containerRef} className="threshold-picker">
       <button
         type="button"
         className="threshold-picker__trigger"
