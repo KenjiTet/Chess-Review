@@ -23,6 +23,10 @@ interface ProfileBandProps {
   blundersDrilled: number;
   /** Average blunders per game across all analysed games in the loaded list. */
   avgBlunders: number | undefined;
+  /** Currently selected time-control filter, used to highlight the matching rating pill. */
+  activeTimeClass: string | undefined;
+  /** Called when a rating pill is clicked — filters recent games by that time control. */
+  onSelectTimeClass: (tc: 'rapid' | 'blitz' | 'bullet') => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -34,6 +38,8 @@ function ProfileBand({
   winRate30d,
   blundersDrilled,
   avgBlunders,
+  activeTimeClass,
+  onSelectTimeClass,
 }: ProfileBandProps): JSX.Element {
   const [imgFailed, setImgFailed] = useState<boolean>(false);
   const [ratings, setRatings] = useState<UserProfileResponse | undefined>(undefined);
@@ -119,25 +125,40 @@ function ProfileBand({
             )}
 
             {!ratingsLoading && ratings?.rapid_rating !== null && ratings?.rapid_rating !== undefined && (
-              <div className="profile-band__rating-pill" title="Rapid rating">
+              <button
+                type="button"
+                className={`profile-band__rating-pill${activeTimeClass === 'rapid' ? ' profile-band__rating-pill--active' : ''}`}
+                title="Filter recent games by Rapid"
+                onClick={() => onSelectTimeClass('rapid')}
+              >
                 <TimeClassIcon tc="rapid" size={15} />
                 <b>{ratings.rapid_rating}</b>
                 <span>Rapid</span>
-              </div>
+              </button>
             )}
             {!ratingsLoading && ratings?.blitz_rating !== null && ratings?.blitz_rating !== undefined && (
-              <div className="profile-band__rating-pill" title="Blitz rating">
+              <button
+                type="button"
+                className={`profile-band__rating-pill${activeTimeClass === 'blitz' ? ' profile-band__rating-pill--active' : ''}`}
+                title="Filter recent games by Blitz"
+                onClick={() => onSelectTimeClass('blitz')}
+              >
                 <TimeClassIcon tc="blitz" size={15} />
                 <b>{ratings.blitz_rating}</b>
                 <span>Blitz</span>
-              </div>
+              </button>
             )}
             {!ratingsLoading && ratings?.bullet_rating !== null && ratings?.bullet_rating !== undefined && (
-              <div className="profile-band__rating-pill" title="Bullet rating">
+              <button
+                type="button"
+                className={`profile-band__rating-pill${activeTimeClass === 'bullet' ? ' profile-band__rating-pill--active' : ''}`}
+                title="Filter recent games by Bullet"
+                onClick={() => onSelectTimeClass('bullet')}
+              >
                 <TimeClassIcon tc="bullet" size={15} />
                 <b>{ratings.bullet_rating}</b>
                 <span>Bullet</span>
-              </div>
+              </button>
             )}
           </div>
         )}

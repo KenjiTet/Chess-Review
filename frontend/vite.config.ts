@@ -7,7 +7,7 @@ export default defineConfig({
     proxy: {
       // Forward all /api requests to the local FastAPI backend.
       '/api': {
-        target: 'http://localhost:8001',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         // Required for SSE (EventSource) streaming to work through the proxy.
         ws: false,

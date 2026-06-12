@@ -16,6 +16,7 @@ import type { FavoritePosition } from '../../hooks/useFavorites';
 import type { FavLayout } from '../Favorites/Favorites';
 import { TimeClassIcon } from '../TimeClassIcons';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
+import SeverityInfo from '../SeverityInfo/SeverityInfo';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
 import settingsIcon from '../../assets/settings.svg';
@@ -444,7 +445,11 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           {/* ELO strip */}
           <div className="setup__mobile-elostrip">
             {/* Rapid */}
-            <div className="setup__mobile-elostrip__cell">
+            <button
+              type="button"
+              className={`setup__mobile-elostrip__cell setup__mobile-elostrip__cell--btn${timeClass === 'rapid' ? ' setup__mobile-elostrip__cell--active' : ''}`}
+              onClick={() => handleTimeClassChange('rapid')}
+            >
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="rapid" size={15} />
               </span>
@@ -456,10 +461,14 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Rapid</span>
-            </div>
+            </button>
 
             {/* Blitz */}
-            <div className="setup__mobile-elostrip__cell">
+            <button
+              type="button"
+              className={`setup__mobile-elostrip__cell setup__mobile-elostrip__cell--btn${timeClass === 'blitz' ? ' setup__mobile-elostrip__cell--active' : ''}`}
+              onClick={() => handleTimeClassChange('blitz')}
+            >
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="blitz" size={15} />
               </span>
@@ -471,10 +480,14 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Blitz</span>
-            </div>
+            </button>
 
             {/* Bullet */}
-            <div className="setup__mobile-elostrip__cell">
+            <button
+              type="button"
+              className={`setup__mobile-elostrip__cell setup__mobile-elostrip__cell--btn${timeClass === 'bullet' ? ' setup__mobile-elostrip__cell--active' : ''}`}
+              onClick={() => handleTimeClassChange('bullet')}
+            >
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="bullet" size={15} />
               </span>
@@ -486,7 +499,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Bullet</span>
-            </div>
+            </button>
 
             {/* Avg blunders */}
             <div className="setup__mobile-elostrip__cell">
@@ -503,65 +516,69 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* Scrollable body */}
         <div className="setup__mobile-body">
-          {!showFavorites && (
-            <div className="setup__mobile-card">
-              <div className="setup__mobile-control">
-                <span className="setup__mobile-label">Time Control</span>
-                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
-              </div>
-              <div className="setup__mobile-control">
-                <span className="setup__mobile-label">Sensitivity</span>
-                <ThresholdPicker value={threshold} onChange={setThreshold} />
-              </div>
-            </div>
-          )}
+          <div className="setup__mobile-games-panel">
+            <div className="setup__mobile-section">
+              {/* Left side — controls (Recent) or layout toggle (Saved) */}
+              {!showFavorites ? (
+                <>
+                  <div className="setup__mobile-field setup__mobile-field--tc">
+                    <span className="setup__mobile-label">Time Control</span>
+                    <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+                  </div>
+                  <div className="setup__mobile-field">
+                    <span className="setup__mobile-label setup__mobile-label--row">
+                      Severity
+                      <SeverityInfo />
+                    </span>
+                    <ThresholdPicker value={threshold} onChange={setThreshold} />
+                  </div>
+                </>
+              ) : (
+                <div className="setup__mobile-field setup__mobile-field--grow">
+                  <span className="setup__mobile-label">Layout</span>
+                  <div className="setup__seg setup__seg--mobile setup__seg--layout">
+                    <button
+                      type="button"
+                      className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
+                      onClick={() => setFavLayout('blocks')}
+                    >
+                      <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
+                      Blocks
+                    </button>
+                    <button
+                      type="button"
+                      className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
+                      onClick={() => setFavLayout('inline')}
+                    >
+                      <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
+                      Inline
+                    </button>
+                  </div>
+                </div>
+              )}
 
-          {showFavorites && (
-            <div className="setup__mobile-card setup__mobile-card--layout">
-              <div className="setup__mobile-control">
-                <span className="setup__mobile-label">Layout</span>
-                <div className="setup__seg setup__seg--mobile">
+              {/* Right side — Recent/Saved icon-only tabs */}
+              <div className="setup__mobile-field setup__mobile-field--tabs">
+                <span className="setup__mobile-label">Showing</span>
+                <div className="setup__seg setup__seg--mobile setup__seg--tabs">
                   <button
                     type="button"
-                    className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
-                    onClick={() => setFavLayout('blocks')}
+                    className={`setup__seg-btn${!showFavorites ? ' setup__seg-btn--on' : ''}`}
+                    onClick={() => setShowFavorites(false)}
+                    aria-label="Recent games"
                   >
-                    <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
-                    Blocks
+                    <ListIconSvg />
                   </button>
                   <button
                     type="button"
-                    className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
-                    onClick={() => setFavLayout('inline')}
+                    className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
+                    onClick={() => setShowFavorites(true)}
+                    aria-label="Saved positions"
                   >
-                    <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
-                    Inline
+                    <StarIconSvg />
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div className="setup__mobile-games-panel">
-            <div className="setup__mobile-section">
-              <h2>{showFavorites ? 'Saved Positions' : 'Recent Games'}</h2>
-              <button
-                type="button"
-                className="setup__mobile-tab-btn"
-                onClick={() => setShowFavorites((v) => !v)}
-              >
-                {showFavorites ? (
-                  <>
-                    <ListIconSvg />
-                    Recent games
-                  </>
-                ) : (
-                  <>
-                    <StarIconSvg />
-                    Saved
-                  </>
-                )}
-              </button>
             </div>
 
             {showFavorites ? (
@@ -591,6 +608,75 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   // ── Desktop layout ─────────────────────────────────────────────────────────
   return (
     <div className="setup">
+      {/* Settings / theme button — fixed at the top-right of the screen */}
+      <div className="setup__topright">
+        {isAdmin ? (
+          <div className="setup__settings-wrap">
+            <button
+              type="button"
+              className="setup__icon-btn"
+              title="Settings"
+              onClick={() => setProfileSettingsOpen((v) => !v)}
+            >
+              ⚙
+            </button>
+            {profileSettingsOpen && (
+              <>
+                <div
+                  className="setup__settings-scrim"
+                  onClick={() => setProfileSettingsOpen(false)}
+                />
+                <div className="setup__settings-dropdown setup__settings-dropdown--right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDarkMode(!darkMode);
+                      setProfileSettingsOpen(false);
+                    }}
+                  >
+                    <span className="setup__dd-ic">{darkMode ? '☀' : '☾'}</span>
+                    {darkMode ? 'Switch to light' : 'Switch to dark'}
+                  </button>
+
+                  {onAdminToggle && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAdminToggle();
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <img src={settingsIcon} alt="" className="setup__dd-settings-ic" />
+                      {adminView ? 'Exit admin' : 'Admin panel'}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleMobileOverride();
+                      setProfileSettingsOpen(false);
+                    }}
+                  >
+                    <span className="setup__dd-ic">📱</span>
+                    {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="setup__icon-btn setup__theme-btn"
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={() => setDarkMode(!darkMode)}
+          >
+            {darkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+        )}
+      </div>
+
       <div className="setup__hero">
         <span className="setup__hero-icon">♚</span>
         <h1 className="setup__hero-title">
@@ -619,6 +705,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           gamesAnalysed={profileStats.gamesAnalysed}
           blundersDrilled={profileStats.blundersDrilled}
           avgBlunders={profileStats.avgBlunders}
+          activeTimeClass={timeClass}
+          onSelectTimeClass={handleTimeClassChange}
         />
 
         {/* ── Toolbar ── */}
@@ -631,7 +719,10 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               </div>
 
               <div className="setup__field">
-                <label className="setup__label">Sensitivity</label>
+                <span className="setup__label setup__label--row">
+                  Blunder severity
+                  <SeverityInfo />
+                </span>
                 <ThresholdPicker value={threshold} onChange={setThreshold} />
               </div>
             </>
@@ -661,92 +752,26 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             </div>
           )}
 
-          <div className="setup__field">
-            <label className="setup__label">&nbsp;</label>
-            {isAdmin ? (
-              <div className="setup__settings-wrap">
-                <button
-                  type="button"
-                  className="setup__icon-btn"
-                  title="Settings"
-                  onClick={() => setProfileSettingsOpen((v) => !v)}
-                >
-                  ⚙
-                </button>
-                {profileSettingsOpen && (
-                  <>
-                    <div
-                      className="setup__settings-scrim"
-                      onClick={() => setProfileSettingsOpen(false)}
-                    />
-                    <div className="setup__settings-dropdown">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDarkMode(!darkMode);
-                          setProfileSettingsOpen(false);
-                        }}
-                      >
-                        <span className="setup__dd-ic">{darkMode ? '☀' : '☾'}</span>
-                        {darkMode ? 'Switch to light' : 'Switch to dark'}
-                      </button>
-
-                      {onAdminToggle && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onAdminToggle();
-                            setProfileSettingsOpen(false);
-                          }}
-                        >
-                          <img src={settingsIcon} alt="" className="setup__dd-settings-ic" />
-                          {adminView ? 'Exit admin' : 'Admin panel'}
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          toggleMobileOverride();
-                          setProfileSettingsOpen(false);
-                        }}
-                      >
-                        <span className="setup__dd-ic">📱</span>
-                        {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
+          <div className="setup__field setup__field--tabs">
+            <label className="setup__label">Showing</label>
+            <div className="setup__seg setup__seg--tabs">
               <button
                 type="button"
-                className="setup__icon-btn setup__theme-btn"
-                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                onClick={() => setDarkMode(!darkMode)}
+                className={`setup__seg-btn${!showFavorites ? ' setup__seg-btn--on' : ''}`}
+                onClick={() => setShowFavorites(false)}
               >
-                {darkMode ? <SunIcon /> : <MoonIcon />}
+                <ListIconSvg />
+                Recent games
               </button>
-            )}
-          </div>
-
-          <div className="setup__tabs">
-            <button
-              type="button"
-              className={`setup__tab${!showFavorites ? ' setup__tab--on' : ''}`}
-              onClick={() => setShowFavorites(false)}
-            >
-              <ListIconSvg />
-              Recent games
-            </button>
-            <button
-              type="button"
-              className={`setup__tab${showFavorites ? ' setup__tab--on' : ''}`}
-              onClick={() => setShowFavorites(true)}
-            >
-              <StarIconSvg />
-              Saved
-            </button>
+              <button
+                type="button"
+                className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
+                onClick={() => setShowFavorites(true)}
+              >
+                <StarIconSvg />
+                Saved
+              </button>
+            </div>
           </div>
         </div>
 

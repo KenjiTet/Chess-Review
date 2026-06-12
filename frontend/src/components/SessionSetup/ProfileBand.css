@@ -100,6 +100,19 @@
   border-radius: 10px;
   background: var(--bg);
   border: 1px solid var(--border);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Clickable rating pills act as a time-control filter */
+.profile-band__rating-pill:hover {
+  border-color: var(--gold);
+}
+
+/* Selected pill keeps the same background; only the border marks it active */
+.profile-band__rating-pill--active {
+  border-color: var(--gold);
 }
 
 .profile-band__rating-pill b {

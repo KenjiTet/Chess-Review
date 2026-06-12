@@ -48,7 +48,7 @@ function ThresholdPicker({ value, onChange }: ThresholdPickerProps): JSX.Element
         className="threshold-picker__trigger"
         onClick={handleToggle}
       >
-        <span className="threshold-picker__label">{value} cp</span>
+        <span className="threshold-picker__label">{value} cp+</span>
         <svg
           className={`threshold-picker__chevron${open ? ' threshold-picker__chevron--open' : ''}`}
           viewBox="0 0 10 6"
@@ -69,7 +69,7 @@ function ThresholdPicker({ value, onChange }: ThresholdPickerProps): JSX.Element
                 handleSelect(step);
               }}
             >
-              <span>{step} cp</span>
+              <span>{step} cp+</span>
             </li>
           ))}
         </ul>

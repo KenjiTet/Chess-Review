@@ -94,7 +94,34 @@
   color: var(--muted);
 }
 
+/* Label that hosts an inline info icon (e.g. Blunder severity) */
+.setup__label--row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Recent/Saved segmented toggle sits at the right end of the toolbar */
+.setup__field--tabs {
+  margin-left: auto;
+}
+
+/* Inline SVG icons inside segmented buttons (Recent games / Saved tabs) */
+.setup__seg--tabs .setup__seg-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 /* ── Settings icon button ─────────────────────────────────────────────── */
+
+/* Floats the settings/theme button at the top-right of the screen */
+.setup__topright {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+}
 
 .setup__settings-wrap {
   position: relative;
@@ -152,6 +179,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* Right-aligned variant — opens toward the left edge from a top-right anchor */
+.setup__settings-dropdown--right {
+  left: auto;
+  right: 0;
 }
 
 .setup__settings-dropdown button {

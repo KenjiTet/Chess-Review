@@ -122,6 +122,20 @@
   position: relative;
 }
 
+/* Rapid/Blitz/Bullet cells double as a time-control filter */
+.setup__mobile-elostrip__cell--btn {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+/* Selected time-class cell keeps the same background as the rest */
+.setup__mobile-elostrip__cell--active {
+  background: none;
+}
+
 .setup__mobile-elostrip__cell + .setup__mobile-elostrip__cell::before {
   content: '';
   position: absolute;
@@ -227,6 +241,13 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Label with an inline info icon (Blunder severity) */
+.setup__mobile-label--row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* Make the tc-select and threshold picker fill their column */
@@ -429,4 +450,74 @@
   flex: 1;
   text-align: center;
   padding: 0;
+}
+
+/* Section header lays labelled controls on the left and tabs on the right */
+.setup__mobile-section {
+  gap: 10px;
+  align-items: flex-end;
+}
+
+/* A labelled control column (label on top, control below) */
+.setup__mobile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* Time Control grows to fill the remaining space on the Recent tab */
+.setup__mobile-field--tc {
+  flex: 1 1 auto;
+}
+
+/* Layout field grows to fill the space freed by the fixed-width tabs */
+.setup__mobile-field--grow {
+  flex: 1 1 auto;
+}
+
+/* Showing/tabs field hugs its fixed-width toggle on the right */
+.setup__mobile-field--tabs {
+  flex: 0 0 auto;
+}
+
+.setup__mobile-field .tc-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.setup__mobile-field .tc-select__trigger {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+}
+
+.setup__mobile-field .threshold-picker__trigger {
+  height: 36px;
+}
+
+/* Tab buttons fill their segment so the control reads as a single pill */
+.setup__seg--mobile.setup__seg--tabs .setup__seg-btn {
+  flex: 1;
+  padding: 0;
+}
+
+/* Recent/Saved tabs keep the same fixed width on both tabs */
+.setup__mobile-field--tabs .setup__seg--tabs {
+  width: 84px;
+}
+
+/* Layout toggle fills its growing field */
+.setup__seg--layout {
+  width: 100%;
+}
+
+.setup__seg--mobile.setup__seg--tabs .setup__seg-btn {
+  justify-content: center;
+}
+
+.setup__seg--mobile.setup__seg--tabs .setup__seg-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }

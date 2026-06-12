@@ -1,0 +1,98 @@
+/* ── Info icon button ─────────────────────────────────────────────────── */
+
+.severity-info__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.severity-info__btn:hover {
+  color: var(--gold);
+}
+
+.severity-info__btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+/* ── Modal ────────────────────────────────────────────────────────────── */
+
+.severity-info__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.severity-info__card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.severity-info__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.severity-info__title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+.severity-info__close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.severity-info__close:hover {
+  color: var(--text-h);
+}
+
+.severity-info__body {
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.severity-info__body p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.severity-info__body b {
+  color: var(--text-h);
+  font-weight: 700;
+}
