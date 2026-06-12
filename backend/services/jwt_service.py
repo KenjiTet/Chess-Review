@@ -29,7 +29,11 @@ def create_token(username: str) -> str:
     Returns:
         Encoded JWT string.
     """
-    is_admin: bool = username.lower() == _ADMIN_USERNAME
+    # Admin rights come from either the env-var override or the user's DB flag.
+    # Imported lazily to avoid a circular import (users -> db; jwt_service -> users).
+    from services.users import is_admin as user_is_admin
+
+    is_admin: bool = username.lower() == _ADMIN_USERNAME or user_is_admin(username)
     payload: dict = {
         "sub": username,
         "is_admin": is_admin,
@@ -59,6 +63,23 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer
     Returns:
         Decoded JWT payload with at least {"sub": username, "is_admin": bool}.
     """
+    return _decode_token(credentials.credentials)
+
+
+_optional_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer_scheme),
+) -> dict | None:
+    """FastAPI dependency — decode the JWT if present, else return None.
+
+    Used by endpoints that serve both authenticated users and guests: a valid
+    token yields the payload, a missing one yields None (no error raised).
+    """
+    if credentials is None:
+        return None
+
     return _decode_token(credentials.credentials)
 
 

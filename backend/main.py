@@ -5,6 +5,7 @@ Docs at:  http://localhost:8000/docs
 """
 
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
@@ -16,12 +17,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from routers import admin, analysis, auth, games, session, user
+from services import analysis_queue
 from services.db import init_db
 
 # Initialise SQLite tables on every startup (idempotent).
 init_db()
 
-app = FastAPI(title="Recall — Chess Blunder Trainer API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the background analysis queue on startup, stop it on shutdown."""
+    analysis_queue.start()
+    yield
+    analysis_queue.stop()
+
+
+app = FastAPI(title="Recall — Chess Blunder Trainer API", version="1.0.0", lifespan=lifespan)
 
 # CORS: locked to CORS_ORIGIN env var in production; open in local dev.
 _CORS_ORIGIN: str = os.getenv("CORS_ORIGIN", "*")

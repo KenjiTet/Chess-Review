@@ -3,9 +3,11 @@
 from datetime import datetime, timezone
 
 import requests as req_lib
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from models import GameAnalysisResult, GameHistoryEntry
+from services.analysis_store import analyse_and_store
+from services.jwt_service import get_optional_user
 from services.cache import get_cached_game, is_cached, store_game
 from services.chess_com import get_game_by_url as chesscom_game_by_url
 from services.chess_com import get_recent_games as chesscom_recent_games
@@ -221,6 +223,7 @@ def analyze_game_history(
     threshold: int,
     is_guest: bool = False,
     platform: str = "chesscom",
+    user: dict | None = Depends(get_optional_user),
 ) -> GameAnalysisResult:
     """Analyze a single game and return its blunder count and first blunder position.
 
@@ -261,6 +264,13 @@ def analyze_game_history(
         player_color_analyze: str = "white"
     else:
         player_color_analyze = "black"
+
+    # For logged-in users, ensure the game is analysed, cached, and recorded as a
+    # per-user analysed game (drives DB-derived stats). The row is keyed by the
+    # account name from the JWT, while colour is resolved from the platform handle
+    # (the `username` query param). Guests (no token) are never persisted.
+    if not is_guest and user is not None:
+        analyse_and_store(user["sub"].lower(), platform, username, game)
 
     # Fast path: Stockfish data already cached — just re-filter by player color.
     if not is_guest and is_cached(cache, game_url, DEPTH):

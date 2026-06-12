@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { ApiError, getBlunder, skipBlunder as apiSkipBlunder, streamBuildSession, submitAttempt as apiSubmitAttempt } from '../api/client';
+import { ApiError, getBlunder, recordSessionProgress, skipBlunder as apiSkipBlunder, streamBuildSession, submitAttempt as apiSubmitAttempt } from '../api/client';
 import type { BlunderResponse, SessionCreateRequest } from '../api/client';
 import useReviewed from './useReviewed';
 
@@ -213,6 +213,16 @@ const useSession = create<SessionStore>((set, get) => ({
   },
 
   reset: () => {
+    // Record drilled positions before tearing down — covers both normal completion
+    // and early exit. Server derives per-game counts from the session's progress.
+    const { sessionId } = get();
+
+    if (sessionId) {
+      void recordSessionProgress(sessionId).catch(() => {
+        // Best-effort — drilled tracking must never block returning to the menu.
+      });
+    }
+
     set({
       sessionId: undefined,
       currentBlunder: undefined,

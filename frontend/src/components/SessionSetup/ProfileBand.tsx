@@ -19,9 +19,9 @@ interface ProfileBandProps {
   winRate30d: number | undefined;
   /** Number of games in the loaded list that have been analysed by Stockfish. */
   gamesAnalysed: number;
-  /** Total blunders across reviewed games in the loaded list. */
+  /** Total blunder positions the user has drilled, across all analysed games (DB-derived). */
   blundersDrilled: number;
-  /** Average blunders per game across all analysed games in the loaded list. */
+  /** Average blunders per game for the selected time class, across all analysed games (DB-derived). */
   avgBlunders: number | undefined;
   /** Currently selected time-control filter, used to highlight the matching rating pill. */
   activeTimeClass: string | undefined;
@@ -47,7 +47,9 @@ function ProfileBand({
 
   const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
   const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
-  const showAvatar = avatar && !imgFailed;
+  // Prefer the avatar fetched for the linked handle; fall back to the auth-store avatar.
+  const avatarSrc = ratings?.avatar ?? avatar;
+  const showAvatar = avatarSrc && !imgFailed;
 
   // Fetch ratings from the backend on mount / username change.
   useEffect(() => {
@@ -84,7 +86,7 @@ function ProfileBand({
       <div className="profile-band__avatar">
         {showAvatar ? (
           <img
-            src={avatar}
+            src={avatarSrc}
             alt={username}
             className="profile-band__avatar-img"
             onError={() => setImgFailed(true)}
@@ -178,7 +180,7 @@ function ProfileBand({
           <span className="profile-band__stat-num profile-band__stat-num--alt">
             {avgBlunders !== undefined ? avgBlunders.toFixed(1) : '—'}
           </span>
-          <span className="profile-band__stat-lbl">Avg blunders<br />per game</span>
+          <span className="profile-band__stat-lbl">Avg blunders<br />per game{activeTimeClass && activeTimeClass !== 'all' ? ` (${activeTimeClass})` : ''}</span>
         </div>
       </div>
     </div>

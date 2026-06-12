@@ -53,4 +53,77 @@ def init_db() -> None:
                 PRIMARY KEY (username_lower, game_url)
             )
         """)
+
+        # Per-user record of every analysed game. Source of truth for the
+        # avg-blunders stat and for the background queue's "already analysed" set.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_analysed_games (
+                username_lower TEXT NOT NULL,
+                game_url       TEXT NOT NULL,
+                platform       TEXT NOT NULL,
+                time_class     TEXT NOT NULL,
+                player_color   TEXT NOT NULL,
+                result         TEXT NOT NULL,
+                blunder_count  INTEGER NOT NULL,
+                end_time       INTEGER NOT NULL,
+                analysed_at    TEXT NOT NULL,
+                PRIMARY KEY (username_lower, game_url)
+            )
+        """)
+
+        # Forward migration: link columns were added after the users table shipped.
+        # CREATE TABLE IF NOT EXISTS won't alter an existing table, so add them here.
+        _add_users_link_columns(conn)
+
+        # Forward migration: positions_drilled tracks how many blunder positions
+        # the user actually stepped through per game (added after the table shipped).
+        _add_reviewed_drilled_column(conn)
+
         conn.commit()
+
+
+def _add_users_link_columns(conn: sqlite3.Connection) -> None:
+    """Add the chesscom_username / lichess_username columns to users if missing.
+
+    Idempotent: inspects PRAGMA table_info and only adds columns that are absent,
+    so it is safe to run on every startup.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(users)").fetchall()
+    }
+
+    if "chesscom_username" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN chesscom_username TEXT")
+
+    if "lichess_username" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN lichess_username TEXT")
+
+    # is_admin gates access to the admin dashboard. Stored on the row so admin
+    # rights are data-driven and persist, rather than living only in an env var.
+    if "is_admin" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+
+
+def _add_reviewed_drilled_column(conn: sqlite3.Connection) -> None:
+    """Add the positions_drilled column to user_reviewed_games if missing.
+
+    Idempotent: inspects PRAGMA table_info and only adds the column when absent,
+    so it is safe to run on every startup. Records how many blunder positions the
+    user actually stepped through for each reviewed game.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(user_reviewed_games)").fetchall()
+    }
+
+    if "positions_drilled" not in existing:
+        conn.execute(
+            "ALTER TABLE user_reviewed_games ADD COLUMN positions_drilled INTEGER NOT NULL DEFAULT 0"
+        )

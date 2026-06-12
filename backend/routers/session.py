@@ -12,6 +12,7 @@ from models import (
     AttemptRequest,
     AttemptResponse,
     BlunderResponse,
+    RecordProgressRequest,
     SessionCreateRequest,
     SessionCreateResponse,
     SkipRequest,
@@ -368,6 +369,66 @@ def mark_reviewed(game_urls: list[str], user: dict = Depends(get_current_user)):
         conn.commit()
 
     return {"marked": len(game_urls)}
+
+
+@router.post("/record-progress")
+def record_progress(req: RecordProgressRequest, user: dict = Depends(get_current_user)):
+    """Record how many blunder positions the user actually drilled, per game.
+
+    Derived server-side from the session's current_position so partial sessions
+    count correctly (a 5-blunder game stepped through 3 positions counts 3).
+    Safe to call repeatedly and on early exit — positions_drilled never decreases.
+
+    Args:
+        req: RecordProgressRequest with the session_id.
+        user: Injected JWT payload from the Authorization header.
+    """
+    session: dict | None = SESSIONS.get(req.session_id)
+
+    if session is None:
+        return {"recorded": 0}
+
+    username_lower: str = user["sub"].lower()
+    position: int = session["current_position"]
+    all_blunders: list[dict] = session["all_blunders"]
+    games: list[dict] = session["games"]
+
+    # Count drilled positions per game by mapping each gone-through blunder to its game URL.
+    drilled_by_url: dict[str, int] = {}
+
+    for blunder in all_blunders[:position]:
+        game_index: int = blunder["game_index"]
+
+        if game_index >= len(games):
+            continue
+
+        url: str = games[game_index].get("url", "")
+
+        if not url:
+            continue
+
+        drilled_by_url[url] = drilled_by_url.get(url, 0) + 1
+
+    if not drilled_by_url:
+        return {"recorded": 0}
+
+    now_iso: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+    with get_connection() as conn:
+        for url, count in drilled_by_url.items():
+            # Upsert: mark reviewed and keep the largest drilled count seen.
+            conn.execute(
+                """
+                INSERT INTO user_reviewed_games (username_lower, game_url, reviewed_at, positions_drilled)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(username_lower, game_url) DO UPDATE SET
+                    positions_drilled = MAX(positions_drilled, excluded.positions_drilled)
+                """,
+                (username_lower, url, now_iso, count),
+            )
+        conn.commit()
+
+    return {"recorded": len(drilled_by_url)}
 
 
 @router.get("/reviewed-games")

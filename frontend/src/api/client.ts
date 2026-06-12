@@ -18,6 +18,9 @@ export interface AuthResponse {
   token?: string;
   is_admin?: boolean;
   avatar?: string;
+  /** Linked platform handles — tell the client whose games to fetch. */
+  chesscom_username?: string | null;
+  lichess_username?: string | null;
 }
 
 export interface GameHistoryEntry {
@@ -184,12 +187,21 @@ export function loginUser(username: string, password: string): Promise<AuthRespo
   });
 }
 
-/** Register a new account with username and password. */
-export function registerUser(username: string, password: string): Promise<AuthResponse> {
+/** Register a new account, linking one Chess.com / Lichess handle. Returns a JWT (auto-login). */
+export function registerUser(username: string, password: string, platform: string, platformUsername: string): Promise<AuthResponse> {
   return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, platform, platform_username: platformUsername }),
+  });
+}
+
+/** Link (or change) a platform handle on the authenticated account. */
+export function linkAccount(platform: string, platformUsername: string): Promise<AuthResponse> {
+  return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform, platform_username: platformUsername }),
   });
 }
 
@@ -332,6 +344,15 @@ export function fetchReviewedGames(): Promise<{ game_urls: string[] }> {
   return fetchJson<{ game_urls: string[] }>(`${BASE_URL}/api/session/reviewed-games`);
 }
 
+/** Record how many blunder positions were drilled in a session (server derives per-game counts). */
+export function recordSessionProgress(sessionId: string): Promise<{ recorded: number }> {
+  return fetchJson<{ recorded: number }>(`${BASE_URL}/api/session/record-progress`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+}
+
 // ── Analysis ───────────────────────────────────────────────────────────────
 
 /** Evaluate a single move quality via Stockfish. */
@@ -391,6 +412,7 @@ export interface UserProfileResponse {
   rapid_rating: number | null;
   blitz_rating: number | null;
   bullet_rating: number | null;
+  avatar: string | null;
 }
 
 export interface GameAnalysisResult {
@@ -423,12 +445,27 @@ export function fetchGameAnalysis(
   return fetchJson<GameAnalysisResult>(`${BASE_URL}/api/games/analyze?${params}`);
 }
 
+// ── User stats ───────────────────────────────────────────────────────────────
+
+export interface UserStats {
+  games_analysed: number;
+  avg_blunders: number | null;
+  blunders_drilled: number;
+}
+
+/** Fetch DB-derived training stats for the authenticated user, filtered by time class. */
+export function fetchUserStats(timeClass: string): Promise<UserStats> {
+  const params = new URLSearchParams({ time_class: timeClass });
+  return fetchJson<UserStats>(`${BASE_URL}/api/user/stats?${params}`);
+}
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 
 export interface AdminUser {
   username: string;
   username_lower: string;
   created_at: string;
+  is_admin: boolean;
 }
 
 export interface AdminCacheEntry {
@@ -440,6 +477,31 @@ export interface AdminCacheEntry {
 export interface AdminStats {
   total_users: number;
   total_cached_games: number;
+  total_analysed_games: number;
+}
+
+export interface AdminUserStat {
+  username_lower: string;
+  username: string;
+  games_analysed: number;
+  total_blunders: number;
+  avg_blunders: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  blunders_drilled: number;
+}
+
+export interface AdminQueueStatus {
+  enabled: boolean;
+  running: boolean;
+  mode: string;
+  concurrency: number;
+  backfill_target: number;
+  poll_interval: number;
+  analysed_total: number;
+  in_flight: string[];
+  pending_by_stream: Record<string, number>;
 }
 
 /** Fetch all registered users from the DB (admin only). */
@@ -456,4 +518,14 @@ export function adminGetCache(limit: number = 50): Promise<AdminCacheEntry[]> {
 /** Fetch aggregate DB stats (admin only). */
 export function adminGetStats(): Promise<AdminStats> {
   return fetchJson<AdminStats>(`${BASE_URL}/api/admin/stats`);
+}
+
+/** Fetch per-user aggregate training stats (admin only). */
+export function adminGetUserStats(): Promise<AdminUserStat[]> {
+  return fetchJson<AdminUserStat[]>(`${BASE_URL}/api/admin/user-stats`);
+}
+
+/** Fetch the background analysis queue's live status (admin only). */
+export function adminGetQueueStatus(): Promise<AdminQueueStatus> {
+  return fetchJson<AdminQueueStatus>(`${BASE_URL}/api/admin/queue-status`);
 }

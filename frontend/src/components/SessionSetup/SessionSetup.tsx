@@ -5,13 +5,13 @@ import type { JSX } from 'react';
 import useSession from '../../hooks/useSession';
 import useSettings from '../../hooks/useSettings';
 import useAuth from '../../hooks/useAuth';
-import useReviewed from '../../hooks/useReviewed';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
 import ProfileBand from './ProfileBand';
+import LinkAccountModal from './LinkAccountModal';
 import type { GameHistoryEntry } from '../../api/client.ts';
 import type { UserProfileResponse } from '../../api/client.ts';
-import { fetchUserProfile } from '../../api/client';
+import { fetchUserProfile, fetchUserStats } from '../../api/client';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import type { FavLayout } from '../Favorites/Favorites';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -183,13 +183,16 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const avatar = useAuth((s) => s.avatar);
   const platform = useAuth((s) => s.platform);
   const logout = useAuth((s) => s.logout);
-  const isReviewed = useReviewed((s) => s.isReviewed);
+  const getPlatformUsername = useAuth((s) => s.getPlatformUsername);
+  const chesscomUsername = useAuth((s) => s.chesscomUsername);
+  const lichessUsername = useAuth((s) => s.lichessUsername);
 
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
   const mobileOverride = useSettings((s) => s.mobileOverride);
   const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
 
+  const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
   const [showFavorites, setShowFavorites] = useState<boolean>(false);
   const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
@@ -204,10 +207,14 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [mobileRatingsLoading, setMobileRatingsLoading] = useState<boolean>(true);
 
   const username = authUsername ?? '';
+  // Account username drives display; the linked platform handle drives game/profile fetches.
+  const playerUsername = getPlatformUsername(platform ?? 'chesscom') ?? '';
+  // A registered account always has at least one linked handle; guests have none.
+  const isAccount = chesscomUsername !== undefined || lichessUsername !== undefined;
 
   // Fetch ratings for the mobile ELO strip.
   useEffect(() => {
-    if (!isMobile || !username) {
+    if (!isMobile || !playerUsername) {
       return undefined;
     }
 
@@ -219,7 +226,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       }
 
       try {
-        const result = await fetchUserProfile(username, platform ?? 'chesscom');
+        const result = await fetchUserProfile(playerUsername, platform ?? 'chesscom');
 
         if (!cancelled) {
           setMobileRatings(result);
@@ -238,7 +245,40 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     return () => {
       cancelled = true;
     };
-  }, [isMobile, username, platform]);
+  }, [isMobile, playerUsername, platform]);
+
+  // DB-derived stats: blunders drilled (all time classes) and avg blunders per game
+  // (filtered to the selected time class). Guests have no account, so these stay zero.
+  useEffect(() => {
+    if (isGuest || !isAccount) {
+      setProfileStats((prev) => ({ ...prev, blundersDrilled: 0, avgBlunders: undefined }));
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadStats(): Promise<void> {
+      try {
+        const stats = await fetchUserStats(timeClass);
+
+        if (!cancelled) {
+          setProfileStats((prev) => ({
+            ...prev,
+            blundersDrilled: stats.blunders_drilled,
+            avgBlunders: stats.avg_blunders ?? undefined,
+          }));
+        }
+      } catch {
+        // Silently fail — stats stay at their previous values.
+      }
+    }
+
+    void loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isGuest, isAccount, timeClass]);
 
   function handleTimeClassChange(tc: TimeClass): void {
     setTimeClass(tc);
@@ -275,21 +315,12 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       winRate30d = (recent.filter((g) => g.result === 'win').length / recent.length) * 100;
     }
 
-    // Games already analysed by Stockfish.
+    // Games already analysed by Stockfish (loaded list only — drives win-rate context).
     const gamesAnalysed = games.filter((g) => g.blunder_count !== null).length;
 
-    // Blunders in reviewed games (sum of blunder counts, from loaded list only).
-    const blundersDrilled = games
-      .filter((g) => isReviewed(g.url) && g.blunder_count !== null && g.blunder_count > 0)
-      .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
-
-    // Average blunders per game across all analysed games.
-    const totalBlunders = games
-      .filter((g) => g.blunder_count !== null && g.blunder_count !== undefined)
-      .reduce((sum, g) => sum + (g.blunder_count ?? 0), 0);
-    const avgBlunders = gamesAnalysed > 0 ? totalBlunders / gamesAnalysed : undefined;
-
-    setProfileStats({ winRate30d, gamesAnalysed, blundersDrilled, avgBlunders });
+    // Win rate and gamesAnalysed stay loaded-games based; blundersDrilled and
+    // avgBlunders are DB-derived and refreshed separately (see the stats effect).
+    setProfileStats((prev) => ({ ...prev, winRate30d, gamesAnalysed }));
   }
 
   function resolveLoadingTitle(gameUrl: string | undefined): string {
@@ -309,7 +340,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
   function handleTrainGame(gameUrl: string): void {
     buildSession({
-      username,
+      username: playerUsername,
       time_class: timeClass === 'all' ? 'rapid' : timeClass,
       n_games: 1,
       threshold,
@@ -327,6 +358,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
     const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
     const memberSince = mobileRatings?.joined_year;
+    // Prefer the avatar fetched for the linked handle; fall back to the auth-store avatar.
+    const mobileAvatarSrc = mobileRatings?.avatar ?? avatar;
 
     return (
       <div className="setup--mobile">
@@ -335,10 +368,10 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           {/* Top row: avatar + name/meta + gear + logout */}
           <div className="setup__mobile-profile-row">
             <div className="setup__mobile-avatar">
-              {avatar ? (
+              {mobileAvatarSrc ? (
                 <img
-                  src={avatar}
-                  alt={username}
+                  src={mobileAvatarSrc}
+                  alt={playerUsername}
                   className="setup__mobile-avatar-img"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
@@ -355,7 +388,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               )}
             </div>
             <div className="setup__mobile-profile-txt">
-              <span className="setup__mobile-profile-name">{username}</span>
+              <span className="setup__mobile-profile-name">{playerUsername}</span>
               <span className="setup__mobile-profile-meta">
                 {platformLabel}
                 {memberSince !== undefined && memberSince !== null && (
@@ -441,6 +474,16 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               Log out
             </button>
           </div>
+
+          {isAccount && (
+            <button
+              className="setup__mobile-logout-btn"
+              type="button"
+              onClick={() => setShowLinkModal(true)}
+            >
+              Link account
+            </button>
+          )}
 
           {/* ELO strip */}
           <div className="setup__mobile-elostrip">
@@ -586,9 +629,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 <Favorites onOpen={handleOpenFavorite} layout={favLayout} />
               </div>
             ) : (
-              username && (
+              playerUsername && (
                 <GameHistory
-                  username={username}
+                  username={playerUsername}
                   timeClass={timeClass}
                   isGuest={isGuest}
                   platform={platform ?? 'chesscom'}
@@ -601,6 +644,10 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             )}
           </div>
         </div>
+
+        {showLinkModal && isAccount && (
+          <LinkAccountModal onClose={() => setShowLinkModal(false)} />
+        )}
       </div>
     );
   }
@@ -690,6 +737,11 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {username && (
           <span className="setup__user-name">{username}</span>
         )}
+        {isAccount && (
+          <button className="setup__logout-btn" type="button" onClick={() => setShowLinkModal(true)}>
+            Link account
+          </button>
+        )}
         <button className="setup__logout-btn" type="button" onClick={handleLogout}>
           Log out
         </button>
@@ -698,7 +750,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       <div className="setup__card">
         {/* ── Profile band ── */}
         <ProfileBand
-          username={username}
+          username={playerUsername}
           avatar={avatar}
           platform={platform}
           winRate30d={profileStats.winRate30d}
@@ -778,9 +830,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {/* ── Table area ── */}
         {!showFavorites && (
           <div className="setup__tablewrap">
-            {username && (
+            {playerUsername && (
               <GameHistory
-                username={username}
+                username={playerUsername}
                 timeClass={timeClass}
                 isGuest={isGuest}
                 platform={platform ?? 'chesscom'}
@@ -799,6 +851,10 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           </div>
         )}
       </div>
+
+      {showLinkModal && isAccount && (
+        <LinkAccountModal onClose={() => setShowLinkModal(false)} />
+      )}
     </div>
   );
 }

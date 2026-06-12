@@ -77,6 +77,11 @@ class SkipRequest(BaseModel):
     session_id: str
 
 
+class RecordProgressRequest(BaseModel):
+    """Request to record how many blunder positions the user drilled in a session."""
+    session_id: str
+
+
 class EvaluateRequest(BaseModel):
     """Request body for evaluating a single move quality."""
     fen_before: str
@@ -115,8 +120,26 @@ class IdentifyRequest(BaseModel):
     platform: str  # "chesscom" | "lichess"
 
 
+class RegisterRequest(BaseModel):
+    """Request body for creating an account linked to one platform handle.
+
+    The account username is the login identity; platform_username is the
+    Chess.com / Lichess handle whose games the account will train on.
+    """
+    username: str
+    password: str
+    platform: str  # "chesscom" | "lichess"
+    platform_username: str
+
+
+class LinkAccountRequest(BaseModel):
+    """Request body for linking (or changing) a platform handle on an account."""
+    platform: str  # "chesscom" | "lichess"
+    platform_username: str
+
+
 class AuthResponse(BaseModel):
-    """Response for login or registration."""
+    """Response for login, registration, or identification."""
     success: bool
     username: str
     message: str
@@ -124,6 +147,9 @@ class AuthResponse(BaseModel):
     token: str | None = None
     is_admin: bool = False
     avatar: str | None = None
+    # Linked platform handles — tell the client whose games to fetch.
+    chesscom_username: str | None = None
+    lichess_username: str | None = None
 
 
 class GameHistoryEntry(BaseModel):
@@ -149,6 +175,16 @@ class UserProfileResponse(BaseModel):
     rapid_rating: int | None = None
     blitz_rating: int | None = None
     bullet_rating: int | None = None
+    avatar: str | None = None
+
+
+class UserStatsResponse(BaseModel):
+    """DB-derived training stats for the authenticated account."""
+    games_analysed: int = 0
+    # Average blunders per game for the selected time class (None when no games analysed).
+    avg_blunders: float | None = None
+    # Total blunder positions actually drilled, across all time classes.
+    blunders_drilled: int = 0
 
 
 class GameAnalysisResult(BaseModel):
