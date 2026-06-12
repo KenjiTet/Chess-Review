@@ -187,6 +187,16 @@ class UserStatsResponse(BaseModel):
     blunders_drilled: int = 0
 
 
+class UserAnalysisStatusResponse(BaseModel):
+    """Live background-queue analysis state for the authenticated account."""
+    # Current queue phase: "idle" | "backfill" | "poll".
+    mode: str = "idle"
+    # Game URLs the queue is analysing right now (show a spinner on these).
+    analysing: list[str] = []
+    # Game URLs queued for analysis but not yet started.
+    pending: list[str] = []
+
+
 class GameAnalysisResult(BaseModel):
     """Blunder data returned by the per-game analyze endpoint."""
     blunder_count: int

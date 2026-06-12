@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { fetchGameHistory, fetchGameAnalysis } from '../../api/client';
+import { fetchGameHistory, fetchGameAnalysis, fetchUserAnalysisStatus } from '../../api/client';
 import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -11,6 +11,9 @@ import './GameHistory.mobile.css';
 
 // Games fetched per page.
 const FETCH_SIZE = 10;
+
+// How often to poll the background queue for live analysis status (ms).
+const STATUS_POLL_MS = 3000;
 
 interface GameHistoryProps {
   username: string;
@@ -469,6 +472,10 @@ function GameHistory({
   const bodyRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef<boolean>(false);
   const gamesLengthRef = useRef<number>(0);
+  /** URLs the background queue reported as queued/analysing on the previous poll. */
+  const queuedUrlsRef = useRef<Set<string>>(new Set());
+  /** URLs currently shown in the list — guards completion refreshes to visible games. */
+  const displayedUrlsRef = useRef<Set<string>>(new Set());
 
   useLayoutEffect(() => {
     onGamesLoadedRef.current = onGamesLoaded;
@@ -476,6 +483,7 @@ function GameHistory({
 
   useEffect(() => {
     gamesLengthRef.current = displayedGames.length;
+    displayedUrlsRef.current = new Set(displayedGames.map((g) => g.url));
     onGamesLoadedRef.current?.(displayedGames);
   }, [displayedGames]);
 
@@ -558,6 +566,84 @@ function GameHistory({
       });
     }
   }
+
+  // Pull a fresh blunder count for a single game once the queue finished it.
+  const refreshAnalysed = useCallback(async (gameUrl: string): Promise<void> => {
+    try {
+      const result = await fetchGameAnalysis(gameUrl, username, threshold, isGuest, platform);
+
+      setDisplayedGames((prev) =>
+        prev.map((g) => {
+          if (g.url !== gameUrl) {
+            return g;
+          }
+          return { ...g, blunder_count: result.blunder_count };
+        }),
+      );
+    } catch {
+      // Leave the game as-is; a manual analyse still works.
+    } finally {
+      // Clear the spinner only now, so the row goes straight to its result.
+      setAnalysingUrls((prev) => {
+        const next = new Set(prev);
+        next.delete(gameUrl);
+        return next;
+      });
+    }
+  }, [username, threshold, isGuest, platform]);
+
+  // Poll the background queue so spinners appear live on games it is analysing,
+  // and so a game's blunder count refreshes the moment the queue finishes it.
+  useEffect(() => {
+    if (isGuest) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    queuedUrlsRef.current = new Set();
+
+    async function poll(): Promise<void> {
+      try {
+        const status = await fetchUserAnalysisStatus();
+
+        if (cancelled) {
+          return;
+        }
+
+        // Treat queued + analysing alike: both warrant a live spinner.
+        const active = new Set<string>([...status.analysing, ...status.pending]);
+
+        // Games that left the queue since the last poll have finished analysing.
+        const finished: string[] = [];
+        queuedUrlsRef.current.forEach((url) => {
+          if (!active.has(url) && displayedUrlsRef.current.has(url)) {
+            finished.push(url);
+          }
+        });
+
+        queuedUrlsRef.current = active;
+
+        setAnalysingUrls((prev) => {
+          const next = new Set(prev);
+          active.forEach((url) => next.add(url));
+          return next;
+        });
+
+        // refreshAnalysed updates the count and clears each spinner when done.
+        finished.forEach((url) => void refreshAnalysed(url));
+      } catch {
+        // Ignore poll failures; the next tick retries.
+      }
+    }
+
+    void poll();
+    const intervalId = window.setInterval(() => void poll(), STATUS_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [isGuest, username, platform, timeClass, threshold, refreshAnalysed]);
 
   // IntersectionObserver: load more when the sentinel scrolls into view.
   useEffect(() => {

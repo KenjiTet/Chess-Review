@@ -5,13 +5,34 @@ from datetime import datetime, timezone
 import requests as req_lib
 from fastapi import APIRouter, Depends, HTTPException
 
-from models import UserProfileResponse, UserStatsResponse
+from models import UserAnalysisStatusResponse, UserProfileResponse, UserStatsResponse
+from services.analysis_queue import get_user_queue_status
 from services.chess_com import get_player_profile as chesscom_get_profile
 from services.chess_com import get_player_stats as chesscom_get_stats
 from services.db import get_connection
 from services.jwt_service import get_current_user
 
 router = APIRouter()
+
+
+@router.get("/analysis-status")
+def user_analysis_status(user: dict = Depends(get_current_user)) -> UserAnalysisStatusResponse:
+    """Return the background queue's live analysis state for the authenticated account.
+
+    The frontend polls this to show a spinner on each game the queue is currently
+    analysing (and to refresh a game's blunder count once it leaves the list).
+
+    Args:
+        user: Injected JWT payload from the Authorization header.
+    """
+    username_lower: str = user["sub"].lower()
+    status: dict = get_user_queue_status(username_lower)
+
+    return UserAnalysisStatusResponse(
+        mode=status["mode"],
+        analysing=status["analysing"],
+        pending=status["pending"],
+    )
 
 
 @router.get("/stats")

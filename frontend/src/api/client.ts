@@ -459,6 +459,20 @@ export function fetchUserStats(timeClass: string): Promise<UserStats> {
   return fetchJson<UserStats>(`${BASE_URL}/api/user/stats?${params}`);
 }
 
+export interface UserAnalysisStatus {
+  /** Current queue phase: "idle" | "backfill" | "poll". */
+  mode: string;
+  /** Game URLs the background queue is analysing right now. */
+  analysing: string[];
+  /** Game URLs queued for analysis but not yet started. */
+  pending: string[];
+}
+
+/** Fetch the background queue's live analysis state for the authenticated user. */
+export function fetchUserAnalysisStatus(): Promise<UserAnalysisStatus> {
+  return fetchJson<UserAnalysisStatus>(`${BASE_URL}/api/user/analysis-status`);
+}
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 
 export interface AdminUser {
