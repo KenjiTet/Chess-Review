@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt as _jwt
 
 from models import AuthRequest, AuthResponse, IdentifyRequest, LinkAccountRequest, RegisterRequest
+import services.analysis_queue as analysis_queue
+from services.analysis_store import clear_analysed_games
 from services.chess_com import get_player_profile as chesscom_get_profile
 import services.lichess as lichess_svc
 from services.jwt_service import create_token, get_current_user
@@ -177,6 +179,15 @@ def link(req: LinkAccountRequest, user: dict = Depends(get_current_user)) -> Aut
     lichess_username: str | None = req.platform_username if req.platform == "lichess" else None
 
     set_linked_accounts(username, chesscom_username, lichess_username)
+
+    # The previous handle's analysed games no longer belong to this account, so
+    # drop them — otherwise the avg-blunders stat keeps showing the old account.
+    clear_analysed_games(username.lower(), req.platform)
+
+    # Kick the background queue so the new handle's games start analysing right
+    # away (and the UI gets analysing spinners immediately), instead of waiting
+    # for the next poll cycle.
+    analysis_queue.notify_streams_changed(username.lower())
 
     new_chesscom, new_lichess = _linked_handles(username)
 

@@ -149,3 +149,27 @@ def analysed_game_urls(username_lower: str) -> set[str]:
         ).fetchall()
 
     return {row["game_url"] for row in rows}
+
+
+def clear_analysed_games(username_lower: str, platform: str) -> int:
+    """Delete an account's recorded analysed games for a single platform.
+
+    Called when the account's linked handle for that platform changes: the old
+    handle's games no longer belong to this account, so their rows must go or the
+    avg-blunders stat keeps reflecting the previous account.
+
+    Args:
+        username_lower: Lowercased account username.
+        platform: "chesscom" or "lichess" — only this platform's rows are removed.
+
+    Returns:
+        Number of rows deleted.
+    """
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "DELETE FROM user_analysed_games WHERE username_lower = ? AND platform = ?",
+            (username_lower, platform),
+        )
+        conn.commit()
+
+    return cursor.rowcount

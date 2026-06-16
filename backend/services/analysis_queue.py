@@ -39,6 +39,10 @@ _lock = threading.Lock()
 _running: bool = False
 _thread: threading.Thread | None = None
 _stop_event = threading.Event()
+# Set to break the poll-interval sleep early — e.g. when a user links a new
+# handle and we want their games backfilled immediately instead of up to
+# POLL_INTERVAL seconds later.
+_wake_event = threading.Event()
 
 _mode: str = "idle"           # "idle" | "backfill" | "poll"
 _in_flight: set[str] = set()  # game URLs currently being analysed
@@ -254,7 +258,10 @@ def _run() -> None:
         with _lock:
             _mode = "poll"
         _poll_once(streams)
-        _stop_event.wait(POLL_INTERVAL)
+        # Sleep until the next poll, but wake early when stop() or
+        # notify_streams_changed() sets the wake event.
+        _wake_event.wait(POLL_INTERVAL)
+        _wake_event.clear()
 
     with _lock:
         _mode = "idle"
@@ -281,7 +288,60 @@ def stop() -> None:
         return
 
     _stop_event.set()
+    # Wake the scheduler so it notices the stop without waiting out the poll sleep.
+    _wake_event.set()
     _running = False
+
+
+def _prefetch_pending(username_lower: str) -> None:
+    """Populate one account's pending view synchronously.
+
+    Lets the UI show analysing spinners the instant a user links a handle, before
+    the scheduler's first backfill pass has run. Best-effort: network failures are
+    swallowed so a slow platform API never blocks the link request for long.
+    """
+    streams: list[_Stream] = [
+        stream for stream in _resolve_streams() if stream.username_lower == username_lower
+    ]
+
+    user_urls: set[str] = set()
+
+    for stream in streams:
+        recent: list[dict] = _fetch_recent_games(stream.platform, stream.handle, BACKFILL_TARGET)
+        done: set[str] = analysed_game_urls(stream.username_lower)
+        for game in recent:
+            url: str = game.get("url", "")
+            if url and url not in done:
+                user_urls.add(url)
+
+    with _lock:
+        in_flight: set[str] = _in_flight_by_user.get(username_lower, set())
+        remaining: set[str] = user_urls - in_flight
+        if remaining:
+            _pending_by_user[username_lower] = remaining
+        else:
+            _pending_by_user.pop(username_lower, None)
+
+
+def notify_streams_changed(username_lower: str | None = None) -> None:
+    """Wake the scheduler so a newly linked / changed handle is analysed at once.
+
+    Args:
+        username_lower: When given, that account's pending view is pre-populated
+            synchronously so the UI shows spinners immediately; otherwise the
+            scheduler simply re-evaluates all streams on its next (now-immediate) pass.
+    """
+    # Make sure the scheduler is running (no-op if it already is or is disabled).
+    start()
+
+    if username_lower:
+        try:
+            _prefetch_pending(username_lower)
+        except Exception:
+            # Never let prefetch failures bubble into the request that triggered the link.
+            pass
+
+    _wake_event.set()
 
 
 def get_user_queue_status(username_lower: str) -> dict:

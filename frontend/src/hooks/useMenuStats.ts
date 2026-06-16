@@ -186,7 +186,9 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
     }
 
     void load();
-  }, [isGuest, isAccount, timeClass, threshold]);
+    // playerUsername is included so switching/relinking the platform handle
+    // re-fetches the (now reset) stats instead of showing the old account's avg.
+  }, [isGuest, isAccount, timeClass, threshold, playerUsername]);
 
   // Re-fetch whenever the inputs change (time class switch, login, etc.).
   useEffect(() => {
