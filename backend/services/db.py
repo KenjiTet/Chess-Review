@@ -56,11 +56,15 @@ def init_db() -> None:
 
         # Per-user record of every analysed game. Source of truth for the
         # avg-blunders stat and for the background queue's "already analysed" set.
+        # handle records which linked platform username the games belong to, so an
+        # account that re-links a different handle keeps separate, non-colliding
+        # stats instead of mixing both handles' games together.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_analysed_games (
                 username_lower TEXT NOT NULL,
                 game_url       TEXT NOT NULL,
                 platform       TEXT NOT NULL,
+                handle         TEXT,
                 time_class     TEXT NOT NULL,
                 player_color   TEXT NOT NULL,
                 result         TEXT NOT NULL,
@@ -78,6 +82,10 @@ def init_db() -> None:
         # Forward migration: positions_drilled tracks how many blunder positions
         # the user actually stepped through per game (added after the table shipped).
         _add_reviewed_drilled_column(conn)
+
+        # Forward migration: the handle column scopes analysed-game rows to the
+        # linked platform username (added after the table shipped).
+        _add_analysed_handle_column(conn)
 
         conn.commit()
 
@@ -127,3 +135,49 @@ def _add_reviewed_drilled_column(conn: sqlite3.Connection) -> None:
         conn.execute(
             "ALTER TABLE user_reviewed_games ADD COLUMN positions_drilled INTEGER NOT NULL DEFAULT 0"
         )
+
+
+def _add_analysed_handle_column(conn: sqlite3.Connection) -> None:
+    """Add the handle column to user_analysed_games if missing, and backfill it.
+
+    Idempotent: only adds the column when absent. Existing rows are seeded with the
+    account's currently-linked handle for the row's platform (falling back to the
+    account username), a best-effort guess so legacy rows still match the current
+    handle's stats. New rows always store their true handle at analysis time.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(user_analysed_games)").fetchall()
+    }
+
+    if "handle" in existing:
+        return
+
+    conn.execute("ALTER TABLE user_analysed_games ADD COLUMN handle TEXT")
+
+    # Seed legacy rows from the users table's current linkage, per platform.
+    conn.execute(
+        """
+        UPDATE user_analysed_games
+        SET handle = (
+            SELECT COALESCE(u.chesscom_username, u.username)
+            FROM users u
+            WHERE u.username_lower = user_analysed_games.username_lower
+        )
+        WHERE platform = 'chesscom' AND handle IS NULL
+        """
+    )
+    conn.execute(
+        """
+        UPDATE user_analysed_games
+        SET handle = (
+            SELECT u.lichess_username
+            FROM users u
+            WHERE u.username_lower = user_analysed_games.username_lower
+        )
+        WHERE platform = 'lichess' AND handle IS NULL
+        """
+    )

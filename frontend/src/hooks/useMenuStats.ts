@@ -176,7 +176,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
 
     async function load(): Promise<void> {
       try {
-        const stats = await fetchUserStats(timeClass, threshold);
+        const stats = await fetchUserStats(timeClass, threshold, playerUsername);
 
         setBlundersDrilled(stats.blunders_drilled);
         setAvgBlunders(stats.avg_blunders ?? undefined);

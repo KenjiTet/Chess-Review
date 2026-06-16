@@ -124,10 +124,10 @@ def analyse_and_store(account_username_lower: str, platform: str, handle: str, g
         conn.execute(
             """
             INSERT OR REPLACE INTO user_analysed_games
-                (username_lower, game_url, platform, time_class, player_color, result, blunder_count, end_time, analysed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (username_lower, game_url, platform, handle, time_class, player_color, result, blunder_count, end_time, analysed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (account_username_lower, game_url, platform, time_class, color, result, blunder_count, end_time, now_iso),
+            (account_username_lower, game_url, platform, handle_lower, time_class, color, result, blunder_count, end_time, now_iso),
         )
         conn.commit()
 
