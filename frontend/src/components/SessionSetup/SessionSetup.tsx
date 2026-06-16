@@ -10,8 +10,7 @@ import GameHistory from '../GameHistory/GameHistory';
 import ProfileBand from './ProfileBand';
 import LinkAccountModal from './LinkAccountModal';
 import type { GameHistoryEntry } from '../../api/client.ts';
-import type { UserProfileResponse } from '../../api/client.ts';
-import { fetchUserProfile, fetchUserStats } from '../../api/client';
+import { useMenuStats } from '../../hooks/useMenuStats';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import type { FavLayout } from '../Favorites/Favorites';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -54,16 +53,6 @@ function getSavedTimeClass(): TimeClass {
   }
 
   return 'all';
-}
-
-// ── Profile stats derived from loaded game list ────────────────────────────
-
-interface ProfileStats {
-  winRate30d: number | undefined;
-  gamesAnalysed: number;
-  blundersDrilled: number;
-  /** Average blunders per analysed game across all loaded games. */
-  avgBlunders: number | undefined;
 }
 
 // ── Custom time-class select with icons ────────────────────────────────────
@@ -197,14 +186,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
-  const [profileStats, setProfileStats] = useState<ProfileStats>({
-    winRate30d: undefined,
-    gamesAnalysed: 0,
-    blundersDrilled: 0,
-    avgBlunders: undefined,
-  });
-  const [mobileRatings, setMobileRatings] = useState<UserProfileResponse | undefined>(undefined);
-  const [mobileRatingsLoading, setMobileRatingsLoading] = useState<boolean>(true);
 
   const username = authUsername ?? '';
   // Account username drives display; the linked platform handle drives game/profile fetches.
@@ -212,73 +193,15 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   // A registered account always has at least one linked handle; guests have none.
   const isAccount = chesscomUsername !== undefined || lichessUsername !== undefined;
 
-  // Fetch ratings for the mobile ELO strip.
-  useEffect(() => {
-    if (!isMobile || !playerUsername) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    async function loadRatings(): Promise<void> {
-      if (!cancelled) {
-        setMobileRatingsLoading(true);
-      }
-
-      try {
-        const result = await fetchUserProfile(playerUsername, platform ?? 'chesscom');
-
-        if (!cancelled) {
-          setMobileRatings(result);
-        }
-      } catch {
-        // Silently fail — strip stays empty.
-      } finally {
-        if (!cancelled) {
-          setMobileRatingsLoading(false);
-        }
-      }
-    }
-
-    void loadRatings();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isMobile, playerUsername, platform]);
-
-  // DB-derived stats: blunders drilled (all time classes) and avg blunders per game
-  // (filtered to the selected time class). Guests have no account, so these stay zero.
-  useEffect(() => {
-    if (isGuest || !isAccount) {
-      setProfileStats((prev) => ({ ...prev, blundersDrilled: 0, avgBlunders: undefined }));
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    async function loadStats(): Promise<void> {
-      try {
-        const stats = await fetchUserStats(timeClass);
-
-        if (!cancelled) {
-          setProfileStats((prev) => ({
-            ...prev,
-            blundersDrilled: stats.blunders_drilled,
-            avgBlunders: stats.avg_blunders ?? undefined,
-          }));
-        }
-      } catch {
-        // Silently fail — stats stay at their previous values.
-      }
-    }
-
-    void loadStats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isGuest, isAccount, timeClass]);
+  // Single source of truth for every menu stat — both layouts read from this so
+  // their displayed numbers can never diverge.
+  const { stats: menuStats, statItems, setLoadedGames, refreshStats } = useMenuStats({
+    playerUsername,
+    platform,
+    timeClass,
+    isAccount,
+    isGuest,
+  });
 
   function handleTimeClassChange(tc: TimeClass): void {
     setTimeClass(tc);
@@ -304,23 +227,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   function handleGamesLoaded(games: GameHistoryEntry[]): void {
     gamesRef.current = games;
 
-    // Win rate over the last 30 days.
-    const now = Date.now();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    const recent = games.filter((g) => now - new Date(g.date).getTime() < thirtyDaysMs);
-
-    let winRate30d: number | undefined;
-
-    if (recent.length > 0) {
-      winRate30d = (recent.filter((g) => g.result === 'win').length / recent.length) * 100;
-    }
-
-    // Games already analysed by Stockfish (loaded list only — drives win-rate context).
-    const gamesAnalysed = games.filter((g) => g.blunder_count !== null).length;
-
-    // Win rate and gamesAnalysed stay loaded-games based; blundersDrilled and
-    // avgBlunders are DB-derived and refreshed separately (see the stats effect).
-    setProfileStats((prev) => ({ ...prev, winRate30d, gamesAnalysed }));
+    // Feed the loaded list to the shared stats hook; it derives win rate (30d)
+    // and games-analysed count for both layouts.
+    setLoadedGames(games);
   }
 
   function resolveLoadingTitle(gameUrl: string | undefined): string {
@@ -357,9 +266,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   if (isMobile) {
     const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
     const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
-    const memberSince = mobileRatings?.joined_year;
+    const memberSince = menuStats.ratings?.joined_year;
     // Prefer the avatar fetched for the linked handle; fall back to the auth-store avatar.
-    const mobileAvatarSrc = mobileRatings?.avatar ?? avatar;
+    const mobileAvatarSrc = menuStats.ratings?.avatar ?? avatar;
 
     return (
       <div className="setup--mobile">
@@ -496,11 +405,11 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="rapid" size={15} />
               </span>
-              {mobileRatingsLoading ? (
+              {menuStats.ratingsLoading ? (
                 <span className="setup__mobile-elostrip__skeleton" />
               ) : (
                 <span className="setup__mobile-elostrip__num">
-                  {mobileRatings?.rapid_rating ?? '—'}
+                  {menuStats.ratings?.rapid_rating ?? '—'}
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Rapid</span>
@@ -515,11 +424,11 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="blitz" size={15} />
               </span>
-              {mobileRatingsLoading ? (
+              {menuStats.ratingsLoading ? (
                 <span className="setup__mobile-elostrip__skeleton" />
               ) : (
                 <span className="setup__mobile-elostrip__num">
-                  {mobileRatings?.blitz_rating ?? '—'}
+                  {menuStats.ratings?.blitz_rating ?? '—'}
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Blitz</span>
@@ -534,26 +443,30 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <span className="setup__mobile-elostrip__ic">
                 <TimeClassIcon tc="bullet" size={15} />
               </span>
-              {mobileRatingsLoading ? (
+              {menuStats.ratingsLoading ? (
                 <span className="setup__mobile-elostrip__skeleton" />
               ) : (
                 <span className="setup__mobile-elostrip__num">
-                  {mobileRatings?.bullet_rating ?? '—'}
+                  {menuStats.ratings?.bullet_rating ?? '—'}
                 </span>
               )}
               <span className="setup__mobile-elostrip__lbl">Bullet</span>
             </button>
 
-            {/* Avg blunders */}
-            <div className="setup__mobile-elostrip__cell">
-              <span className="setup__mobile-elostrip__ic setup__mobile-elostrip__ic--pct">
-                {profileStats.avgBlunders !== undefined ? profileStats.avgBlunders.toFixed(1) : '—'}
-              </span>
-              <span className="setup__mobile-elostrip__num setup__mobile-elostrip__num--gold">
-                Avg
-              </span>
-              <span className="setup__mobile-elostrip__lbl">Blunders</span>
-            </div>
+            {/* Mobile has limited width — show only avg blunders alongside the ratings. */}
+            {statItems
+              .filter((item) => item.key === 'avg-blunders')
+              .map((item, index) => (
+                <div className="setup__mobile-elostrip__cell" key={`mobile-stat-${item.key}-${index}`}>
+                  <span className="setup__mobile-elostrip__ic setup__mobile-elostrip__ic--pct">
+                    {item.value}
+                  </span>
+                  <span className="setup__mobile-elostrip__num setup__mobile-elostrip__num--gold">
+                    Avg
+                  </span>
+                  <span className="setup__mobile-elostrip__lbl">Blunders</span>
+                </div>
+              ))}
           </div>
         </div>
 
@@ -639,6 +552,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   isMobile
                   onTrainGame={handleTrainGame}
                   onGamesLoaded={handleGamesLoaded}
+                  onAnalysisComplete={refreshStats}
                 />
               )
             )}
@@ -753,10 +667,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           username={playerUsername}
           avatar={avatar}
           platform={platform}
-          winRate30d={profileStats.winRate30d}
-          gamesAnalysed={profileStats.gamesAnalysed}
-          blundersDrilled={profileStats.blundersDrilled}
-          avgBlunders={profileStats.avgBlunders}
+          ratings={menuStats.ratings}
+          ratingsLoading={menuStats.ratingsLoading}
+          statItems={statItems}
           activeTimeClass={timeClass}
           onSelectTimeClass={handleTimeClassChange}
         />
@@ -839,6 +752,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 threshold={threshold}
                 onTrainGame={handleTrainGame}
                 onGamesLoaded={handleGamesLoaded}
+                onAnalysisComplete={refreshStats}
               />
             )}
           </div>

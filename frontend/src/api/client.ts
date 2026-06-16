@@ -419,6 +419,8 @@ export interface GameAnalysisResult {
   blunder_count: number;
   first_blunder_fen: string | null;
   first_blunder_color: string | null;
+  white_accuracy: number | null;
+  black_accuracy: number | null;
 }
 
 /** Fetch a player's public profile and ratings. */

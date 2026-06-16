@@ -202,3 +202,6 @@ class GameAnalysisResult(BaseModel):
     blunder_count: int
     first_blunder_fen: str | None = None
     first_blunder_color: str | None = None
+    # Per-player accuracy so the history row can update without a full reload.
+    white_accuracy: float | None = None
+    black_accuracy: float | None = None

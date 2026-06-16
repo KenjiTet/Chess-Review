@@ -1,9 +1,9 @@
 /** Profile band displayed at the top of the menu card — avatar, ratings, and session stats. */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { JSX } from 'react';
-import { fetchUserProfile } from '../../api/client';
 import type { UserProfileResponse } from '../../api/client';
+import type { MenuStatItem } from '../../hooks/useMenuStats';
 import { TimeClassIcon } from '../TimeClassIcons';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
@@ -15,14 +15,12 @@ interface ProfileBandProps {
   username: string;
   avatar: string | undefined;
   platform: string | undefined;
-  /** Win-rate over the last 30 days (0–100), undefined if no games loaded yet. */
-  winRate30d: number | undefined;
-  /** Number of games in the loaded list that have been analysed by Stockfish. */
-  gamesAnalysed: number;
-  /** Total blunder positions the user has drilled, across all analysed games (DB-derived). */
-  blundersDrilled: number;
-  /** Average blunders per game for the selected time class, across all analysed games (DB-derived). */
-  avgBlunders: number | undefined;
+  /** Platform profile (ratings, avatar, joined year) — lifted to useMenuStats. */
+  ratings: UserProfileResponse | undefined;
+  /** True while the profile fetch is in flight. */
+  ratingsLoading: boolean;
+  /** Ordered, layout-independent stat list shared with the mobile layout. */
+  statItems: MenuStatItem[];
   /** Currently selected time-control filter, used to highlight the matching rating pill. */
   activeTimeClass: string | undefined;
   /** Called when a rating pill is clicked — filters recent games by that time control. */
@@ -35,50 +33,19 @@ function ProfileBand({
   username,
   avatar,
   platform,
-  winRate30d,
-  blundersDrilled,
-  avgBlunders,
+  ratings,
+  ratingsLoading,
+  statItems,
   activeTimeClass,
   onSelectTimeClass,
 }: ProfileBandProps): JSX.Element {
   const [imgFailed, setImgFailed] = useState<boolean>(false);
-  const [ratings, setRatings] = useState<UserProfileResponse | undefined>(undefined);
-  const [ratingsLoading, setRatingsLoading] = useState<boolean>(true);
 
   const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
   const fallbackSrc = platform === 'lichess' ? lichessLogo : chesscomLogo;
   // Prefer the avatar fetched for the linked handle; fall back to the auth-store avatar.
   const avatarSrc = ratings?.avatar ?? avatar;
   const showAvatar = avatarSrc && !imgFailed;
-
-  // Fetch ratings from the backend on mount / username change.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load(): Promise<void> {
-      try {
-        const result = await fetchUserProfile(username, platform ?? 'chesscom');
-
-        if (!cancelled) {
-          setRatings(result);
-        }
-      } catch {
-        // Silently fail — ratings just won't show if the fetch fails.
-      } finally {
-        if (!cancelled) {
-          setRatingsLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [username, platform]);
-
-  const winRateLabel = winRate30d !== undefined ? `${Math.round(winRate30d)}%` : '—';
 
   return (
     <div className="profile-band">
@@ -166,22 +133,24 @@ function ProfileBand({
         )}
       </div>
 
-      {/* Stats */}
+      {/* Stats — rendered from the shared stat list (same set as mobile). */}
       <div className="profile-band__stats">
-        <div className="profile-band__stat">
-          <span className="profile-band__stat-num">{winRateLabel}</span>
-          <span className="profile-band__stat-lbl">Win rate<br />Loaded Games</span>
-        </div>
-        <div className="profile-band__stat">
-          <span className="profile-band__stat-num profile-band__stat-num--alt">{blundersDrilled}</span>
-          <span className="profile-band__stat-lbl">Blunders<br />drilled</span>
-        </div>
-        <div className="profile-band__stat">
-          <span className="profile-band__stat-num profile-band__stat-num--alt">
-            {avgBlunders !== undefined ? avgBlunders.toFixed(1) : '—'}
-          </span>
-          <span className="profile-band__stat-lbl">Avg blunders<br />per game{activeTimeClass && activeTimeClass !== 'all' ? ` (${activeTimeClass})` : ''}</span>
-        </div>
+        {statItems.map((item, index) => {
+          const isFirst = index === 0;
+
+          return (
+            <div className="profile-band__stat" key={`profile-stat-${item.key}-${index}`}>
+              <span className={`profile-band__stat-num${isFirst ? '' : ' profile-band__stat-num--alt'}`}>
+                {item.value}
+              </span>
+              <span className="profile-band__stat-lbl">
+                {item.label}
+                <br />
+                {item.sublabel}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

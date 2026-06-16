@@ -87,6 +87,30 @@ def _blunder_data_from_cache(
     return blunder_count, first_fen, first_color, computed_acc
 
 
+def _resolve_accuracies(game: dict, computed_acc: dict[str, float]) -> tuple[float | None, float | None]:
+    """Resolve per-player accuracy, preferring Chess.com's values over Stockfish-computed ones.
+
+    Mirrors the logic in the history endpoint so on-demand analysis returns the
+    same accuracy the list would show after a reload.
+    """
+    accuracies: dict = game.get("accuracies", {})
+
+    chess_com_white: float | None = accuracies.get("white")
+    chess_com_black: float | None = accuracies.get("black")
+
+    if chess_com_white is not None:
+        white_accuracy: float | None = chess_com_white
+    else:
+        white_accuracy = computed_acc.get("white")
+
+    if chess_com_black is not None:
+        black_accuracy: float | None = chess_com_black
+    else:
+        black_accuracy = computed_acc.get("black")
+
+    return white_accuracy, black_accuracy
+
+
 @router.get("")
 def list_games(username: str, time_class: str, n: int, platform: str = "chesscom") -> list[dict]:
     """Fetch the n most recent games of a given time class for a player.
@@ -274,11 +298,14 @@ def analyze_game_history(
 
     # Fast path: Stockfish data already cached — just re-filter by player color.
     if not is_guest and is_cached(cache, game_url, DEPTH):
-        blunder_count, first_fen, first_color, _ = _blunder_data_from_cache(cache, game_url, threshold, player_color_analyze)
+        blunder_count, first_fen, first_color, computed_acc = _blunder_data_from_cache(cache, game_url, threshold, player_color_analyze)
+        white_accuracy, black_accuracy = _resolve_accuracies(game, computed_acc)
         return GameAnalysisResult(
             blunder_count=blunder_count or 0,
             first_blunder_fen=first_fen,
             first_blunder_color=first_color,
+            white_accuracy=white_accuracy,
+            black_accuracy=black_accuracy,
         )
 
     pgn: str = game.get("pgn", "")
@@ -290,6 +317,7 @@ def analyze_game_history(
     fens: list[str]
     uci_moves: list[str]
     fens, uci_moves = get_board_snapshots(pgn)
+    computed_acc: dict[str, float] = compute_player_accuracy(move_data)
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
 
     # Only count the requesting player's blunders, matching the trainer's behaviour.
@@ -307,8 +335,12 @@ def analyze_game_history(
     if not is_guest:
         store_game(cache, game_url, pgn, move_data, fens, uci_moves, {}, DEPTH)
 
+    white_accuracy, black_accuracy = _resolve_accuracies(game, computed_acc)
+
     return GameAnalysisResult(
         blunder_count=blunder_count,
         first_blunder_fen=first_fen,
         first_blunder_color=first_color,
+        white_accuracy=white_accuracy,
+        black_accuracy=black_accuracy,
     )

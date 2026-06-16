@@ -25,6 +25,8 @@ interface GameHistoryProps {
   isMobile?: boolean;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
+  /** Fired after a game finishes analysing so the menu can refresh DB-derived stats. */
+  onAnalysisComplete?: () => void;
 }
 
 function formatDate(iso: string): string {
@@ -456,6 +458,7 @@ function GameHistory({
   isMobile = false,
   onTrainGame,
   onGamesLoaded,
+  onAnalysisComplete,
 }: GameHistoryProps): JSX.Element {
   const isReviewedFn = useReviewed((s) => s.isReviewed);
 
@@ -468,6 +471,7 @@ function GameHistory({
   const [analysingUrls, setAnalysingUrls] = useState<Set<string>>(new Set());
 
   const onGamesLoadedRef = useRef(onGamesLoaded);
+  const onAnalysisCompleteRef = useRef(onAnalysisComplete);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef<boolean>(false);
@@ -479,6 +483,7 @@ function GameHistory({
 
   useLayoutEffect(() => {
     onGamesLoadedRef.current = onGamesLoaded;
+    onAnalysisCompleteRef.current = onAnalysisComplete;
   });
 
   useEffect(() => {
@@ -553,9 +558,17 @@ function GameHistory({
           if (g.url !== gameUrl) {
             return g;
           }
-          return { ...g, blunder_count: result.blunder_count };
+          return {
+            ...g,
+            blunder_count: result.blunder_count,
+            white_accuracy: result.white_accuracy,
+            black_accuracy: result.black_accuracy,
+          };
         }),
       );
+
+      // Let the menu refresh DB-derived stats (avg blunders, blunders drilled).
+      onAnalysisCompleteRef.current?.();
     } catch {
       // Silently fail — the game stays in the un-analysed state.
     } finally {
@@ -577,9 +590,17 @@ function GameHistory({
           if (g.url !== gameUrl) {
             return g;
           }
-          return { ...g, blunder_count: result.blunder_count };
+          return {
+            ...g,
+            blunder_count: result.blunder_count,
+            white_accuracy: result.white_accuracy,
+            black_accuracy: result.black_accuracy,
+          };
         }),
       );
+
+      // Let the menu refresh DB-derived stats (avg blunders, blunders drilled).
+      onAnalysisCompleteRef.current?.();
     } catch {
       // Leave the game as-is; a manual analyse still works.
     } finally {
