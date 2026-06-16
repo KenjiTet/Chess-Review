@@ -53,6 +53,8 @@ export interface UseMenuStatsArgs {
   platform: string | undefined;
   /** Currently selected time-control filter. */
   timeClass: string;
+  /** Active blunder-severity threshold (centipawns) — avg blunders tracks it. */
+  threshold: number;
   /** A registered account (has at least one linked handle). */
   isAccount: boolean;
   /** Guest session — no account-derived stats. */
@@ -122,7 +124,7 @@ function buildStatItems(stats: MenuStats): MenuStatItem[] {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
-  const { playerUsername, platform, timeClass, isAccount, isGuest } = args;
+  const { playerUsername, platform, timeClass, threshold, isAccount, isGuest } = args;
 
   const [ratings, setRatings] = useState<UserProfileResponse | undefined>(undefined);
   const [ratingsLoading, setRatingsLoading] = useState<boolean>(true);
@@ -174,7 +176,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
 
     async function load(): Promise<void> {
       try {
-        const stats = await fetchUserStats(timeClass);
+        const stats = await fetchUserStats(timeClass, threshold);
 
         setBlundersDrilled(stats.blunders_drilled);
         setAvgBlunders(stats.avg_blunders ?? undefined);
@@ -184,7 +186,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
     }
 
     void load();
-  }, [isGuest, isAccount, timeClass]);
+  }, [isGuest, isAccount, timeClass, threshold]);
 
   // Re-fetch whenever the inputs change (time class switch, login, etc.).
   useEffect(() => {

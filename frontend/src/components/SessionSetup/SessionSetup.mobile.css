@@ -98,8 +98,8 @@
 }
 
 .setup__mobile-logout-btn:hover {
-  border-color: var(--error-border, rgba(239, 68, 68, 0.3));
-  color: var(--error, #ef4444);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 /* ── ELO strip ───────────────────────────────────────────────────────────── */

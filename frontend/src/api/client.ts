@@ -455,9 +455,10 @@ export interface UserStats {
   blunders_drilled: number;
 }
 
-/** Fetch DB-derived training stats for the authenticated user, filtered by time class. */
-export function fetchUserStats(timeClass: string): Promise<UserStats> {
-  const params = new URLSearchParams({ time_class: timeClass });
+/** Fetch DB-derived training stats for the authenticated user, filtered by time class
+ *  and the active blunder-severity threshold (avg blunders is recomputed for it). */
+export function fetchUserStats(timeClass: string, threshold: number): Promise<UserStats> {
+  const params = new URLSearchParams({ time_class: timeClass, threshold: String(threshold) });
   return fetchJson<UserStats>(`${BASE_URL}/api/user/stats?${params}`);
 }
 

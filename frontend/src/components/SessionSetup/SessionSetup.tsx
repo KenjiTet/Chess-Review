@@ -192,6 +192,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const playerUsername = getPlatformUsername(platform ?? 'chesscom') ?? '';
   // A registered account always has at least one linked handle; guests have none.
   const isAccount = chesscomUsername !== undefined || lichessUsername !== undefined;
+  // Any logged-in, non-guest account can link/relink a platform handle — even
+  // when none is linked yet (those accounts need the option most).
+  const isRegisteredAccount = !isGuest && authUsername !== undefined;
 
   // Single source of truth for every menu stat — both layouts read from this so
   // their displayed numbers can never diverge.
@@ -199,6 +202,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     playerUsername,
     platform,
     timeClass,
+    threshold,
     isAccount,
     isGuest,
   });
@@ -375,6 +379,17 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               </button>
             )}
 
+            {/* Link account — registered accounts only, inline after the settings button */}
+            {isRegisteredAccount && (
+              <button
+                className="setup__mobile-logout-btn"
+                type="button"
+                onClick={() => setShowLinkModal(true)}
+              >
+                Link account
+              </button>
+            )}
+
             <button
               className="setup__mobile-logout-btn"
               type="button"
@@ -383,16 +398,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               Log out
             </button>
           </div>
-
-          {isAccount && (
-            <button
-              className="setup__mobile-logout-btn"
-              type="button"
-              onClick={() => setShowLinkModal(true)}
-            >
-              Link account
-            </button>
-          )}
 
           {/* ELO strip */}
           <div className="setup__mobile-elostrip">
@@ -559,7 +564,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           </div>
         </div>
 
-        {showLinkModal && isAccount && (
+        {showLinkModal && isRegisteredAccount && (
           <LinkAccountModal onClose={() => setShowLinkModal(false)} />
         )}
       </div>
@@ -651,7 +656,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {username && (
           <span className="setup__user-name">{username}</span>
         )}
-        {isAccount && (
+        {isRegisteredAccount && (
           <button className="setup__logout-btn" type="button" onClick={() => setShowLinkModal(true)}>
             Link account
           </button>
@@ -766,7 +771,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         )}
       </div>
 
-      {showLinkModal && isAccount && (
+      {showLinkModal && isRegisteredAccount && (
         <LinkAccountModal onClose={() => setShowLinkModal(false)} />
       )}
     </div>

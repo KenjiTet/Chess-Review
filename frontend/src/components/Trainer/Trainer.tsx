@@ -30,7 +30,6 @@ import botIconUrl from '../../assets/bot_icon.svg';
 import resetIconUrl from '../../assets/reset_icon.svg';
 import arrowLeftIconUrl from '../../assets/arrow_left_icon.svg';
 import arrowRightIconUrl from '../../assets/arrow_right_icon.svg';
-import playIconUrl from '../../assets/play_icon.svg';
 import menuIconUrl from '../../assets/menu_icon.svg';
 import doneIconUrl from '../../assets/done_icon.svg';
 import SaveFavoriteModal from '../SaveFavoriteModal/SaveFavoriteModal';
@@ -889,13 +888,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       blunder: '#ef4444',
     };
 
-    const blunderColor = BADGE_COLORS[currentBlunder.classification] ?? undefined;
-
     return (
       <>
       <div className="trainer trainer--mobile">
         {/* Body — board fills all available space */}
         <div className="trainer__mobile-body">
+          {/* Blunder prompt banner — same message + Show button as the desktop layout */}
+          <BlunderCard
+            moveSan={currentBlunder.move_san}
+            cpLoss={currentBlunder.cp_loss}
+            classification={currentBlunder.classification}
+            onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
+            sequenceDisabled={isPlayingSequence}
+            compactPrompt
+            compactSequenceLabel
+          />
+
           {/* Horizontal eval bar */}
           <EvalBar cpScore={displayEval} orientation={orientation} horizontal />
 
@@ -943,32 +951,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
                 }
 
                 if (lastEntry === null) {
-                  return (
-                    <div className="trainer__mobile-inline-fb__entry">
-                      <span className="trainer__mobile-inline-fb__san">{currentBlunder.move_san}</span>
-                      {blunderColor !== undefined && (
-                        <span
-                          className="trainer__mobile-inline-fb__badge"
-                          style={{ color: blunderColor, borderColor: `${blunderColor}55`, background: `${blunderColor}18` }}
-                        >
-                          {currentBlunder.classification}
-                        </span>
-                      )}
-                      <span className="trainer__mobile-inline-fb__cp" style={blunderColor !== undefined ? { color: blunderColor } : undefined}>
-                        -{currentBlunder.cp_loss} cp
-                      </span>
-                      <button
-                        className="trainer__mobile-seq-btn"
-                        type="button"
-                        onClick={() => { void handleShowBlunderSequence(); }}
-                        disabled={isPlayingSequence}
-                        title="Show blunder sequence"
-                      >
-                        <img className="trainer__mobile-seq-ic" src={playIconUrl} alt="" />
-                        <span className="trainer__mobile-seq-lbl">Show</span>
-                      </button>
-                    </div>
-                  );
+                  // Before a move is played the blunder prompt + Show button live in
+                  // the banner above the board, so the nav centre stays empty here.
+                  return null;
                 }
 
                 const moveColor = lastEntry.classification !== null ? BADGE_COLORS[lastEntry.classification] : undefined;
