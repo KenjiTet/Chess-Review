@@ -9,6 +9,8 @@ export interface MoveLogEntry {
   san: string;
   classification: string | null;
   cpLoss: number | null;
+  /** Side that played the move ('w' = white, 'b' = black) — drives the row tint. */
+  side: 'w' | 'b';
 }
 
 const BADGE_COLORS: Record<string, string> = {
@@ -54,10 +56,15 @@ function MoveLog({ entries }: MoveLogProps): JSX.Element {
             const color = entry.classification !== null ? BADGE_COLORS[entry.classification] : undefined;
             const label = entry.classification !== null ? BADGE_LABELS[entry.classification] : null;
 
+            // Slight side-coded background so the player side reads at a glance.
+            const sideClass = entry.side === 'w'
+              ? 'move-log__entry--white'
+              : 'move-log__entry--black';
+
             return (
               <div
                 key={`move-log-entry-${entry.id}`}
-                className="move-log__entry"
+                className={`move-log__entry ${sideClass}`}
                 style={color !== undefined ? { borderLeftColor: color } : undefined}
               >
                 <span className="move-log__san">{entry.san}</span>

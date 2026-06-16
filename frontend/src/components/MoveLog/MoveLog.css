@@ -43,6 +43,15 @@
   background: rgba(128, 128, 128, 0.05);
 }
 
+/* Slight side-coded tint so the player side reads at a glance. */
+.move-log__entry--white {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.move-log__entry--black {
+  background: rgba(0, 0, 0, 0.16);
+}
+
 .move-log__san {
   font-family: var(--mono);
   font-size: 0.85rem;

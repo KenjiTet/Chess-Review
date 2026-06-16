@@ -164,7 +164,9 @@
 
 .trainer__panel-col {
   flex: 1;
-  min-width: 0;
+  /* Never shrink below a legible width so every button and feedback row
+     stays fully readable; the board is clamped in JS to honour this. */
+  min-width: 260px;
   display: flex;
   flex-direction: column;
 }

@@ -182,10 +182,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       return undefined;
     }
 
+    // Width the settings panel + eval bar + flex gaps must always keep so the
+    // panel never shrinks below its legible minimum (see .trainer__panel-col).
+    const PANEL_MIN_WIDTH = 260;
+    const EVAL_BAR_WIDTH = 30;
+    const ROW_GAPS = 40;
+    const RESERVED_WIDTH = PANEL_MIN_WIDTH + EVAL_BAR_WIDTH + ROW_GAPS;
+
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
-        setBoardSize(Math.floor(entry.contentRect.height * 0.9));
+        // Board is square: cap by both available height and the width left
+        // over after reserving room for the panel, so a tall/narrow window
+        // shrinks the board instead of crushing the settings panel.
+        const heightLimit = entry.contentRect.height * 0.9;
+        const widthLimit = entry.contentRect.width - RESERVED_WIDTH;
+        setBoardSize(Math.floor(Math.max(0, Math.min(heightLimit, widthLimit))));
       }
     });
 
@@ -210,6 +222,8 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     setBotThinking(false);
     setCurrentEval(currentBlunder?.eval_before_white_pov ?? 0);
     setCurrentArrows(currentBlunder?.best_moves ?? []);
+    // Hints don't carry over to the next position — the player opts in each time.
+    setShowArrows(false);
     setIsPlayingSequence(false);
     const newHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(newHistory.history);
@@ -294,6 +308,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       const id = moveIdRef.current;
       moveIdRef.current += 1;
 
+      // Side that played this move ('w' / 'b') — drives the move-log row tint.
+      const moveSide: 'w' | 'b' = capturedFen.split(' ')[1] === 'b' ? 'b' : 'w';
+
+      // The strongest suggested move for the captured position. At the blunder
+      // position this is the cached best_moves; elsewhere it is the live hint
+      // arrows. Playing it must always read as "best", even in a losing position.
+      let topSuggested: string | undefined;
+      if (capturedFen === currentBlunder.fen_before) {
+        // Cached best moves are always valid for the blunder position.
+        topSuggested = currentBlunder.best_moves?.[0];
+      } else if (showArrows) {
+        // Live arrows only match the current position while hints are shown.
+        topSuggested = currentArrows[0];
+      }
+      const playedTopMove = topSuggested !== undefined && uci === topSuggested;
+
       if (firstMove === null) {
         setFirstMove(uci);
       }
@@ -302,7 +332,10 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       const userHistoryIdx = historyIndex + 1;
       setPositionHistory((prev) => {
         const nextGameEntry = gameHistoryRef.current[historyIndex + 1];
-        const base = [...prev.slice(0, historyIndex + 1), { fen: newFen, uci, evalScore: 0 }];
+        // Seed with the prior position's eval so the bar holds steady instead of
+        // snapping to 0.0 until the async evaluation for this move arrives.
+        const seedEval = prev[historyIndex]?.evalScore ?? currentEval;
+        const base = [...prev.slice(0, historyIndex + 1), { fen: newFen, uci, evalScore: seedEval }];
 
         if (nextGameEntry && nextGameEntry.uci === uci) {
           // Played the game move — keep remaining game path intact so forward nav works
@@ -316,7 +349,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       setLocalFen(newFen);
       // Keep only log entries that are still valid for the current position, then append the new move
       const keepCount = Math.max(0, historyIndex - moveLogBaseIdx);
-      setMoveLog((prev) => [...prev.slice(0, keepCount), { id, san, classification: null, cpLoss: null }]);
+      setMoveLog((prev) => [...prev.slice(0, keepCount), { id, san, classification: null, cpLoss: null, side: moveSide }]);
       // If the user played from before the current log base, slide the base back to the new starting point
       if (historyIndex < moveLogBaseIdx) {
         setMoveLogBaseIdx(historyIndex);
@@ -332,10 +365,14 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
           }
           return updated;
         });
+        // The top engine suggestion is best by definition, regardless of how
+        // bad the resulting position is — never let it be flagged as a mistake.
+        const classification = playedTopMove ? 'best' : result.classification;
+        const cpLoss = playedTopMove ? 0 : result.cp_loss;
         setMoveLog((prev) =>
           prev.map((entry) =>
             entry.id === id
-              ? { ...entry, classification: result.classification, cpLoss: result.cp_loss }
+              ? { ...entry, classification, cpLoss }
               : entry,
           ),
         );
@@ -380,9 +417,11 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
             setLocalFen(sfFen);
             setCurrentEval(response.eval_after_white_pov);
             playMoveSound();
+            // Bot moves from newFen, so its side is whoever is to move there.
+            const sfSide: 'w' | 'b' = newFen.split(' ')[1] === 'b' ? 'b' : 'w';
             setMoveLog((prev) => [
               ...prev,
-              { id: sfId, san: sfSan, classification: null, cpLoss: null },
+              { id: sfId, san: sfSan, classification: null, cpLoss: null, side: sfSide },
             ]);
 
             // Evaluate bot's move quality too so the log shows its classification
@@ -405,7 +444,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         });
       }
     },
-    [currentBlunder, localFen, firstMove, botMode, historyIndex, positionHistory, moveLogBaseIdx],
+    [currentBlunder, localFen, firstMove, botMode, historyIndex, positionHistory, moveLogBaseIdx, currentArrows, showArrows, currentEval],
   );
 
   // ── Reset to blunder position ───────────────────────────────────────────────
@@ -421,6 +460,8 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     setMoveLog([]);
     setCurrentEval(currentBlunder.eval_before_white_pov ?? 0);
     setCurrentArrows(currentBlunder.best_moves ?? []);
+    // Hints are an explicit aid — turn them off when the position is reset.
+    setShowArrows(false);
     setBotThinking(false);
     moveIdRef.current = 0;
     const resetHistory = buildInitialHistory(currentBlunder);
@@ -486,14 +527,31 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         return;
       }
 
-      setPositionHistory((prev) => [
-        ...prev.slice(0, nextIdx),
-        { fen: newFen, uci, evalScore: 0 },
-      ]);
+      // Seed with the previous position's eval so the bar holds steady (instead
+      // of snapping to 0) until the real evaluation for this position arrives.
+      setPositionHistory((prev) => {
+        const seedEval = prev[nextIdx - 1]?.evalScore ?? currentEval;
+        return [...prev.slice(0, nextIdx), { fen: newFen, uci, evalScore: seedEval }];
+      });
       setHistoryIndex(nextIdx);
 
       setLocalFen(newFen);
       playMoveSound();
+
+      // Evaluate this position so the eval bar moves live through the sequence.
+      getPositionEval(newFen).then((res) => {
+        if (!sequenceActiveRef.current) {
+          return;
+        }
+        setPositionHistory((prev) => {
+          const updated = [...prev];
+          if (updated[nextIdx]) {
+            updated[nextIdx] = { ...updated[nextIdx], evalScore: res.eval_white_pov };
+          }
+          return updated;
+        });
+        setCurrentEval(res.eval_white_pov);
+      }).catch(() => {});
 
       setTimeout(() => playStep(moves, newFen, index + 1, nextIdx + 1), 600);
     };
