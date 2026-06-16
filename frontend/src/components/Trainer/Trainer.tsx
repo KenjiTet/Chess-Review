@@ -20,7 +20,7 @@ import EvalBar from '../EvalBar/EvalBar';
 import BlunderCard from '../BlunderCard/BlunderCard';
 import MoveLog, { type MoveLogEntry } from '../MoveLog/MoveLog';
 import { evaluateMove, getPositionEval, getStockfishMove, getBestMoves, getBlunderLine, type BlunderLineResponse } from '../../api/client';
-import { playMoveSound } from '../../utils/sounds';
+import { playMoveOutcome } from '../../utils/sounds';
 import { generateBoardImage } from '../../utils/generateBoardImage';
 import { buildShareUrl } from '../../utils/sharePosition';
 import ShareModal from '../ShareModal/ShareModal';
@@ -171,6 +171,8 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   const moveIdRef = useRef<number>(0);
   // Set to false to cancel a running blunder sequence
   const sequenceActiveRef = useRef<boolean>(false);
+  // Guards the bot-move effect so a single reply is never requested twice.
+  const botMoveInFlightRef = useRef<boolean>(false);
 
   // Board-row ref + measured size for responsive height-driven layout
   const boardRowRef = useRef<HTMLDivElement>(null);
@@ -237,6 +239,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
   useEffect(() => {
     moveIdRef.current = 0;
     sequenceActiveRef.current = false;
+    botMoveInFlightRef.current = false;
     const effectHistory = buildInitialHistory(currentBlunder);
     gameHistoryRef.current = effectHistory.history;
 
@@ -378,74 +381,120 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         );
       });
 
-      // Bot mode: ask Stockfish to respond
-      if (botMode) {
-        setBotThinking(true);
+      // Bot mode: the bot's reply is driven by a dedicated effect that fires
+      // whenever it becomes the bot's turn at the live position (see below).
+    },
+    [currentBlunder, localFen, firstMove, historyIndex, positionHistory, moveLogBaseIdx, currentArrows, showArrows, currentEval],
+  );
 
-        getStockfishMove({ fen: newFen }).then((response) => {
-          const sfUci = response.best_move_uci;
+  // ── Bot reply ───────────────────────────────────────────────────────────────
+  // Plays Stockfish's move from `fromFen`, appending it right after `appendAfterIdx`.
+  const playBotMove = useCallback(
+    (fromFen: string, appendAfterIdx: number): void => {
+      botMoveInFlightRef.current = true;
+      setBotThinking(true);
 
-          if (sfUci) {
-            const sfChess = new Chess(newFen);
-            let sfSan: string;
-            let sfFen: string;
+      getStockfishMove({ fen: fromFen }).then((response) => {
+        const sfUci = response.best_move_uci;
 
-            try {
-              const sfMove = sfChess.move({
-                from: sfUci.slice(0, 2),
-                to: sfUci.slice(2, 4),
-                promotion: sfUci[4] ?? 'q',
-              });
-              sfSan = sfMove ? sfMove.san : sfUci;
-              sfFen = sfChess.fen();
-            } catch {
-              sfSan = sfUci;
-              sfFen = newFen;
-            }
+        if (sfUci) {
+          const sfChess = new Chess(fromFen);
+          let sfSan: string;
+          let sfFen: string;
+          let sfOutcome = { captured: false, check: false, checkmate: false };
 
-            const sfId = moveIdRef.current;
-            moveIdRef.current += 1;
-
-            // Bot move goes right after the user move (historyIndex captured at callback creation)
-            const sfHistoryIdx = historyIndex + 2;
-            setPositionHistory((prev) => [
-              ...prev.slice(0, historyIndex + 2),
-              { fen: sfFen, uci: sfUci, evalScore: response.eval_after_white_pov },
-            ]);
-            setHistoryIndex(sfHistoryIdx);
-
-            setLocalFen(sfFen);
-            setCurrentEval(response.eval_after_white_pov);
-            playMoveSound();
-            // Bot moves from newFen, so its side is whoever is to move there.
-            const sfSide: 'w' | 'b' = newFen.split(' ')[1] === 'b' ? 'b' : 'w';
-            setMoveLog((prev) => [
-              ...prev,
-              { id: sfId, san: sfSan, classification: null, cpLoss: null, side: sfSide },
-            ]);
-
-            // Evaluate bot's move quality too so the log shows its classification
-            evaluateMove({ fen_before: newFen, uci_move: sfUci }).then((sfResult) => {
-              setMoveLog((prev) =>
-                prev.map((entry) =>
-                  entry.id === sfId
-                    ? {
-                        ...entry,
-                        classification: sfResult.classification,
-                        cpLoss: sfResult.cp_loss,
-                      }
-                    : entry,
-                ),
-              );
-            });
+          try {
+            const sfMove = sfChess.move({ from: sfUci.slice(0, 2), to: sfUci.slice(2, 4), promotion: sfUci[4] ?? 'q' });
+            sfSan = sfMove ? sfMove.san : sfUci;
+            sfFen = sfChess.fen();
+            sfOutcome = { captured: Boolean(sfMove?.captured), check: sfChess.inCheck(), checkmate: sfChess.isCheckmate() };
+          } catch {
+            sfSan = sfUci;
+            sfFen = fromFen;
           }
 
-          setBotThinking(false);
-        });
-      }
+          const sfId = moveIdRef.current;
+          moveIdRef.current += 1;
+
+          const sfHistoryIdx = appendAfterIdx + 1;
+          setPositionHistory((prev) => [
+            ...prev.slice(0, appendAfterIdx + 1),
+            { fen: sfFen, uci: sfUci, evalScore: response.eval_after_white_pov },
+          ]);
+          setHistoryIndex(sfHistoryIdx);
+
+          setLocalFen(sfFen);
+          setCurrentEval(response.eval_after_white_pov);
+          playMoveOutcome(sfOutcome);
+          // Bot moves from fromFen, so its side is whoever is to move there.
+          const sfSide: 'w' | 'b' = fromFen.split(' ')[1] === 'b' ? 'b' : 'w';
+          setMoveLog((prev) => [...prev, { id: sfId, san: sfSan, classification: null, cpLoss: null, side: sfSide }]);
+
+          // Evaluate bot's move quality too so the log shows its classification.
+          evaluateMove({ fen_before: fromFen, uci_move: sfUci }).then((sfResult) => {
+            setMoveLog((prev) =>
+              prev.map((entry) =>
+                entry.id === sfId
+                  ? { ...entry, classification: sfResult.classification, cpLoss: sfResult.cp_loss }
+                  : entry,
+              ),
+            );
+          });
+        }
+
+        botMoveInFlightRef.current = false;
+        setBotThinking(false);
+      }).catch(() => {
+        botMoveInFlightRef.current = false;
+        setBotThinking(false);
+      });
     },
-    [currentBlunder, localFen, firstMove, botMode, historyIndex, positionHistory, moveLogBaseIdx, currentArrows, showArrows, currentEval],
+    [],
   );
+
+  // Drive the bot reply: whenever bot mode is on and it becomes the bot's turn at
+  // the live tip of the position, ask Stockfish to move. This covers both the
+  // reply after the user's move and enabling bot mode during the opponent's turn.
+  useEffect(() => {
+    if (!botMode || !currentBlunder || botThinking || botMoveInFlightRef.current) {
+      return undefined;
+    }
+
+    // Only act at the live tip — not while browsing earlier positions.
+    if (historyIndex !== positionHistory.length - 1) {
+      return undefined;
+    }
+
+    const tipFen = positionHistory[historyIndex]?.fen ?? localFen;
+    if (!tipFen) {
+      return undefined;
+    }
+
+    // The game is over (checkmate / stalemate) — there is nothing to reply with,
+    // so don't keep the bot "thinking".
+    try {
+      if (new Chess(tipFen).isGameOver()) {
+        return undefined;
+      }
+    } catch {
+      return undefined;
+    }
+
+    // User's colour is the side to move at the blunder position; the bot is the
+    // other side. Auto-play only when it is the bot's turn.
+    const userColor = currentBlunder.fen_before.split(' ')[1];
+    const turn = tipFen.split(' ')[1];
+    if (turn === userColor) {
+      return undefined;
+    }
+
+    // Defer behind a short delay so the reply feels deliberate (and to keep the
+    // state update out of the synchronous effect body).
+    const timer = setTimeout(() => playBotMove(tipFen, historyIndex), 350);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [botMode, botThinking, currentBlunder, historyIndex, positionHistory, localFen, playBotMove]);
 
   // ── Reset to blunder position ───────────────────────────────────────────────
   function handleReset(): void {
@@ -463,6 +512,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     // Hints are an explicit aid — turn them off when the position is reset.
     setShowArrows(false);
     setBotThinking(false);
+    botMoveInFlightRef.current = false;
     moveIdRef.current = 0;
     const resetHistory = buildInitialHistory(currentBlunder);
     setPositionHistory(resetHistory.history);
@@ -512,6 +562,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       const uci = moves[index];
       const chess = new Chess(fen);
       let newFen: string;
+      let outcome: { captured: boolean; check: boolean; checkmate: boolean };
 
       try {
         const moved = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] ?? 'q' });
@@ -522,6 +573,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         }
 
         newFen = chess.fen();
+        outcome = { captured: Boolean(moved.captured), check: chess.inCheck(), checkmate: chess.isCheckmate() };
       } catch {
         setIsPlayingSequence(false);
         return;
@@ -536,7 +588,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       setHistoryIndex(nextIdx);
 
       setLocalFen(newFen);
-      playMoveSound();
+      playMoveOutcome(outcome);
 
       // Evaluate this position so the eval bar moves live through the sequence.
       getPositionEval(newFen).then((res) => {

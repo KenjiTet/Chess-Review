@@ -25,7 +25,7 @@ import type { JSX, CSSProperties } from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { PieceDropHandlerArgs, PieceHandlerArgs, SquareHandlerArgs } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import { playMoveSound } from '../../utils/sounds';
+import { playMoveOutcome } from '../../utils/sounds';
 import './Board.css';
 
 interface BoardProps {
@@ -47,6 +47,17 @@ type Square = string;
 const SOURCE_HIGHLIGHT: CSSProperties = {
   background: 'rgba(255, 210, 0, 0.50)',
   boxShadow: 'inset 0 0 0 3px rgba(255, 210, 0, 0.8)',
+};
+
+/** Highlight for the landing (destination) square of the last move. */
+const DEST_HIGHLIGHT: CSSProperties = {
+  background: 'rgba(255, 210, 0, 0.38)',
+  boxShadow: 'inset 0 0 0 3px rgba(255, 210, 0, 0.65)',
+};
+
+/** Red marker for right-click highlighted squares (rendered below the pieces). */
+const MARKED_HIGHLIGHT: CSSProperties = {
+  background: 'rgba(235, 60, 50, 0.55)',
 };
 
 /** Highlight for the click-selected piece's source square. */
@@ -168,6 +179,8 @@ function Board({
   const [dragSquare, setDragSquare] = useState<string | null>(null);
   // Source square selected by a click (null when nothing selected)
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  // Squares the user has right-click highlighted in red (toggled per square).
+  const [markedSquares, setMarkedSquares] = useState<Set<string>>(new Set());
 
   // Reset intro when the opponent-move data changes (during render, not in effect).
   const currentIntroKey = `${prevFen ?? ''}|${prevMoveUci ?? ''}`;
@@ -186,10 +199,11 @@ function Board({
     canInteractRef.current = interactive && !introActive;
   }, [interactive, introActive]);
 
-  // Clear selected square whenever the board position changes (after each move)
-  // so the highlight doesn't linger on the wrong square.
+  // Clear selected square and any right-click markers whenever the board
+  // position changes (after each move) so highlights don't linger.
   useEffect(() => {
     setSelectedSquare(null);
+    setMarkedSquares(new Set());
   }, [fen]);
 
   // Phase timers: switch to phase 2 after 400ms to animate the piece, done at 1500ms.
@@ -199,14 +213,28 @@ function Board({
     }
 
     // Play sound when the piece actually animates (phase 2 = opponent move animation).
-    const phaseTimer = setTimeout(() => { setIntroPhase(2); playMoveSound(); }, 1000);
+    // Replay the opponent move on prevFen to detect capture / check / checkmate.
+    const phaseTimer = setTimeout(() => {
+      setIntroPhase(2);
+      let outcome = { captured: false, check: false, checkmate: false };
+      if (prevFen && prevMoveUci && prevMoveUci.length >= 4) {
+        try {
+          const replay = new Chess(prevFen);
+          const moved = replay.move({ from: prevMoveUci.slice(0, 2), to: prevMoveUci.slice(2, 4), promotion: prevMoveUci[4] ?? 'q' });
+          outcome = { captured: Boolean(moved?.captured), check: replay.inCheck(), checkmate: replay.isCheckmate() };
+        } catch {
+          // Fall back to the plain move sound.
+        }
+      }
+      playMoveOutcome(outcome);
+    }, 1000);
     const doneTimer = setTimeout(() => setIntroTimedOut(true), 1800);
 
     return () => {
       clearTimeout(phaseTimer);
       clearTimeout(doneTimer);
     };
-  }, [introActive, introKey]);
+  }, [introActive, introKey, prevFen, prevMoveUci]);
 
   // Global mouseup clears drag state — handles cases where drag is cancelled
   // (e.g. pointer leaves the browser window mid-drag).
@@ -250,13 +278,21 @@ function Board({
   // ── Square styles ──────────────────────────────────────────────────────────
   const customSquareStyles: Record<Square, CSSProperties> = {};
 
-  if (introActive && prevMoveUci && prevMoveUci.length >= 2) {
+  // Right-click red markers — applied first so interactive states can override.
+  markedSquares.forEach((sq) => {
+    customSquareStyles[sq] = MARKED_HIGHLIGHT;
+  });
+
+  if (introActive && prevMoveUci && prevMoveUci.length >= 4) {
+    // Highlight both the origin and the landing square of the opponent's move.
     customSquareStyles[prevMoveUci.slice(0, 2)] = SOURCE_HIGHLIGHT;
+    customSquareStyles[prevMoveUci.slice(2, 4)] = DEST_HIGHLIGHT;
   } else if (!introActive) {
-    // After intro, keep prevMoveUci highlight until the user plays their first move
+    // After intro, keep the last-move highlight until the user plays their move.
     const highlightUci = lastMoveUci ?? prevMoveUci;
-    if (highlightUci && highlightUci.length >= 2) {
+    if (highlightUci && highlightUci.length >= 4) {
       customSquareStyles[highlightUci.slice(0, 2)] = SOURCE_HIGHLIGHT;
+      customSquareStyles[highlightUci.slice(2, 4)] = DEST_HIGHLIGHT;
     }
   }
 
@@ -274,6 +310,26 @@ function Board({
   if (selectedSquare && !dragSquare) {
     customSquareStyles[selectedSquare] = SELECTED_HIGHLIGHT;
   }
+
+  // ── Right-click marker handler ─────────────────────────────────────────────
+  // Toggles a red highlight on the clicked square (right-click again to remove).
+  const handleSquareRightClick = useCallback(
+    ({ square }: SquareHandlerArgs): void => {
+      if (!square) {
+        return;
+      }
+      setMarkedSquares((prev) => {
+        const next = new Set(prev);
+        if (next.has(square)) {
+          next.delete(square);
+        } else {
+          next.add(square);
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   // ── Drag handler ───────────────────────────────────────────────────────────
   const handlePieceDrag = useCallback(
@@ -310,7 +366,8 @@ function Board({
         }
 
         const uci = `${sourceSquare}${targetSquare}${move.promotion ?? ''}`;
-        playMoveSound();
+        // chess has the move applied, so its state reflects check / checkmate.
+        playMoveOutcome({ captured: Boolean(move.captured), check: chess.inCheck(), checkmate: chess.isCheckmate() });
         onMove(uci);
         return true;
       } catch {
@@ -344,7 +401,7 @@ function Board({
             if (move && onMove) {
               const uci = `${selectedSquare}${square}${move.promotion ?? ''}`;
               setSelectedSquare(null);
-              playMoveSound();
+              playMoveOutcome({ captured: Boolean(move.captured), check: chess.inCheck(), checkmate: chess.isCheckmate() });
               onMove(uci);
               return;
             }
@@ -407,6 +464,7 @@ function Board({
           onPieceDrag: handlePieceDrag,
           onPieceDrop: onPieceDrop,
           onSquareClick: handleSquareClick,
+          onSquareRightClick: handleSquareRightClick,
           allowDragging: canInteract,
           squareStyles: customSquareStyles,
           animationDurationInMs: 500,
