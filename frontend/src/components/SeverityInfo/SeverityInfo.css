@@ -37,6 +37,11 @@
   padding: 1rem;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
+  /* The trigger lives inside an uppercased, bold, wide-tracked label — stop all
+     of that cascading into the modal so the copy reads in normal, friendly text. */
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
 }
 
 .severity-info__card {
@@ -53,42 +58,51 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
   border-bottom: 1px solid var(--border);
 }
 
 .severity-info__title {
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-h);
 }
 
 .severity-info__close {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   background: none;
   border: none;
   color: var(--muted);
   font-size: 0.95rem;
   cursor: pointer;
   line-height: 1;
-  transition: color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .severity-info__close:hover {
+  background: color-mix(in srgb, var(--text-h) 10%, transparent);
   color: var(--text-h);
 }
 
 .severity-info__body {
-  padding: 14px 16px 18px;
+  padding: 16px 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .severity-info__body p {
   margin: 0;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.6;
   color: var(--text);
 }
 

@@ -70,14 +70,14 @@ function SeverityInfo(): JSX.Element {
 
             <div className="severity-info__body">
               <p>
-                Moves are scored in <b>centipawns (cp)</b> — hundredths of a pawn.
-                The cp loss is how much your move worsened the position versus the
-                engine's best move.
+                Moves are measured in <b>centipawns (cp)</b> — hundredths of a pawn.
+                The cp loss simply shows how far a move sat from the engine's top
+                choice.
               </p>
               <p>
-                The threshold sets the minimum cp loss for a mistake to count as a
-                blunder. <b>200&nbsp;cp+</b> shows every move that lost at least two
-                pawns of value; a higher number means only your worst blunders.
+                The threshold is how big a slip needs to be before we surface it for
+                practice. <b>200&nbsp;cp+</b> catches moves that gave up around two
+                pawns; raise it to focus on the bigger swings, lower it to review more.
               </p>
             </div>
           </div>
