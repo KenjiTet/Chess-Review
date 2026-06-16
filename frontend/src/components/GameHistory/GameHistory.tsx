@@ -10,7 +10,7 @@ import './GameHistory.css';
 import './GameHistory.mobile.css';
 
 // Games fetched per page.
-const FETCH_SIZE = 10;
+const FETCH_SIZE = 25;
 
 // How often to poll the background queue for live analysis status (ms).
 const STATUS_POLL_MS = 3000;

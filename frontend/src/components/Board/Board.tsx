@@ -76,62 +76,17 @@ const LEGAL_CAPTURE_RING: CSSProperties = {
   background: 'radial-gradient(circle, transparent 64%, rgba(0,0,0,0.22) 64%)',
 };
 
-// Sizes per arrow rank: [best, 2nd, 3rd, 4th+]
-const ARROW_STROKE_WIDTHS = [0.22, 0.15, 0.10, 0.07] as const;
-const ARROW_ALPHAS = [0.88, 0.68, 0.50, 0.36] as const;
+// Hint / blunder arrow colours (drawn by react-chessboard). The hint arrows are
+// ranked best-first via a decreasing alpha baked into their rgba colour (this
+// multiplies with the board's global arrow opacity).
+const HINT_ARROW_RGB = '59, 130, 246';
+const HINT_ARROW_ALPHAS = [1, 0.78, 0.6, 0.45] as const;
+const BLUNDER_ARROW_COLOR = '#dc2626';
 
-function squareCenter(
-  square: string,
-  orientation: 'white' | 'black',
-): { x: number; y: number } {
-  const file = square.charCodeAt(0) - 97;
-  const rank = parseInt(square[1]) - 1;
-
-  if (orientation === 'white') {
-    return { x: file + 0.5, y: 7.5 - rank };
-  }
-  return { x: 7.5 - file, y: rank + 0.5 };
-}
-
-function buildArrowPaths(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-  sw: number,
-): { shaft: string; head: string } | null {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const len = Math.hypot(dx, dy);
-
-  if (len < 0.01) {
-    return null;
-  }
-
-  const ux = dx / len;
-  const uy = dy / len;
-  const px = -uy;
-  const py = ux;
-
-  const headLen = sw * 2.4;
-  const headHalf = sw * 1.25;
-  const startOff = 0.36;
-
-  const sx = from.x + ux * startOff;
-  const sy = from.y + uy * startOff;
-  const mx = to.x - ux * headLen;
-  const my = to.y - uy * headLen;
-
-  const shaft = `M${sx.toFixed(4)},${sy.toFixed(4)} L${mx.toFixed(4)},${my.toFixed(4)}`;
-
-  const b1x = (mx + px * headHalf).toFixed(4);
-  const b1y = (my + py * headHalf).toFixed(4);
-  const b2x = (mx - px * headHalf).toFixed(4);
-  const b2y = (my - py * headHalf).toFixed(4);
-  const tx = to.x.toFixed(4);
-  const ty = to.y.toFixed(4);
-
-  const head = `M${b1x},${b1y} L${tx},${ty} L${b2x},${b2y} Z`;
-
-  return { shaft, head };
+/** Blue hint colour for the given rank (0 = best). */
+function hintArrowColor(rank: number): string {
+  const alpha = HINT_ARROW_ALPHAS[Math.min(rank, HINT_ARROW_ALPHAS.length - 1)];
+  return `rgba(${HINT_ARROW_RGB}, ${alpha})`;
 }
 
 /** Compute the set of legal target / capture squares for a given source square. */
@@ -447,8 +402,25 @@ function Board({
 
   const introLabel = prevMoveSan ? `↩ ${prevMoveSan}` : '↩ Opponent moved';
 
-  // ── Custom SVG arrows ──────────────────────────────────────────────────────
-  const showCustomArrows = !introActive && (arrowUcis.length > 0 || Boolean(blunderArrowUci));
+  // ── Hint / blunder arrows ──────────────────────────────────────────────────
+  // Rendered by react-chessboard's own arrow layer (clean look + knight L-shape).
+  const overlayArrows: { startSquare: string; endSquare: string; color: string }[] = [];
+  if (!introActive) {
+    const blunderMove = blunderArrowUci && blunderArrowUci.length >= 4 ? blunderArrowUci.slice(0, 4) : undefined;
+
+    arrowUcis.forEach((uci, rank) => {
+      // Never draw a hint over the red blunder arrow — the overlap would tint it
+      // violet and leave a stale blue arrow when hints are toggled off.
+      if (uci.length >= 4 && uci.slice(0, 4) !== blunderMove) {
+        // Rank 0 is the best move — most opaque; lower-ranked moves fade out.
+        overlayArrows.push({ startSquare: uci.slice(0, 2), endSquare: uci.slice(2, 4), color: hintArrowColor(rank) });
+      }
+    });
+
+    if (blunderMove) {
+      overlayArrows.push({ startSquare: blunderMove.slice(0, 2), endSquare: blunderMove.slice(2, 4), color: BLUNDER_ARROW_COLOR });
+    }
+  }
 
   return (
     <div className="board">
@@ -467,82 +439,11 @@ function Board({
           onSquareRightClick: handleSquareRightClick,
           allowDragging: canInteract,
           squareStyles: customSquareStyles,
+          arrows: overlayArrows,
           animationDurationInMs: 500,
           boardStyle: { borderRadius: '6px' },
         }}
       />
-      {showCustomArrows && (
-        <svg
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 30,
-          }}
-          viewBox="0 0 8 8"
-        >
-          {arrowUcis.map((uci, idx) => {
-            if (uci.length < 4) {
-              return null;
-            }
-
-            const fromSq = uci.slice(0, 2);
-            const toSq = uci.slice(2, 4);
-            const from = squareCenter(fromSq, orientation);
-            const to = squareCenter(toSq, orientation);
-
-            const sw = ARROW_STROKE_WIDTHS[Math.min(idx, ARROW_STROKE_WIDTHS.length - 1)];
-            const alpha = ARROW_ALPHAS[Math.min(idx, ARROW_ALPHAS.length - 1)];
-            const color = `rgba(59,130,246,${alpha})`;
-
-            const paths = buildArrowPaths(from, to, sw);
-
-            if (!paths) {
-              return null;
-            }
-
-            return (
-              <g key={`arrow-${uci}-${idx}`}>
-                <path
-                  d={paths.shaft}
-                  stroke={color}
-                  strokeWidth={sw}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <path d={paths.head} fill={color} />
-              </g>
-            );
-          })}
-          {blunderArrowUci && blunderArrowUci.length >= 4 && (() => {
-            const fromSq = blunderArrowUci.slice(0, 2);
-            const toSq = blunderArrowUci.slice(2, 4);
-            const from = squareCenter(fromSq, orientation);
-            const to = squareCenter(toSq, orientation);
-            const sw = ARROW_STROKE_WIDTHS[0];
-            const paths = buildArrowPaths(from, to, sw);
-
-            if (!paths) {
-              return null;
-            }
-
-            return (
-              <g key={`blunder-arrow-${blunderArrowUci}`}>
-                <path
-                  d={paths.shaft}
-                  stroke="rgba(220,38,38,0.88)"
-                  strokeWidth={sw}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <path d={paths.head} fill="rgba(220,38,38,0.88)" />
-              </g>
-            );
-          })()}
-        </svg>
-      )}
     </div>
   );
 }
