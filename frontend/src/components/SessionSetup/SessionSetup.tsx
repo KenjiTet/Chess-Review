@@ -19,6 +19,8 @@ import SeverityInfo from '../SeverityInfo/SeverityInfo';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.png';
 import settingsIcon from '../../assets/settings.svg';
+import linkIcon from '../../assets/link_icon.svg';
+import logoutIcon from '../../assets/logout_icon.svg';
 import blocIconUrl from '../../assets/bloc_icon.svg';
 import inlineIconUrl from '../../assets/inline_icon.svg';
 import './SessionSetup.css';
@@ -310,50 +312,72 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               </span>
             </div>
 
-            {/* Settings / theme button */}
-            {isAdmin ? (
-              <div className="setup__mobile-settings-wrap">
-                <button
-                  className="setup__mobile-settings-btn"
-                  type="button"
-                  onClick={() => setProfileSettingsOpen((v) => !v)}
-                  aria-label="Settings"
-                >
-                  <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
-                </button>
-                {profileSettingsOpen && (
-                  <>
-                    <div
-                      className="setup__mobile-settings-scrim"
-                      onClick={() => setProfileSettingsOpen(false)}
-                    />
-                    <div className="setup__mobile-settings-dropdown">
+            {/* Settings wheel — single entry point for theme, account linking,
+                admin tools and logout, keeping the banner compact */}
+            <div className="setup__mobile-settings-wrap">
+              <button
+                className="setup__mobile-settings-btn"
+                type="button"
+                onClick={() => setProfileSettingsOpen((v) => !v)}
+                aria-label="Settings"
+                aria-expanded={profileSettingsOpen}
+              >
+                <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
+              </button>
+              {profileSettingsOpen && (
+                <>
+                  <div
+                    className="setup__mobile-settings-scrim"
+                    onClick={() => setProfileSettingsOpen(false)}
+                  />
+                  <div className="setup__mobile-settings-dropdown" role="menu">
+                    {/* Theme */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setDarkMode(!darkMode);
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
+                      {darkMode ? 'Switch to light' : 'Switch to dark'}
+                    </button>
+
+                    {/* Link / change linked platform account */}
+                    {isRegisteredAccount && (
                       <button
                         type="button"
+                        role="menuitem"
                         onClick={() => {
-                          setDarkMode(!darkMode);
+                          setShowLinkModal(true);
                           setProfileSettingsOpen(false);
                         }}
                       >
-                        <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
-                        {darkMode ? 'Switch to light' : 'Switch to dark'}
+                        <img src={linkIcon} alt="" className="setup__mobile-dd-img-ic" />
+                        Link account
                       </button>
+                    )}
 
-                      {onAdminToggle && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onAdminToggle();
-                            setProfileSettingsOpen(false);
-                          }}
-                        >
-                          <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
-                          {adminView ? 'Exit admin' : 'Admin panel'}
-                        </button>
-                      )}
-
+                    {/* Admin-only tools */}
+                    {isAdmin && onAdminToggle && (
                       <button
                         type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onAdminToggle();
+                          setProfileSettingsOpen(false);
+                        }}
+                      >
+                        <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
+                        {adminView ? 'Exit admin' : 'Admin panel'}
+                      </button>
+                    )}
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        role="menuitem"
                         onClick={() => {
                           toggleMobileOverride();
                           setProfileSettingsOpen(false);
@@ -362,41 +386,26 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                         <span className="setup__mobile-dd-ic">{mobileOverride ? '🖥' : '📱'}</span>
                         {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
                       </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <button
-                className="setup__mobile-settings-btn setup__theme-btn"
-                type="button"
-                onClick={() => setDarkMode(!darkMode)}
-                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                <span className="setup__mobile-theme-ic">
-                  {darkMode ? <SunIcon /> : <MoonIcon />}
-                </span>
-              </button>
-            )}
+                    )}
 
-            {/* Link account — registered accounts only, inline after the settings button */}
-            {isRegisteredAccount && (
-              <button
-                className="setup__mobile-logout-btn"
-                type="button"
-                onClick={() => setShowLinkModal(true)}
-              >
-                Link account
-              </button>
-            )}
-
-            <button
-              className="setup__mobile-logout-btn"
-              type="button"
-              onClick={handleLogout}
-            >
-              Log out
-            </button>
+                    {/* Logout — separated as a destructive action */}
+                    <div className="setup__mobile-dd-divider" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="setup__mobile-dd-danger"
+                      onClick={() => {
+                        handleLogout();
+                        setProfileSettingsOpen(false);
+                      }}
+                    >
+                      <img src={logoutIcon} alt="" className="setup__mobile-dd-img-ic setup__mobile-dd-img-ic--danger" />
+                      Log out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* ELO strip */}
