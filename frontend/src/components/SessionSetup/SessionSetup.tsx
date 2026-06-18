@@ -11,6 +11,7 @@ import CategoryFilter from '../CategoryFilter/CategoryFilter';
 import { ALL_CATEGORY_KEYS } from '../../constants/blunderCategories';
 import ProfileBand from './ProfileBand';
 import LinkAccountModal from './LinkAccountModal';
+import UserStats from '../UserStats/UserStats';
 import type { GameHistoryEntry } from '../../api/client.ts';
 import { useMenuStats } from '../../hooks/useMenuStats';
 import type { FavoritePosition } from '../../hooks/useFavorites';
@@ -191,6 +192,16 @@ function StarIconSvg(): JSX.Element {
   );
 }
 
+function StatsIconSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface SessionSetupProps {
@@ -224,6 +235,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
+  // Whether the full User Stats dashboard overlay is open (shared by both layouts).
+  const [showStats, setShowStats] = useState<boolean>(false);
   // Blunder-category filter — all categories selected and clean games shown by default.
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(loadSelectedCategories);
   const [showCleanGames, setShowCleanGames] = useState<boolean>(() => loadShowToggle(SHOW_CLEAN_KEY));
@@ -383,6 +396,24 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
   function handleLogout(): void {
     logout();
+  }
+
+  // ── View switching ──────────────────────────────────────────────────────
+  // The "Showing" toggle is tri-state (Recent / Saved / Stats); these keep the
+  // two booleans mutually exclusive so only one panel renders at a time.
+  function showRecentView(): void {
+    setShowFavorites(false);
+    setShowStats(false);
+  }
+
+  function showSavedView(): void {
+    setShowFavorites(true);
+    setShowStats(false);
+  }
+
+  function showStatsView(): void {
+    setShowFavorites(false);
+    setShowStats(true);
   }
 
   // ── Mobile layout ─────────────────────────────────────────────────────────
@@ -605,8 +636,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         <div className="setup__mobile-body">
           <div className="setup__mobile-games-panel">
             <div className="setup__mobile-section">
-              {/* Left side — controls (Recent) or layout toggle (Saved) */}
-              {!showFavorites ? (
+              {/* Left side — controls (Recent), layout toggle (Saved), or nothing (Stats) */}
+              {!showFavorites && !showStats && (
                 <>
                   <div className="setup__mobile-field setup__mobile-field--tc">
                     <span className="setup__mobile-label">Time Control</span>
@@ -621,7 +652,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   </div>
                   {renderFilterButton('setup__filterbtn--mobile')}
                 </>
-              ) : (
+              )}
+
+              {showFavorites && (
                 <div className="setup__mobile-field setup__mobile-field--grow">
                   <span className="setup__mobile-label">Layout</span>
                   <div className="setup__seg setup__seg--mobile setup__seg--layout">
@@ -645,14 +678,14 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 </div>
               )}
 
-              {/* Right side — Recent/Saved icon-only tabs */}
+              {/* Right side — Recent/Saved/Stats icon-only tabs */}
               <div className="setup__mobile-field setup__mobile-field--tabs">
                 <span className="setup__mobile-label">Showing</span>
                 <div className="setup__seg setup__seg--mobile setup__seg--tabs">
                   <button
                     type="button"
-                    className={`setup__seg-btn${!showFavorites ? ' setup__seg-btn--on' : ''}`}
-                    onClick={() => setShowFavorites(false)}
+                    className={`setup__seg-btn${!showFavorites && !showStats ? ' setup__seg-btn--on' : ''}`}
+                    onClick={showRecentView}
                     aria-label="Recent games"
                   >
                     <ListIconSvg />
@@ -660,40 +693,56 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   <button
                     type="button"
                     className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
-                    onClick={() => setShowFavorites(true)}
+                    onClick={showSavedView}
                     aria-label="Saved positions"
                   >
                     <StarIconSvg />
+                  </button>
+                  <button
+                    type="button"
+                    className={`setup__seg-btn${showStats ? ' setup__seg-btn--on' : ''}`}
+                    onClick={showStatsView}
+                    aria-label="User stats"
+                  >
+                    <StatsIconSvg />
                   </button>
                 </div>
               </div>
             </div>
 
-            {showFavorites ? (
+            {showStats && (
+              playerUsername && (
+                <div className="setup__mobile-stats-wrap">
+                  <UserStats handle={playerUsername} platform={platform ?? 'chesscom'} />
+                </div>
+              )
+            )}
+
+            {showFavorites && (
               <div className="setup__mobile-favorites-wrap">
                 <Favorites onOpen={handleOpenFavorite} layout={favLayout} />
               </div>
-            ) : (
-              playerUsername && (
-                <>
-                  {renderFilterPanel(true)}
-                  <GameHistory
-                    username={playerUsername}
-                    timeClass={timeClass}
-                    isGuest={isGuest}
-                    platform={platform ?? 'chesscom'}
-                    threshold={threshold}
-                    isMobile
-                    selectedCategories={selectedCategories}
-                    showCleanGames={showCleanGames}
-                    showReviewedGames={showReviewedGames}
-                    showAnalysedGames={showAnalysedGames}
-                    onTrainGame={handleTrainGame}
-                    onGamesLoaded={handleGamesLoaded}
-                    onAnalysisComplete={refreshStats}
-                  />
-                </>
-              )
+            )}
+
+            {!showFavorites && !showStats && playerUsername && (
+              <>
+                {renderFilterPanel(true)}
+                <GameHistory
+                  username={playerUsername}
+                  timeClass={timeClass}
+                  isGuest={isGuest}
+                  platform={platform ?? 'chesscom'}
+                  threshold={threshold}
+                  isMobile
+                  selectedCategories={selectedCategories}
+                  showCleanGames={showCleanGames}
+                  showReviewedGames={showReviewedGames}
+                  showAnalysedGames={showAnalysedGames}
+                  onTrainGame={handleTrainGame}
+                  onGamesLoaded={handleGamesLoaded}
+                  onAnalysisComplete={refreshStats}
+                />
+              </>
             )}
           </div>
         </div>
@@ -815,7 +864,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* ── Toolbar ── */}
         <div className="setup__toolbar">
-          {!showFavorites && (
+          {!showFavorites && !showStats && (
             <>
               <div className="setup__field">
                 <label className="setup__label">Time Control</label>
@@ -863,8 +912,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
             <div className="setup__seg setup__seg--tabs">
               <button
                 type="button"
-                className={`setup__seg-btn${!showFavorites ? ' setup__seg-btn--on' : ''}`}
-                onClick={() => setShowFavorites(false)}
+                className={`setup__seg-btn${!showFavorites && !showStats ? ' setup__seg-btn--on' : ''}`}
+                onClick={showRecentView}
               >
                 <ListIconSvg />
                 Recent games
@@ -872,17 +921,25 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               <button
                 type="button"
                 className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
-                onClick={() => setShowFavorites(true)}
+                onClick={showSavedView}
               >
                 <StarIconSvg />
                 Saved
+              </button>
+              <button
+                type="button"
+                className={`setup__seg-btn${showStats ? ' setup__seg-btn--on' : ''}`}
+                onClick={showStatsView}
+              >
+                <StatsIconSvg />
+                Stats
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Table area ── */}
-        {!showFavorites && (
+        {/* ── Table area (Recent games) ── */}
+        {!showFavorites && !showStats && (
           <div className="setup__tablewrap">
             {playerUsername && (
               <>
@@ -903,6 +960,13 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 />
               </>
             )}
+          </div>
+        )}
+
+        {/* ── Stats panel ── */}
+        {showStats && playerUsername && (
+          <div className="setup__tablewrap">
+            <UserStats handle={playerUsername} platform={platform ?? 'chesscom'} />
           </div>
         )}
 

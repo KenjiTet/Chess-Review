@@ -476,6 +476,74 @@ export function fetchUserStats(timeClass: string, threshold: number, handle: str
   return fetchJson<UserStats>(`${BASE_URL}/api/user/stats?${params}`);
 }
 
+// ── Full user stats dashboard ────────────────────────────────────────────────
+
+export interface RatingRecord {
+  current: number | null;
+  peak: number | null;
+  peak_date: number | null;
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface AccountStats {
+  joined_year: number | null;
+  avatar: string | null;
+  country: string | null;
+  followers: number | null;
+  league: string | null;
+  name: string | null;
+  title: string | null;
+  /** Per-time-class ratings + records keyed by "rapid"/"blitz"/"bullet"/"daily". */
+  ratings: Record<string, RatingRecord>;
+  total_games: number;
+  overall_win_rate: number | null;
+}
+
+export interface TrainingStats {
+  games_analysed: number;
+  games_analysed_by_class: Record<string, number>;
+  total_blunders: number;
+  avg_blunders: number | null;
+  avg_blunders_by_class: Record<string, number>;
+  wins: number;
+  draws: number;
+  losses: number;
+  win_rate: number | null;
+  clean_games: number;
+  most_blunders_in_game: number;
+  /** Analysed-games trend keyed by month (YYYY-MM). */
+  analysed_by_month: Record<string, number>;
+}
+
+export interface EngagementStats {
+  games_reviewed: number;
+  positions_drilled: number;
+  review_coverage: number | null;
+  drill_rate: number | null;
+  current_review_streak: number;
+  longest_review_streak: number;
+}
+
+export interface UserFullStats {
+  account: AccountStats;
+  training: TrainingStats;
+  engagement: EngagementStats;
+  /** Count of the player's own blunders per category key. */
+  blunder_types: Record<string, number>;
+  phases: Record<string, number>;
+  colors: Record<string, number>;
+  severity: Record<string, number>;
+  avg_cp_loss: number | null;
+}
+
+/** Fetch the full stats dashboard for the authenticated account + linked handle. */
+export function fetchUserStatsFull(handle: string, platform: string = 'chesscom'): Promise<UserFullStats> {
+  const params = new URLSearchParams({ handle, platform });
+  return fetchJson<UserFullStats>(`${BASE_URL}/api/user/stats/full?${params}`);
+}
+
 export interface UserAnalysisStatus {
   /** Current queue phase: "idle" | "backfill" | "poll". */
   mode: string;

@@ -133,24 +133,27 @@ function ProfileBand({
         )}
       </div>
 
-      {/* Stats — rendered from the shared stat list (same set as mobile). */}
-      <div className="profile-band__stats">
-        {statItems.map((item, index) => {
-          const isFirst = index === 0;
+      {/* Stats block — the 3 shared stats grouped inside one border. The full
+          stats dashboard is opened from the "Showing" toggle, not from here. */}
+      <div className="profile-band__statsblock">
+        <div className="profile-band__stats">
+          {statItems.map((item, index) => {
+            const isFirst = index === 0;
 
-          return (
-            <div className="profile-band__stat" key={`profile-stat-${item.key}-${index}`}>
-              <span className={`profile-band__stat-num${isFirst ? '' : ' profile-band__stat-num--alt'}`}>
-                {item.value}
-              </span>
-              <span className="profile-band__stat-lbl">
-                {item.label}
-                <br />
-                {item.sublabel}
-              </span>
-            </div>
-          );
-        })}
+            return (
+              <div className="profile-band__stat" key={`profile-stat-${item.key}-${index}`}>
+                <span className={`profile-band__stat-num${isFirst ? '' : ' profile-band__stat-num--alt'}`}>
+                  {item.value}
+                </span>
+                <span className="profile-band__stat-lbl">
+                  {item.label}
+                  <br />
+                  {item.sublabel}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

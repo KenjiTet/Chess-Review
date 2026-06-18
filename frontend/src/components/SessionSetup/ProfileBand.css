@@ -151,10 +151,23 @@
 
 /* ── Stats ───────────────────────────────────────────────────────── */
 
+/* Bordered block grouping the 3 stats and the "See more stats" button so they
+   read as a single card. */
+.profile-band__statsblock {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
 .profile-band__stats {
   display: flex;
   gap: 0;
   flex-shrink: 0;
+  padding: 12px 6px;
 }
 
 .profile-band__stat {

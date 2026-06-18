@@ -193,6 +193,73 @@ class UserStatsResponse(BaseModel):
     blunders_drilled: int = 0
 
 
+class RatingRecord(BaseModel):
+    """Per-time-class rating snapshot and W/L/D record from the platform API."""
+    current: int | None = None
+    peak: int | None = None
+    peak_date: int | None = None
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
+
+
+class AccountStats(BaseModel):
+    """Section A — platform profile / ratings, covering all played games."""
+    joined_year: int | None = None
+    avatar: str | None = None
+    country: str | None = None
+    followers: int | None = None
+    league: str | None = None
+    name: str | None = None
+    title: str | None = None
+    # Per-time-class ratings + records, keyed by "rapid"/"blitz"/"bullet"/"daily".
+    ratings: dict[str, RatingRecord] = {}
+    # Total rated games and overall win rate across all classes (from records).
+    total_games: int = 0
+    overall_win_rate: float | None = None
+
+
+class TrainingStats(BaseModel):
+    """Section B — training activity derived from analysed games."""
+    games_analysed: int = 0
+    games_analysed_by_class: dict[str, int] = {}
+    total_blunders: int = 0
+    avg_blunders: float | None = None
+    avg_blunders_by_class: dict[str, float] = {}
+    wins: int = 0
+    draws: int = 0
+    losses: int = 0
+    win_rate: float | None = None
+    clean_games: int = 0
+    most_blunders_in_game: int = 0
+    # Analysed-games trend keyed by month (YYYY-MM).
+    analysed_by_month: dict[str, int] = {}
+
+
+class EngagementStats(BaseModel):
+    """Section C — review / drill engagement."""
+    games_reviewed: int = 0
+    positions_drilled: int = 0
+    review_coverage: float | None = None
+    drill_rate: float | None = None
+    current_review_streak: int = 0
+    longest_review_streak: int = 0
+
+
+class UserFullStatsResponse(BaseModel):
+    """Full user-stats dashboard payload (sections A–E of the catalogue)."""
+    account: AccountStats = AccountStats()
+    training: TrainingStats = TrainingStats()
+    engagement: EngagementStats = EngagementStats()
+    # Section D — count of the player's own blunders per category key.
+    blunder_types: dict[str, int] = {}
+    # Section E — move-level breakdowns.
+    phases: dict[str, int] = {}
+    colors: dict[str, int] = {}
+    severity: dict[str, int] = {}
+    avg_cp_loss: float | None = None
+
+
 class UserAnalysisStatusResponse(BaseModel):
     """Live background-queue analysis state for the authenticated account."""
     # Current queue phase: "idle" | "backfill" | "poll".

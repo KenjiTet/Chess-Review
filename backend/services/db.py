@@ -75,6 +75,22 @@ def init_db() -> None:
             )
         """)
 
+        # Per-(account, handle) cached snapshot of the full user-stats dashboard.
+        # The heavy move-level aggregation is expensive to recompute on every open,
+        # so we store a JSON payload alongside a content signature; the stats route
+        # recomputes only when the signature (derived from the analysed/reviewed
+        # tables) changes.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_stats_cache (
+                username_lower TEXT NOT NULL,
+                handle         TEXT NOT NULL,
+                signature      TEXT NOT NULL,
+                payload        TEXT NOT NULL,
+                computed_at    TEXT NOT NULL,
+                PRIMARY KEY (username_lower, handle)
+            )
+        """)
+
         # Forward migration: link columns were added after the users table shipped.
         # CREATE TABLE IF NOT EXISTS won't alter an existing table, so add them here.
         _add_users_link_columns(conn)

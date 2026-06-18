@@ -1,0 +1,280 @@
+/* User Stats dashboard — inline panel rendered inside the menu's table area.
+   Two-level card hierarchy for readability: tinted section cards on the white
+   surface, with solid surface sub-cards (tiles / rows) nested inside them. */
+
+.ustat {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 4px 2px 8px;
+}
+
+.ustat__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.ustat__state {
+  padding: 3rem 1.4rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ── Section cards ── */
+.ustat__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  /* Tinted card so each section reads as a distinct block on the surface. */
+  background: color-mix(in srgb, var(--bg) 55%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.95rem 1.05rem 1.1rem;
+}
+
+.ustat__section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ustat__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.ustat__section--col {
+  min-width: 0;
+}
+
+/* ── Stat tiles ── */
+.ustat__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 0.55rem;
+}
+
+.ustat__tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ustat__tile-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.ustat__tile-val--gold {
+  color: var(--gold-dark);
+}
+
+.ustat__tile-lbl {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* ── Ratings grid ── */
+.ustat__ratings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 0.6rem;
+}
+
+.ustat__rating-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ustat__rating-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ustat__rating-tc {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ustat__rating-num {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ustat__rating-peak {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ustat__rating-wld {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ustat__wld-w { color: var(--success); }
+.ustat__wld-d { color: var(--muted); }
+.ustat__wld-l { color: var(--error); }
+
+.ustat__rating-rate {
+  font-size: 0.66rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ── Bars (type / phase / colour / severity) ── */
+.ustat__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ustat__bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 64px;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ustat__bar-lbl {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ustat__bar-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ustat__bar-track {
+  height: 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ustat__bar-track--thin {
+  height: 6px;
+}
+
+.ustat__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.ustat__bar-val {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.ustat__bar-pct {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── Per-class table ── */
+.ustat__class-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ustat__class-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 0.78rem;
+}
+
+.ustat__class-tc {
+  font-weight: 800;
+  color: var(--text-h);
+}
+
+.ustat__class-metrics {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ustat__class-meta {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.7rem;
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .ustat__cols {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .ustat__bar-row {
+    grid-template-columns: 96px 1fr 58px;
+    gap: 0.45rem;
+  }
+
+  .ustat__bar-lbl {
+    font-size: 0.72rem;
+  }
+}

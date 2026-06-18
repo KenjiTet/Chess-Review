@@ -5,7 +5,14 @@ from datetime import datetime, timezone
 import requests as req_lib
 from fastapi import APIRouter, Depends, HTTPException
 
-from models import UserAnalysisStatusResponse, UserProfileResponse, UserStatsResponse
+from models import (
+    AccountStats,
+    RatingRecord,
+    UserAnalysisStatusResponse,
+    UserFullStatsResponse,
+    UserProfileResponse,
+    UserStatsResponse,
+)
 from services.analysis_queue import get_user_queue_status
 from services.analysis_store import CANONICAL_THRESHOLD
 from services.cache import get_cached_game
@@ -13,7 +20,16 @@ from services.chess_com import get_player_profile as chesscom_get_profile
 from services.chess_com import get_player_stats as chesscom_get_stats
 from services.db import get_connection
 from services.jwt_service import get_current_user
+from services.stats_aggregate import get_full_stats
 from services.stockfish import find_blunders
+
+# Chess.com stats keys for the time classes we surface, mapped to our short keys.
+_CHESSCOM_RATING_KEYS: dict[str, str] = {
+    "chess_rapid": "rapid",
+    "chess_blitz": "blitz",
+    "chess_bullet": "bullet",
+    "chess_daily": "daily",
+}
 
 router = APIRouter()
 
@@ -154,6 +170,127 @@ def user_stats(
         games_analysed=games_analysed,
         avg_blunders=avg_blunders,
         blunders_drilled=drilled["total"] or 0,
+    )
+
+
+def _country_code(country_url: str | None) -> str | None:
+    """Extract the 2-letter country code from a Chess.com country URL.
+
+    Chess.com returns country as a URL like ".../pub/country/US"; we keep only the
+    trailing code for display.
+
+    Args:
+        country_url: The raw country URL from the profile, or None.
+    """
+    if not country_url:
+        return None
+
+    return country_url.rstrip("/").rsplit("/", 1)[-1]
+
+
+def _build_account_stats(handle: str) -> AccountStats:
+    """Build section A (platform ratings/records) from the Chess.com API.
+
+    Covers all played games (not just the analysed subset). Returns an empty
+    AccountStats when the platform lookup fails so the dashboard still renders the
+    analysis-derived sections.
+
+    Args:
+        handle: The linked Chess.com handle to fetch.
+    """
+    try:
+        profile: dict = chesscom_get_profile(handle)
+        stats: dict = chesscom_get_stats(handle)
+    except (ValueError, req_lib.RequestException):
+        # Platform unreachable / unknown handle — degrade gracefully to empty.
+        return AccountStats()
+
+    joined_year: int | None = None
+    joined_ts: int | None = profile.get("joined")
+
+    if joined_ts is not None:
+        joined_year = datetime.fromtimestamp(joined_ts, tz=timezone.utc).year
+
+    ratings: dict[str, RatingRecord] = {}
+    total_games: int = 0
+    total_wins: int = 0
+
+    for api_key, short_key in _CHESSCOM_RATING_KEYS.items():
+        block: dict = stats.get(api_key, {})
+
+        if not block:
+            continue
+
+        record: dict = block.get("record", {})
+        wins: int = record.get("win", 0)
+        losses: int = record.get("loss", 0)
+        draws: int = record.get("draw", 0)
+
+        ratings[short_key] = RatingRecord(
+            current=block.get("last", {}).get("rating"),
+            peak=block.get("best", {}).get("rating"),
+            peak_date=block.get("best", {}).get("date"),
+            wins=wins,
+            losses=losses,
+            draws=draws,
+        )
+
+        total_games += wins + losses + draws
+        total_wins += wins
+
+    overall_win_rate: float | None = None
+
+    if total_games > 0:
+        overall_win_rate = total_wins / total_games * 100
+
+    return AccountStats(
+        joined_year=joined_year,
+        avatar=profile.get("avatar"),
+        country=_country_code(profile.get("country")),
+        followers=profile.get("followers"),
+        league=profile.get("league"),
+        name=profile.get("name"),
+        title=profile.get("title"),
+        ratings=ratings,
+        total_games=total_games,
+        overall_win_rate=overall_win_rate,
+    )
+
+
+@router.get("/stats/full")
+def user_stats_full(
+    handle: str,
+    platform: str = "chesscom",
+    user: dict = Depends(get_current_user),
+) -> UserFullStatsResponse:
+    """Return the full stats dashboard for the authenticated account + linked handle.
+
+    Merges live platform ratings/records (section A, all played games) with the
+    cached analysis-derived aggregate (sections B–E, the analysed subset). The
+    heavy aggregate is recomputed only when its content signature changes.
+
+    Args (query params):
+        handle: Linked platform username the analysed stats are scoped to.
+        platform: "chesscom" or "lichess" (only chesscom provides section A).
+        user: Injected JWT payload from the Authorization header.
+    """
+    username_lower: str = user["sub"].lower()
+    aggregate: dict = get_full_stats(username_lower, handle.lower())
+
+    if platform == "chesscom":
+        account: AccountStats = _build_account_stats(handle)
+    else:
+        account = AccountStats()
+
+    return UserFullStatsResponse(
+        account=account,
+        training=aggregate["training"],
+        engagement=aggregate["engagement"],
+        blunder_types=aggregate["blunder_types"],
+        phases=aggregate["phases"],
+        colors=aggregate["colors"],
+        severity=aggregate["severity"],
+        avg_cp_loss=aggregate["avg_cp_loss"],
     )
 
 

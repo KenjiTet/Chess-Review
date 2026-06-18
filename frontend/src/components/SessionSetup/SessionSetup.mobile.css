@@ -500,6 +500,14 @@
   padding: 8px;
 }
 
+/* Inline User Stats panel on the mobile Stats tab */
+.setup__mobile-stats-wrap {
+  flex: 1;
+  min-height: 200px;
+  padding: 8px;
+  overflow-y: auto;
+}
+
 /* ── Layout card (replaces the TC/Sensitivity card on Saved tab) ─────────── */
 
 .setup__mobile-card--layout {
@@ -532,9 +540,11 @@
   min-width: 0;
 }
 
-/* Time Control grows to fill the remaining space on the Recent tab */
+/* Time Control is narrowed so the 3-tab "Showing" toggle (Recent/Saved/Stats)
+   fits on the same row without overflowing. */
 .setup__mobile-field--tc {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  max-width: 100px;
 }
 
 /* Layout field grows to fill the space freed by the fixed-width tabs */
@@ -568,9 +578,9 @@
   padding: 0;
 }
 
-/* Recent/Saved tabs keep the same fixed width on both tabs */
+/* Recent/Saved/Stats tabs — widened to hold the third tab. */
 .setup__mobile-field--tabs .setup__seg--tabs {
-  width: 84px;
+  width: 120px;
 }
 
 /* Layout toggle fills its growing field */
