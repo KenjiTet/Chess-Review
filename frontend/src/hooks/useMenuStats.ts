@@ -136,6 +136,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
     }
 
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: show the loading state while the profile fetch runs
     setRatingsLoading(true);
 
     async function load(): Promise<void> {
@@ -190,6 +191,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
 
   // Re-fetch whenever the inputs change (time class switch, login, etc.).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: refresh DB-derived stats when inputs change
     refreshStats();
   }, [refreshStats]);
 

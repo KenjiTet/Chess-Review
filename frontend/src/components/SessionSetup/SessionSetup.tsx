@@ -213,8 +213,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const platform = useAuth((s) => s.platform);
   const logout = useAuth((s) => s.logout);
   const getPlatformUsername = useAuth((s) => s.getPlatformUsername);
-  const chesscomUsername = useAuth((s) => s.chesscomUsername);
-  const lichessUsername = useAuth((s) => s.lichessUsername);
 
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
@@ -259,8 +257,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const username = authUsername ?? '';
   // Account username drives display; the linked platform handle drives game/profile fetches.
   const playerUsername = getPlatformUsername(platform ?? 'chesscom') ?? '';
-  // A registered account always has at least one linked handle; guests have none.
-  const isAccount = chesscomUsername !== undefined || lichessUsername !== undefined;
   // Any logged-in, non-guest account can link/relink a platform handle — even
   // when none is linked yet (those accounts need the option most).
   const isRegisteredAccount = !isGuest && authUsername !== undefined;

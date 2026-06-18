@@ -79,7 +79,6 @@ function App(): JSX.Element {
       clean.searchParams.delete('share');
       window.history.replaceState(null, '', clean.toString());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // On first mount, reload user-namespaced stores if a session was already stored.
@@ -126,7 +125,6 @@ function App(): JSX.Element {
       bestMoves: payload.best_moves,
       evalScore: payload.eval_before_white_pov,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   useEffect(() => {

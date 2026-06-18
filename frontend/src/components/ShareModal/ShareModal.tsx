@@ -20,6 +20,7 @@ function ShareModal({ isOpen, url, classification, blunderDescription, onClose }
 
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset the copied flag when the modal closes
       setCopied(false);
       return undefined;
     }

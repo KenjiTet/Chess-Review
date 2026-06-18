@@ -157,6 +157,7 @@ function Board({
   // Clear selected square and any right-click markers whenever the board
   // position changes (after each move) so highlights don't linger.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: clear stale highlights/markers when the position changes
     setSelectedSquare(null);
     setMarkedSquares(new Set());
   }, [fen]);

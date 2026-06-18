@@ -28,6 +28,7 @@ function SaveFavoriteModal({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: clear the note each time the modal opens
     setNote('');
     const timer = setTimeout(() => {
       textareaRef.current?.focus();
