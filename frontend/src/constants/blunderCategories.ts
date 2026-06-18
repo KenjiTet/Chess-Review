@@ -18,6 +18,8 @@ export interface BlunderCategory {
   border: string;
   /** Short phrase describing the mistake, used in the trainer prompt banner. */
   prompt: string;
+  /** Terse gerund phrase used in the compact (mobile) banner, e.g. "missing a gain". */
+  shortPrompt: string;
 }
 
 /** Ordered list of the filterable / displayable categories. */
@@ -29,6 +31,7 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
     bg: 'rgba(168, 85, 247, 0.12)',
     border: 'rgba(168, 85, 247, 0.35)',
     prompt: 'you missed a forced checkmate',
+    shortPrompt: 'missing a forced mate',
   },
   {
     key: 'allowed_mate',
@@ -37,6 +40,7 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
     bg: 'rgba(239, 68, 68, 0.12)',
     border: 'rgba(239, 68, 68, 0.35)',
     prompt: 'you allowed a forced checkmate',
+    shortPrompt: 'allowing a forced mate',
   },
   {
     key: 'material_loss',
@@ -45,6 +49,7 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
     bg: 'rgba(249, 115, 22, 0.12)',
     border: 'rgba(249, 115, 22, 0.35)',
     prompt: 'you lost material',
+    shortPrompt: 'hanging material',
   },
   {
     key: 'missed_gain',
@@ -53,6 +58,7 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
     bg: 'rgba(59, 130, 246, 0.12)',
     border: 'rgba(59, 130, 246, 0.35)',
     prompt: 'you missed a chance to win material',
+    shortPrompt: 'missing a gain',
   },
 ];
 
@@ -64,6 +70,7 @@ export const UNCATEGORIZED_CATEGORY: BlunderCategory = {
   bg: 'rgba(148, 163, 184, 0.12)',
   border: 'rgba(148, 163, 184, 0.35)',
   prompt: 'you blundered',
+  shortPrompt: 'blundering',
 };
 
 /** Lookup map by key, including the uncategorized fallback. */

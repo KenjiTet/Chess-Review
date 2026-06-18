@@ -94,7 +94,7 @@ function MagnifierSvg(): JSX.Element {
 
 // ── Blunder cell ───────────────────────────────────────────────────────────
 
-function BlunderCell({ blunderCount, onShowBreakdown }: { blunderCount: number | null; onShowBreakdown: () => void }): JSX.Element {
+function BlunderCell({ blunderCount, onShowBreakdown }: { blunderCount: number | null; onShowBreakdown: (anchor: HTMLElement) => void }): JSX.Element {
   if (blunderCount === null) {
     return <span className="history__dash">—</span>;
   }
@@ -110,7 +110,7 @@ function BlunderCell({ blunderCount, onShowBreakdown }: { blunderCount: number |
     <button
       type="button"
       className={`history__blunders history__blunders--${cls} history__blunders--clickable`}
-      onClick={onShowBreakdown}
+      onClick={(e) => onShowBreakdown(e.currentTarget)}
       title="Show blunder breakdown"
     >
       <AlertTriangleSvg />
@@ -193,7 +193,7 @@ function GameRow({
   isAnalysing: boolean;
   onTrain: () => void;
   onAnalyse: () => void;
-  onShowBreakdown: () => void;
+  onShowBreakdown: (anchor: HTMLElement) => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
 
@@ -282,11 +282,9 @@ function GameCard({
   isAnalysing: boolean;
   onTrain: () => void;
   onAnalyse: () => void;
-  onShowBreakdown: () => void;
+  onShowBreakdown: (anchor: HTMLElement) => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
-
-  const isTappable = game.blunder_count !== null && game.blunder_count > 0;
 
   const resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw';
   const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
@@ -297,13 +295,6 @@ function GameCard({
     : blunderCount !== null && blunderCount >= 2
       ? 'mid'
       : 'low';
-
-  function handleClick(): void {
-    if (!isTappable) {
-      return;
-    }
-    onTrain();
-  }
 
   function formatAcc(val: number | null | undefined): string {
     if (val !== null && val !== undefined) {
@@ -357,7 +348,7 @@ function GameCard({
           className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls} game-card__istat--clickable`}
           onClick={(e) => {
             e.stopPropagation();
-            onShowBreakdown();
+            onShowBreakdown(e.currentTarget);
           }}
           title="Show blunder breakdown"
         >
@@ -424,15 +415,7 @@ function GameCard({
 
   return (
     <div
-      className={`game-card${isTappable ? ' game-card--tappable' : ''}${isReviewed && blunderCount !== null && blunderCount > 0 ? ' game-card--reviewed' : ''}`}
-      onClick={handleClick}
-      role={isTappable ? 'button' : undefined}
-      tabIndex={isTappable ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          handleClick();
-        }
-      }}
+      className={`game-card${isReviewed && blunderCount !== null && blunderCount > 0 ? ' game-card--reviewed' : ''}`}
     >
       <div className="game-card__tc-col">
         <span className="game-card__date">{formatDateShort(game.date)}</span>
@@ -495,8 +478,10 @@ function GameHistory({
   const isReviewedFn = useReviewed((s) => s.isReviewed);
 
   const [displayedGames, setDisplayedGames] = useState<GameHistoryEntry[]>([]);
-  /** Game whose blunder breakdown modal is open, if any. */
+  /** Game whose blunder breakdown popover is open, if any. */
   const [breakdownGame, setBreakdownGame] = useState<GameHistoryEntry | undefined>(undefined);
+  /** Element the breakdown popover anchors to (the clicked blunder count). */
+  const [breakdownAnchor, setBreakdownAnchor] = useState<HTMLElement | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -945,7 +930,10 @@ function GameHistory({
                 isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
                 onAnalyse={() => void handleAnalyse(game.url)}
-                onShowBreakdown={() => setBreakdownGame(game)}
+                onShowBreakdown={(anchor) => {
+                  setBreakdownGame(game);
+                  setBreakdownAnchor(anchor);
+                }}
               />
             ))}
 
@@ -959,10 +947,14 @@ function GameHistory({
 
         <BlunderCountModal
           isOpen={breakdownGame !== undefined}
+          anchor={breakdownAnchor}
           total={breakdownGame?.blunder_count ?? 0}
           categories={breakdownGame?.blunder_categories ?? {}}
           selectedCategories={selectedCategories}
-          onClose={() => setBreakdownGame(undefined)}
+          onClose={() => {
+            setBreakdownGame(undefined);
+            setBreakdownAnchor(undefined);
+          }}
         />
       </div>
     );
@@ -999,7 +991,10 @@ function GameHistory({
                 isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
                 onAnalyse={() => void handleAnalyse(game.url)}
-                onShowBreakdown={() => setBreakdownGame(game)}
+                onShowBreakdown={(anchor) => {
+                  setBreakdownGame(game);
+                  setBreakdownAnchor(anchor);
+                }}
               />
             ))}
 
@@ -1014,9 +1009,14 @@ function GameHistory({
 
       <BlunderCountModal
         isOpen={breakdownGame !== undefined}
+        anchor={breakdownAnchor}
         total={breakdownGame?.blunder_count ?? 0}
         categories={breakdownGame?.blunder_categories ?? {}}
-        onClose={() => setBreakdownGame(undefined)}
+        selectedCategories={selectedCategories}
+        onClose={() => {
+          setBreakdownGame(undefined);
+          setBreakdownAnchor(undefined);
+        }}
       />
     </div>
   );

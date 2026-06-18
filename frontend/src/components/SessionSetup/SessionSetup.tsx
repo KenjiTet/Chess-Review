@@ -351,7 +351,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         aria-label="Filter games by blunder type"
       >
         <FilterIconSvg />
-        <span className="setup__filterbtn-label">Filter</span>
         {filterActive && <span className="setup__filterbtn-dot" />}
       </button>
     );
@@ -361,6 +360,24 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     return (
       <div className={`setup__filterpanel${filterOpen ? ' setup__filterpanel--open' : ''}`}>
         <div className="setup__filterpanel-inner">
+          {/* On mobile the Time Control + Severity pickers live inside the filter
+              panel rather than the cramped section row above it. */}
+          {mobile && (
+            <div className="setup__mobile-filtercontrols">
+              <div className="setup__mobile-field setup__mobile-field--tc">
+                <span className="setup__mobile-label">Time Control</span>
+                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+              </div>
+              <div className="setup__mobile-field setup__mobile-field--sev">
+                <span className="setup__mobile-label setup__mobile-label--row">
+                  Severity
+                  <SeverityInfo />
+                </span>
+                <ThresholdPicker value={threshold} onChange={setThreshold} />
+              </div>
+            </div>
+          )}
+
           <CategoryFilter
             selected={selectedCategories}
             onToggle={handleToggleCategory}
@@ -636,49 +653,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         <div className="setup__mobile-body">
           <div className="setup__mobile-games-panel">
             <div className="setup__mobile-section">
-              {/* Left side — controls (Recent), layout toggle (Saved), or nothing (Stats) */}
-              {!showFavorites && !showStats && (
-                <>
-                  <div className="setup__mobile-field setup__mobile-field--tc">
-                    <span className="setup__mobile-label">Time Control</span>
-                    <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
-                  </div>
-                  <div className="setup__mobile-field">
-                    <span className="setup__mobile-label setup__mobile-label--row">
-                      Severity
-                      <SeverityInfo />
-                    </span>
-                    <ThresholdPicker value={threshold} onChange={setThreshold} />
-                  </div>
-                  {renderFilterButton('setup__filterbtn--mobile')}
-                </>
-              )}
-
-              {showFavorites && (
-                <div className="setup__mobile-field setup__mobile-field--grow">
-                  <span className="setup__mobile-label">Layout</span>
-                  <div className="setup__seg setup__seg--mobile setup__seg--layout">
-                    <button
-                      type="button"
-                      className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
-                      onClick={() => setFavLayout('blocks')}
-                    >
-                      <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
-                      Blocks
-                    </button>
-                    <button
-                      type="button"
-                      className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
-                      onClick={() => setFavLayout('inline')}
-                    >
-                      <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
-                      Inline
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Right side — Recent/Saved/Stats icon-only tabs */}
+              {/* Left side — Recent/Saved/Stats icon-only tabs */}
               <div className="setup__mobile-field setup__mobile-field--tabs">
                 <span className="setup__mobile-label">Showing</span>
                 <div className="setup__seg setup__seg--mobile setup__seg--tabs">
@@ -689,6 +664,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     aria-label="Recent games"
                   >
                     <ListIconSvg />
+                    <span className="setup__seg-btn-txt">Games</span>
                   </button>
                   <button
                     type="button"
@@ -697,6 +673,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     aria-label="Saved positions"
                   >
                     <StarIconSvg />
+                    <span className="setup__seg-btn-txt">Saved</span>
                   </button>
                   <button
                     type="button"
@@ -705,9 +682,42 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     aria-label="User stats"
                   >
                     <StatsIconSvg />
+                    <span className="setup__seg-btn-txt">Stats</span>
                   </button>
                 </div>
               </div>
+
+              {/* Right side — Filter button (Recent) or layout toggle (Saved) */}
+              {!showFavorites && !showStats && (
+                <div className="setup__mobile-field setup__mobile-field--filter">
+                  <span className="setup__mobile-label">Filter</span>
+                  {renderFilterButton('setup__filterbtn--mobile')}
+                </div>
+              )}
+
+              {showFavorites && (
+                <div className="setup__mobile-field setup__mobile-field--grow">
+                  <span className="setup__mobile-label">Layout</span>
+                  <div className="setup__seg setup__seg--mobile setup__seg--layout">
+                    <button
+                      type="button"
+                      className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
+                      onClick={() => setFavLayout('blocks')}
+                      aria-label="Blocks layout"
+                    >
+                      <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
+                    </button>
+                    <button
+                      type="button"
+                      className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
+                      onClick={() => setFavLayout('inline')}
+                      aria-label="Inline layout"
+                    >
+                      <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {showStats && (
@@ -864,49 +874,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
 
         {/* ── Toolbar ── */}
         <div className="setup__toolbar">
-          {!showFavorites && !showStats && (
-            <>
-              <div className="setup__field">
-                <label className="setup__label">Time Control</label>
-                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
-              </div>
-
-              <div className="setup__field">
-                <span className="setup__label setup__label--row">
-                  Blunder severity
-                  <SeverityInfo />
-                </span>
-                <ThresholdPicker value={threshold} onChange={setThreshold} />
-              </div>
-
-              {renderFilterButton()}
-            </>
-          )}
-
-          {showFavorites && (
-            <div className="setup__field">
-              <label className="setup__label">Layout</label>
-              <div className="setup__seg">
-                <button
-                  type="button"
-                  className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
-                  onClick={() => setFavLayout('blocks')}
-                >
-                  <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
-                  Blocks
-                </button>
-                <button
-                  type="button"
-                  className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
-                  onClick={() => setFavLayout('inline')}
-                >
-                  <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
-                  Inline
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* Showing tabs — kept on the left of the toolbar */}
           <div className="setup__field setup__field--tabs">
             <label className="setup__label">Showing</label>
             <div className="setup__seg setup__seg--tabs">
@@ -936,6 +904,52 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               </button>
             </div>
           </div>
+
+          {!showFavorites && !showStats && (
+            <>
+              <div className="setup__field">
+                <label className="setup__label">Time Control</label>
+                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+              </div>
+
+              <div className="setup__field">
+                <span className="setup__label setup__label--row">
+                  Blunder severity
+                  <SeverityInfo />
+                </span>
+                <ThresholdPicker value={threshold} onChange={setThreshold} />
+              </div>
+
+              <div className="setup__field">
+                <label className="setup__label">Filter</label>
+                {renderFilterButton()}
+              </div>
+            </>
+          )}
+
+          {showFavorites && (
+            <div className="setup__field">
+              <label className="setup__label">Layout</label>
+              <div className="setup__seg">
+                <button
+                  type="button"
+                  className={`setup__seg-btn${favLayout === 'blocks' ? ' setup__seg-btn--on' : ''}`}
+                  onClick={() => setFavLayout('blocks')}
+                >
+                  <img className="setup__seg-btn-ic" src={blocIconUrl} alt="" />
+                  Blocks
+                </button>
+                <button
+                  type="button"
+                  className={`setup__seg-btn${favLayout === 'inline' ? ' setup__seg-btn--on' : ''}`}
+                  onClick={() => setFavLayout('inline')}
+                >
+                  <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
+                  Inline
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Table area (Recent games) ── */}

@@ -105,43 +105,56 @@
   gap: 6px;
 }
 
-/* ── Compact BlunderCard — horizontal banner ─────────────────────────────── */
+/* ── Compact BlunderCard — banner ────────────────────────────────────────── */
+/* Two columns: left = category pill stacked above the prompt text,
+   right = action buttons stacked one above the other. */
 
 .trainer--mobile .blunder-card {
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "meta actions"
+    "prompt actions";
   align-items: center;
   padding: 9px 11px;
+  /* Small gap below the top safe-area so the banner is not flush to the screen edge */
+  margin-top: 8px;
   margin-bottom: 0;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 4px;
+}
+
+/* Let the body's children (prompt + actions) participate in the card grid directly */
+.trainer--mobile .blunder-card__body {
+  display: contents;
 }
 
 .trainer--mobile .blunder-card__meta {
+  grid-area: meta;
   flex-direction: column;
   align-items: flex-start;
-  align-self: center;
+  align-self: end;
   margin-top: 0;
 }
 
-.trainer--mobile .blunder-card__body {
-  flex: 1;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
 .trainer--mobile .blunder-card__prompt {
+  grid-area: prompt;
   font-size: 0.8rem;
   line-height: 1.4;
-  /* Clamp to 3 lines so the card stays compact */
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+}
+
+/* Stack the action buttons vertically, right-aligned across both rows */
+.trainer--mobile .blunder-card__actions {
+  grid-area: actions;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
 }
 
 .trainer--mobile .blunder-card__sequence-btn {
   flex-shrink: 0;
   white-space: nowrap;
+  text-align: center;
 }
 
 /* ── Inline move feedback — sits between ‹ › in the nav row ─────────────── */

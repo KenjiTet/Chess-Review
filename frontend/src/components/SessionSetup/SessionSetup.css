@@ -103,7 +103,7 @@
 
 /* Recent/Saved segmented toggle sits at the right end of the toolbar */
 .setup__field--tabs {
-  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Inline SVG icons inside segmented buttons (Recent games / Saved tabs) */

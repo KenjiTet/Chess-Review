@@ -57,7 +57,7 @@ function BlunderCard({ moveSan, cpLoss, category, onShowBlunderSequence, onShowB
       <div className="blunder-card__body">
         <p className="blunder-card__prompt">
           {compactPrompt
-            ? <>You played <strong>{moveSan}</strong>{categoryInfo ? <> — {categoryInfo.prompt}</> : undefined}.</>
+            ? <>You played <strong>{moveSan}</strong>{categoryInfo ? <> {categoryInfo.shortPrompt}</> : undefined}.</>
             : <>In this game you played <strong>{moveSan}</strong> — {categoryInfo ? categoryInfo.prompt : 'this was a blunder'}{' '}(cp loss: {capCpLoss(cpLoss)}).</>
           }
         </p>
