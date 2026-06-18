@@ -59,6 +59,17 @@
   border: 1px solid var(--success-border);
 }
 
+.blunder-card__category {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
 .blunder-card__info {
   font-size: 0.7rem;
   color: var(--muted);
@@ -113,4 +124,26 @@
 .blunder-card__sequence-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Row holding the sequence buttons. */
+.blunder-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Blue "show the line you missed" button (Show Gain / Show Mate). */
+.blunder-card__sequence-btn--best {
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #3b82f6;
+}
+
+[data-theme='dark'] .blunder-card__sequence-btn--best {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.blunder-card__sequence-btn--best:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.18);
 }

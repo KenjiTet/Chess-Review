@@ -194,6 +194,8 @@ const useSession = create<SessionStore>((set, get) => ({
         move_san: opts.moveSan,
         cp_loss: opts.cpLoss,
         classification: opts.classification,
+        // Favorites don't carry a blunder category; default keeps the type satisfied.
+        category: 'positional',
         move_number: opts.moveNumber,
         prev_fen: opts.prevFen ?? null,
         prev_move_uci: opts.prevMoveUci ?? null,

@@ -59,6 +59,9 @@ def get_cached_game(cache: dict, game_url: str) -> dict:
         "fens": json.loads(row["fens"]),
         "uci_moves": json.loads(row["uci_moves"]),
         "best_moves_per_blunder": json.loads(row["best_moves_per_blunder"]),
+        # Legacy rows (analysed before this column shipped) have an empty map;
+        # callers fall back to eval-only categorisation for those.
+        "categories_per_blunder": json.loads(row["categories_per_blunder"] or "{}"),
         "analysed_at": row["analysed_at"],
         "depth": row["depth"],
     }
@@ -73,6 +76,7 @@ def store_game(
     uci_moves: list[str],
     best_moves_per_blunder: dict[str, list[str]],
     depth: int,
+    categories_per_blunder: dict[str, str] | None = None,
 ) -> None:
     """Insert or replace a game entry in SQLite.
 
@@ -85,6 +89,8 @@ def store_game(
         uci_moves: UCI move list from get_board_snapshots()[1].
         best_moves_per_blunder: Dict mapping move_index (str) → list of UCI strings.
         depth: Stockfish depth used for this analysis.
+        categories_per_blunder: Dict mapping move_index (str) → blunder category.
+            Defaults to an empty map (categories backfill on the next analysis).
     """
     now_iso: str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -92,8 +98,8 @@ def store_game(
         conn.execute(
             """
             INSERT OR REPLACE INTO game_cache
-                (url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, analysed_at, depth)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, analysed_at, depth, categories_per_blunder)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 game_url,
@@ -104,6 +110,7 @@ def store_game(
                 json.dumps(best_moves_per_blunder),
                 now_iso,
                 depth,
+                json.dumps(categories_per_blunder or {}),
             ),
         )
         conn.commit()

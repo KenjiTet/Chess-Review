@@ -87,6 +87,10 @@ def init_db() -> None:
         # linked platform username (added after the table shipped).
         _add_analysed_handle_column(conn)
 
+        # Forward migration: categories_per_blunder stores the engine-derived
+        # blunder type per move_index (added after the cache table shipped).
+        _add_cache_categories_column(conn)
+
         conn.commit()
 
 
@@ -134,6 +138,28 @@ def _add_reviewed_drilled_column(conn: sqlite3.Connection) -> None:
     if "positions_drilled" not in existing:
         conn.execute(
             "ALTER TABLE user_reviewed_games ADD COLUMN positions_drilled INTEGER NOT NULL DEFAULT 0"
+        )
+
+
+def _add_cache_categories_column(conn: sqlite3.Connection) -> None:
+    """Add the categories_per_blunder column to game_cache if missing.
+
+    Idempotent: inspects PRAGMA table_info and only adds the column when absent,
+    so it is safe to run on every startup. Stores a JSON map {move_index -> category}
+    of engine-derived blunder types. Legacy rows default to an empty object and are
+    backfilled the next time the game is analysed.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(game_cache)").fetchall()
+    }
+
+    if "categories_per_blunder" not in existing:
+        conn.execute(
+            "ALTER TABLE game_cache ADD COLUMN categories_per_blunder TEXT NOT NULL DEFAULT '{}'"
         )
 
 

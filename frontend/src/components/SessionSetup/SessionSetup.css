@@ -273,6 +273,72 @@
   padding: 14px 26px 0;
 }
 
+/* ── Filter toggle button (toolbar) ───────────────────────────────────── */
+
+.setup__filterbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.setup__filterbtn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.setup__filterbtn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.setup__filterbtn--on {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: rgba(212, 165, 72, 0.08);
+}
+
+/* Dot indicating the filter is narrowed from its defaults. */
+.setup__filterbtn-dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+/* ── Collapsible filter panel (slides between toolbar and table) ──────── */
+
+.setup__filterpanel {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.setup__filterpanel--open {
+  grid-template-rows: 1fr;
+}
+
+/* The inner wrapper is clipped to the animated row height. */
+.setup__filterpanel-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 /* ── Favorites panel ──────────────────────────────────────────────────── */
 
 .setup__favs {

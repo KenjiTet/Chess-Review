@@ -9,11 +9,13 @@ can be derived from the database.
 from datetime import datetime, timezone
 
 from services.cache import get_cached_game, is_cached, store_game
+from services.categorize import resolve_category
 from services.db import get_connection
 from services.stockfish import (
     DEPTH,
     analyze_game,
     find_blunders,
+    get_best_moves,
     get_board_snapshots,
 )
 
@@ -79,7 +81,20 @@ def _ensure_analysis(game_url: str, pgn: str) -> list[dict]:
     fens: list[str]
     uci_moves: list[str]
     fens, uci_moves = get_board_snapshots(pgn)
-    store_game(cache, game_url, pgn, move_data, fens, uci_moves, {}, DEPTH)
+
+    # Precompute best moves + categories for all blunders at the canonical threshold
+    # so the game history list shows real categories (not the eval-only fallback).
+    # Blunders exposed only by a lower threshold are filled in later by the session build.
+    best_moves_per_blunder: dict[str, list[str]] = {}
+    categories_per_blunder: dict[str, str] = {}
+
+    for blunder in find_blunders(move_data, min_cp_loss=CANONICAL_THRESHOLD):
+        move_index: int = blunder["move_index"]
+        idx_str: str = str(move_index)
+        best_moves_per_blunder[idx_str] = get_best_moves(pgn, move_index, n_best=3)
+        categories_per_blunder[idx_str] = resolve_category(move_data, fens, uci_moves, move_index, best_moves_per_blunder[idx_str])
+
+    store_game(cache, game_url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, DEPTH, categories_per_blunder)
 
     return move_data
 

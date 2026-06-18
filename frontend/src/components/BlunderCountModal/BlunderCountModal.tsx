@@ -11,10 +11,12 @@ interface BlunderCountModalProps {
   total: number;
   /** Count of blunders per category key, e.g. { material_loss: 2 }. */
   categories: Record<string, number>;
+  /** Currently-selected filter keys; rows outside this set are greyed out. */
+  selectedCategories?: Set<string>;
   onClose: () => void;
 }
 
-function BlunderCountModal({ isOpen, total, categories, onClose }: BlunderCountModalProps): JSX.Element | null {
+function BlunderCountModal({ isOpen, total, categories, selectedCategories, onClose }: BlunderCountModalProps): JSX.Element | null {
   // Close on Escape key.
   useEffect(() => {
     function handleKeyDown(e: globalThis.KeyboardEvent): void {
@@ -68,18 +70,25 @@ function BlunderCountModal({ isOpen, total, categories, onClose }: BlunderCountM
             <p className="bcm-empty">No categorized blunders in this game.</p>
           )}
 
-          {rows.map(({ category, count }) => (
-            <div className="bcm-row" key={`bcm-${category.key}`}>
-              <span
-                className="bcm-row__pill"
-                style={{ color: category.color, background: category.bg, borderColor: category.border }}
-              >
-                <span className="bcm-row__dot" style={{ background: category.color }} />
-                {category.label}
-              </span>
-              <span className="bcm-row__count">{count}</span>
-            </div>
-          ))}
+          {rows.map(({ category, count }) => {
+            // Grey out a filterable type that is currently deselected.
+            const isFilteredOut = category.key !== UNCATEGORIZED_CATEGORY.key
+              && selectedCategories !== undefined
+              && !selectedCategories.has(category.key);
+
+            return (
+              <div className={`bcm-row${isFilteredOut ? ' bcm-row--off' : ''}`} key={`bcm-${category.key}`}>
+                <span
+                  className="bcm-row__pill"
+                  style={{ color: category.color, background: category.bg, borderColor: category.border }}
+                >
+                  <span className="bcm-row__dot" style={{ background: category.color }} />
+                  {category.label}
+                </span>
+                <span className="bcm-row__count">{count}</span>
+              </div>
+            );
+          })}
         </div>
 
       </div>

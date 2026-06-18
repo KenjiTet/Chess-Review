@@ -37,6 +37,8 @@ export interface GameHistoryEntry {
   blunder_count: number | null;
   first_blunder_fen: string | null;
   first_blunder_color: string | null;
+  /** Count of the player's blunders per category, e.g. { material_loss: 2 }. */
+  blunder_categories: Record<string, number>;
 }
 
 export interface SessionCreateRequest {
@@ -46,6 +48,8 @@ export interface SessionCreateRequest {
   threshold: number;
   game_url?: string;
   platform?: string;
+  /** Blunder categories to train on. Empty/omitted means all categories. */
+  categories?: string[];
 }
 
 export interface SessionCreateResponse {
@@ -60,6 +64,8 @@ export interface BlunderResponse {
   move_san: string;
   cp_loss: number;
   classification: string;
+  /** Blunder type key (see constants/blunderCategories.ts). */
+  category: string;
   fen_before: string;
   /** null when the blunder is the very first move of the game */
   prev_fen: string | null;
@@ -270,6 +276,11 @@ export function streamBuildSession(
       params.set('game_url', req.game_url);
     }
 
+    // Repeat the categories param once per selected type (FastAPI list query param).
+    if (req.categories) {
+      req.categories.forEach((category) => params.append('categories', category));
+    }
+
     const source = new EventSource(`${BASE_URL}/api/session/build-stream?${params}`);
 
     source.onmessage = (e: MessageEvent<string>) => {
@@ -421,6 +432,8 @@ export interface GameAnalysisResult {
   first_blunder_color: string | null;
   white_accuracy: number | null;
   black_accuracy: number | null;
+  /** Count of the player's blunders per category, e.g. { material_loss: 2 }. */
+  blunder_categories: Record<string, number>;
 }
 
 /** Fetch a player's public profile and ratings. */

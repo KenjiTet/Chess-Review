@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import requests as req_lib
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from models import (
@@ -24,6 +24,7 @@ from services.chess_com import get_recent_games as chesscom_recent_games
 import services.lichess as lichess_svc
 from services.db import get_connection
 from services.jwt_service import get_current_user
+from services.categorize import resolve_category
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
 from services.trainer import build_session, get_current_blunder, get_summary, submit_attempt
 
@@ -46,6 +47,7 @@ def _build_stream_generator(
     threshold: int,
     game_url: str | None = None,
     platform: str = "chesscom",
+    categories: list[str] | None = None,
 ):
     """Sync generator that yields SSE events while building a training session.
 
@@ -80,6 +82,9 @@ def _build_stream_generator(
         cache: dict = {}
         all_blunders: list[dict] = []
 
+        # Normalise the requested category filter; empty set means "all categories".
+        category_filter: set[str] = set(categories) if categories else set()
+
         for i, game in enumerate(games):
             # Progress: 10% base + 80% spread across game analysis
             pct: int = 10 + int((i / game_count) * 80)
@@ -107,11 +112,13 @@ def _build_stream_generator(
                 fens: list[str] = entry["fens"]
                 uci_moves: list[str] = entry["uci_moves"]
                 best_moves_per_blunder: dict[str, list[str]] = dict(entry["best_moves_per_blunder"])
+                categories_per_blunder: dict[str, str] = dict(entry["categories_per_blunder"])
             else:
                 # Slow path: run Stockfish analysis (blocks this thread ~60s per game)
                 move_data = analyze_game(pgn)
                 fens, uci_moves = get_board_snapshots(pgn)
                 best_moves_per_blunder = {}
+                categories_per_blunder = {}
 
             blunders: list[dict] = find_blunders(move_data, min_cp_loss=threshold)
 
@@ -135,6 +142,17 @@ def _build_stream_generator(
                     cache_needs_update = True
 
                 best_moves: list[str] = best_moves_per_blunder[idx_str]
+
+                # Resolve the blunder category (engine-derived), caching it like best moves.
+                if idx_str not in categories_per_blunder:
+                    categories_per_blunder[idx_str] = resolve_category(move_data, fens, uci_moves, move_index, best_moves)
+                    cache_needs_update = True
+
+                category: str = categories_per_blunder[idx_str]
+
+                # Skip blunders whose category is not in the requested filter (empty = all).
+                if category_filter and category not in category_filter:
+                    continue
 
                 if move_index > 0:
                     prev_fen: str | None = fens[move_index - 1]
@@ -166,6 +184,7 @@ def _build_stream_generator(
                     "move_san": blunder["move_san"],
                     "cp_loss": blunder["cp_loss"],
                     "classification": blunder["classification"],
+                    "category": category,
                     "fen_before": fens[move_index],
                     "uci_played": uci_moves[move_index],
                     "best_moves": best_moves,
@@ -185,7 +204,7 @@ def _build_stream_generator(
                 })
 
             if cache_needs_update:
-                store_game(cache, url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, DEPTH)
+                store_game(cache, url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, DEPTH, categories_per_blunder)
 
         session_id: str = str(uuid4())
         SESSIONS[session_id] = {
@@ -221,15 +240,17 @@ def build_stream(
     threshold: int,
     game_url: str | None = None,
     platform: str = "chesscom",
+    categories: list[str] | None = Query(default=None),
 ):
     """Stream SSE progress events while building a training session.
 
     Yields 'Fetching games...', per-game analysis updates, then a final
     'done' event with session_id, blunder_count, and game_urls for the frontend.
     If game_url is provided, builds the session from that specific game only.
+    categories scopes the session to selected blunder types (empty = all).
     """
     return StreamingResponse(
-        _build_stream_generator(username, time_class, n_games, threshold, game_url, platform),
+        _build_stream_generator(username, time_class, n_games, threshold, game_url, platform, categories),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -252,7 +273,7 @@ def build_session_sync(req: SessionCreateRequest):
     except req_lib.RequestException as exc:
         raise HTTPException(status_code=502, detail=f"API error: {exc}")
 
-    session: dict = build_session(req.username, req.time_class, games, req.threshold)
+    session: dict = build_session(req.username, req.time_class, games, req.threshold, req.categories)
     session_id: str = str(uuid4())
     SESSIONS[session_id] = session
 

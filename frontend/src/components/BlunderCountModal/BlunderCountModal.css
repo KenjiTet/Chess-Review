@@ -90,6 +90,12 @@
   gap: 0.6rem;
 }
 
+/* Filtered-out category — dimmed and desaturated. */
+.bcm-row--off {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
 .bcm-row__pill {
   display: inline-flex;
   align-items: center;

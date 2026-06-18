@@ -55,10 +55,6 @@ export interface UseMenuStatsArgs {
   timeClass: string;
   /** Active blunder-severity threshold (centipawns) — avg blunders tracks it. */
   threshold: number;
-  /** A registered account (has at least one linked handle). */
-  isAccount: boolean;
-  /** Guest session — no account-derived stats. */
-  isGuest: boolean;
 }
 
 export interface UseMenuStatsResult {
@@ -124,7 +120,7 @@ function buildStatItems(stats: MenuStats): MenuStatItem[] {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
-  const { playerUsername, platform, timeClass, threshold, isAccount, isGuest } = args;
+  const { playerUsername, platform, timeClass, threshold } = args;
 
   const [ratings, setRatings] = useState<UserProfileResponse | undefined>(undefined);
   const [ratingsLoading, setRatingsLoading] = useState<boolean>(true);
@@ -166,9 +162,11 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
   }, [playerUsername, platform]);
 
   // DB-derived stats: blunders drilled (all time classes) and avg blunders per
-  // game (filtered to the selected time class). Guests have no account.
+  // game (filtered to the selected time class). Both registered accounts and
+  // player-lookup sessions have a handle + token and get their games recorded,
+  // so the only case with nothing to query is a session without a player handle.
   const refreshStats = useCallback((): void => {
-    if (isGuest || !isAccount) {
+    if (!playerUsername) {
       setBlundersDrilled(0);
       setAvgBlunders(undefined);
       return;
@@ -188,7 +186,7 @@ export function useMenuStats(args: UseMenuStatsArgs): UseMenuStatsResult {
     void load();
     // playerUsername is included so switching/relinking the platform handle
     // re-fetches the (now reset) stats instead of showing the old account's avg.
-  }, [isGuest, isAccount, timeClass, threshold, playerUsername]);
+  }, [timeClass, threshold, playerUsername]);
 
   // Re-fetch whenever the inputs change (time class switch, login, etc.).
   useEffect(() => {

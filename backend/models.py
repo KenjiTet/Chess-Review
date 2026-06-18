@@ -10,6 +10,8 @@ class SessionCreateRequest(BaseModel):
     n_games: int
     threshold: int
     platform: str = "chesscom"
+    # Blunder categories to train on. Empty/None means all categories.
+    categories: list[str] | None = None
 
 
 class SessionCreateResponse(BaseModel):
@@ -26,6 +28,8 @@ class BlunderResponse(BaseModel):
     move_san: str
     cp_loss: int
     classification: str
+    # Blunder type (missed_mate / allowed_mate / material_loss / missed_gain / positional).
+    category: str = "positional"
     fen_before: str
     prev_fen: str | None = None
     prev_move_uci: str | None = None
@@ -167,6 +171,8 @@ class GameHistoryEntry(BaseModel):
     blunder_count: int | None = None
     first_blunder_fen: str | None = None
     first_blunder_color: str | None = None
+    # Count of the player's blunders per category, e.g. {"material_loss": 2}.
+    blunder_categories: dict[str, int] = {}
 
 
 class UserProfileResponse(BaseModel):
@@ -205,3 +211,5 @@ class GameAnalysisResult(BaseModel):
     # Per-player accuracy so the history row can update without a full reload.
     white_accuracy: float | None = None
     black_accuracy: float | None = None
+    # Count of the player's blunders per category, e.g. {"material_loss": 2}.
+    blunder_categories: dict[str, int] = {}

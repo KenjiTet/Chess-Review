@@ -228,6 +228,15 @@
   line-height: 1.2;
 }
 
+/* Clickable blunder stat (button) opens the breakdown modal — reset button chrome. */
+.game-card__istat--clickable {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
 .game-card__istat svg {
   width: 11px;
   height: 11px;

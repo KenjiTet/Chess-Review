@@ -271,6 +271,29 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Fill the scroll body so the games list scrolls internally — opening the
+     filter panel then shrinks the list instead of growing the whole page. */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ── Filter toggle button (mobile, compact icon) ─────────────────────────── */
+
+.setup__filterbtn--mobile {
+  height: 38px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.setup__filterbtn--mobile .setup__filterbtn-label {
+  display: none;
+}
+
+/* ── Collapsible filter panel (mobile) ───────────────────────────────────── */
+
+/* Horizontal padding only; the filter content draws its own separator lines. */
+.setup__mobile-games-panel .setup__filterpanel-inner {
+  padding: 0 12px;
 }
 
 /* ── Section header row ──────────────────────────────────────────────────── */

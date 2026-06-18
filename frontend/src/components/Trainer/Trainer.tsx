@@ -520,8 +520,10 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     gameHistoryRef.current = resetHistory.history;
   }
 
-  // ── Blunder sequence replay ─────────────────────────────────────────────────
-  async function handleShowBlunderSequence(): Promise<void> {
+  // ── Sequence replay ─────────────────────────────────────────────────────────
+  // Plays a line starting from firstUci (the blunder move, or the best move the
+  // player missed) followed by Stockfish's continuation.
+  async function playLineFrom(firstUci: string): Promise<void> {
     if (!currentBlunder) {
       return;
     }
@@ -542,7 +544,7 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     let result: BlunderLineResponse;
 
     try {
-      result = await getBlunderLine(currentBlunder.fen_before, currentBlunder.uci_played);
+      result = await getBlunderLine(currentBlunder.fen_before, firstUci);
     } catch {
       setIsPlayingSequence(false);
       return;
@@ -610,6 +612,22 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     // Small initial delay so the reset board renders before the sequence starts.
     // Start writing after the pre-seeded blunder position (blunderIdx + 1).
     setTimeout(() => playStep(result.moves, currentBlunder.fen_before, 0, seqBaseHistory.blunderIdx + 1), 200);
+  }
+
+  // Replays the blunder that was played, then the engine's refutation.
+  async function handleShowBlunderSequence(): Promise<void> {
+    if (!currentBlunder) {
+      return;
+    }
+    await playLineFrom(currentBlunder.uci_played);
+  }
+
+  // Replays the winning line the player missed (best move + continuation).
+  async function handleShowBestSequence(): Promise<void> {
+    if (!currentBlunder || currentBlunder.best_moves.length === 0) {
+      return;
+    }
+    await playLineFrom(currentBlunder.best_moves[0]);
   }
 
   // ── Submit first move to backend ────────────────────────────────────────────
@@ -897,8 +915,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
           <BlunderCard
             moveSan={currentBlunder.move_san}
             cpLoss={currentBlunder.cp_loss}
-            classification={currentBlunder.classification}
+            category={currentBlunder.category}
             onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
+            onShowBestSequence={() => { void handleShowBestSequence(); }}
             sequenceDisabled={isPlayingSequence}
             compactPrompt
             compactSequenceLabel
@@ -1132,8 +1151,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         <BlunderCard
           moveSan={currentBlunder.move_san}
           cpLoss={currentBlunder.cp_loss}
-          classification={currentBlunder.classification}
+          category={currentBlunder.category}
           onShowBlunderSequence={() => { void handleShowBlunderSequence(); }}
+          onShowBestSequence={() => { void handleShowBestSequence(); }}
           sequenceDisabled={isPlayingSequence}
         />
 

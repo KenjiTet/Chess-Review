@@ -6,6 +6,8 @@ import { fetchGameHistory, fetchGameAnalysis, fetchUserAnalysisStatus } from '..
 import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
+import BlunderCountModal from '../BlunderCountModal/BlunderCountModal';
+import { ALL_CATEGORY_KEYS, UNCATEGORIZED_CATEGORY } from '../../constants/blunderCategories';
 import './GameHistory.css';
 import './GameHistory.mobile.css';
 
@@ -23,6 +25,14 @@ interface GameHistoryProps {
   /** Blunder threshold in centipawns — used when fetching history and when triggering analysis. */
   threshold: number;
   isMobile?: boolean;
+  /** Selected blunder-category keys; a game shows only if it has a blunder of a selected type. */
+  selectedCategories?: Set<string>;
+  /** Whether games with zero blunders are shown. */
+  showCleanGames?: boolean;
+  /** Whether games the user has already reviewed are shown. */
+  showReviewedGames?: boolean;
+  /** Whether games that have been analysed are shown. */
+  showAnalysedGames?: boolean;
   onTrainGame: (url: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
   /** Fired after a game finishes analysing so the menu can refresh DB-derived stats. */
@@ -84,7 +94,7 @@ function MagnifierSvg(): JSX.Element {
 
 // ── Blunder cell ───────────────────────────────────────────────────────────
 
-function BlunderCell({ blunderCount }: { blunderCount: number | null }): JSX.Element {
+function BlunderCell({ blunderCount, onShowBreakdown }: { blunderCount: number | null; onShowBreakdown: () => void }): JSX.Element {
   if (blunderCount === null) {
     return <span className="history__dash">—</span>;
   }
@@ -95,11 +105,17 @@ function BlunderCell({ blunderCount }: { blunderCount: number | null }): JSX.Ele
 
   const cls = blunderCount >= 4 ? 'high' : blunderCount >= 2 ? 'mid' : 'low';
 
+  // Clickable: opens the per-category breakdown modal for this game.
   return (
-    <span className={`history__blunders history__blunders--${cls}`}>
+    <button
+      type="button"
+      className={`history__blunders history__blunders--${cls} history__blunders--clickable`}
+      onClick={onShowBreakdown}
+      title="Show blunder breakdown"
+    >
       <AlertTriangleSvg />
       {blunderCount}
-    </span>
+    </button>
   );
 }
 
@@ -169,6 +185,7 @@ function GameRow({
   isAnalysing,
   onTrain,
   onAnalyse,
+  onShowBreakdown,
 }: {
   game: GameHistoryEntry;
   username: string;
@@ -176,6 +193,7 @@ function GameRow({
   isAnalysing: boolean;
   onTrain: () => void;
   onAnalyse: () => void;
+  onShowBreakdown: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
 
@@ -225,7 +243,7 @@ function GameRow({
 
       {/* Blunders */}
       <div className="history__col history__col--blunders">
-        <BlunderCell blunderCount={game.blunder_count} />
+        <BlunderCell blunderCount={game.blunder_count} onShowBreakdown={onShowBreakdown} />
       </div>
 
       {/* Date */}
@@ -256,6 +274,7 @@ function GameCard({
   isAnalysing,
   onTrain,
   onAnalyse,
+  onShowBreakdown,
 }: {
   game: GameHistoryEntry;
   username: string;
@@ -263,6 +282,7 @@ function GameCard({
   isAnalysing: boolean;
   onTrain: () => void;
   onAnalyse: () => void;
+  onShowBreakdown: () => void;
 }): JSX.Element {
   const isWhite = game.white_username.toLowerCase() === username.toLowerCase();
 
@@ -332,10 +352,18 @@ function GameCard({
 
     return (
       <div className="game-card__blunder-col">
-        <span className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls}`}>
+        <button
+          type="button"
+          className={`game-card__istat game-card__istat--blunders game-card__istat--${blunderCls} game-card__istat--clickable`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowBreakdown();
+          }}
+          title="Show blunder breakdown"
+        >
           <AlertTriangleSvg />
           {blunderCount}
-        </span>
+        </button>
       </div>
     );
   }
@@ -456,6 +484,10 @@ function GameHistory({
   platform,
   threshold,
   isMobile = false,
+  selectedCategories,
+  showCleanGames = true,
+  showReviewedGames = true,
+  showAnalysedGames = true,
   onTrainGame,
   onGamesLoaded,
   onAnalysisComplete,
@@ -463,6 +495,8 @@ function GameHistory({
   const isReviewedFn = useReviewed((s) => s.isReviewed);
 
   const [displayedGames, setDisplayedGames] = useState<GameHistoryEntry[]>([]);
+  /** Game whose blunder breakdown modal is open, if any. */
+  const [breakdownGame, setBreakdownGame] = useState<GameHistoryEntry | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -480,6 +514,8 @@ function GameHistory({
   const queuedUrlsRef = useRef<Set<string>>(new Set());
   /** URLs currently shown in the list — guards completion refreshes to visible games. */
   const displayedUrlsRef = useRef<Set<string>>(new Set());
+  /** URLs already sent for category backfill, so each is attempted at most once. */
+  const categoryBackfillRef = useRef<Set<string>>(new Set());
 
   useLayoutEffect(() => {
     onGamesLoadedRef.current = onGamesLoaded;
@@ -492,6 +528,61 @@ function GameHistory({
     onGamesLoadedRef.current?.(displayedGames);
   }, [displayedGames]);
 
+  // Quietly backfill real categories for games cached before they were computed.
+  // Such games surface an "uncategorized" bucket; re-running analysis (cache hit +
+  // engine only for the missing blunders) fills them, then the row is updated.
+  useEffect(() => {
+    if (isGuest) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function backfill(): Promise<void> {
+      for (const game of displayedGames) {
+        if (cancelled) {
+          return;
+        }
+
+        const needsBackfill = (game.blunder_count ?? 0) > 0
+          && (game.blunder_categories?.[UNCATEGORIZED_CATEGORY.key] ?? 0) > 0
+          && !categoryBackfillRef.current.has(game.url);
+
+        if (!needsBackfill) {
+          continue;
+        }
+
+        // Mark first so a re-render mid-flight never double-submits the same game.
+        categoryBackfillRef.current.add(game.url);
+
+        try {
+          const result = await fetchGameAnalysis(game.url, username, threshold, false, platform);
+
+          if (cancelled) {
+            return;
+          }
+
+          setDisplayedGames((prev) =>
+            prev.map((g) => {
+              if (g.url !== game.url) {
+                return g;
+              }
+              return { ...g, blunder_categories: result.blunder_categories, blunder_count: result.blunder_count };
+            }),
+          );
+        } catch {
+          // Leave the game as-is; it keeps the eval-only fallback breakdown.
+        }
+      }
+    }
+
+    void backfill();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayedGames, isGuest, username, threshold, platform]);
+
   useEffect(() => {
     const signal = { cancelled: false };
 
@@ -500,6 +591,8 @@ function GameHistory({
       setError('');
       setInitialLoading(true);
       setHasMore(true);
+      // New query scope (threshold/handle/time class) — allow backfill to re-run.
+      categoryBackfillRef.current = new Set();
 
       try {
         const games = await fetchGameHistory(username, timeClass, FETCH_SIZE, 0, threshold, isGuest, platform);
@@ -563,6 +656,7 @@ function GameHistory({
             blunder_count: result.blunder_count,
             white_accuracy: result.white_accuracy,
             black_accuracy: result.black_accuracy,
+            blunder_categories: result.blunder_categories,
           };
         }),
       );
@@ -595,6 +689,7 @@ function GameHistory({
             blunder_count: result.blunder_count,
             white_accuracy: result.white_accuracy,
             black_accuracy: result.black_accuracy,
+            blunder_categories: result.blunder_categories,
           };
         }),
       );
@@ -689,6 +784,54 @@ function GameHistory({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [handleLoadMore, initialLoading]);
+
+  // Client-side filter over the already-fetched list. Each toggle removes its
+  // subset; a game must pass every active toggle to remain visible.
+  function matchesFilter(game: GameHistoryEntry): boolean {
+    const isAnalysed = game.blunder_count !== null;
+
+    // Hide analysed games when that toggle is off (leaves only un-analysed ones).
+    if (isAnalysed && !showAnalysedGames) {
+      return false;
+    }
+
+    // Hide games the user already reviewed when that toggle is off.
+    if (!showReviewedGames && isReviewedFn(game.url)) {
+      return false;
+    }
+
+    // Un-analysed games stay visible so their Analyse action remains reachable.
+    if (game.blunder_count === null) {
+      return true;
+    }
+
+    // Zero-blunder games are governed by the show-clean toggle.
+    if (game.blunder_count === 0) {
+      return showCleanGames;
+    }
+
+    // No category selection given (filter not in use) — show everything.
+    if (selectedCategories === undefined) {
+      return true;
+    }
+
+    // Every selectable type chosen (default) — show all blunder games, including
+    // positional/uncategorized ones that aren't represented by a filter pill.
+    if (ALL_CATEGORY_KEYS.every((key) => selectedCategories.has(key))) {
+      return true;
+    }
+
+    const categoryKeys = Object.keys(game.blunder_categories ?? {});
+
+    // Legacy game with blunders but no stored breakdown: show while any filter is active.
+    if (categoryKeys.length === 0) {
+      return selectedCategories.size > 0;
+    }
+
+    return categoryKeys.some((key) => selectedCategories.has(key));
+  }
+
+  const visibleGames = displayedGames.filter(matchesFilter);
 
   const mobileHeader = (
     <div className="history__mobile-header">
@@ -787,13 +930,13 @@ function GameHistory({
       <div className="history history--mobile">
         {mobileHeader}
 
-        {displayedGames.length === 0 && (
+        {visibleGames.length === 0 && (
           <p className="history__empty">No games found.</p>
         )}
 
-        {displayedGames.length > 0 && (
+        {visibleGames.length > 0 && (
           <div ref={bodyRef} className="history__body">
-            {displayedGames.map((game, idx) => (
+            {visibleGames.map((game, idx) => (
               <GameCard
                 key={`mob-game-${game.url}-${idx}`}
                 game={game}
@@ -802,6 +945,7 @@ function GameHistory({
                 isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
                 onAnalyse={() => void handleAnalyse(game.url)}
+                onShowBreakdown={() => setBreakdownGame(game)}
               />
             ))}
 
@@ -812,6 +956,14 @@ function GameHistory({
             )}
           </div>
         )}
+
+        <BlunderCountModal
+          isOpen={breakdownGame !== undefined}
+          total={breakdownGame?.blunder_count ?? 0}
+          categories={breakdownGame?.blunder_categories ?? {}}
+          selectedCategories={selectedCategories}
+          onClose={() => setBreakdownGame(undefined)}
+        />
       </div>
     );
   }
@@ -819,11 +971,11 @@ function GameHistory({
   // Desktop table layout
   return (
     <div className="history">
-      {displayedGames.length === 0 && (
+      {visibleGames.length === 0 && (
         <p className="history__empty">No games found.</p>
       )}
 
-      {displayedGames.length > 0 && (
+      {visibleGames.length > 0 && (
         <div className="history__table">
           {/* Header */}
           <div className="history__header">
@@ -838,7 +990,7 @@ function GameHistory({
 
           {/* Scrollable body */}
           <div ref={bodyRef} className="history__body">
-            {displayedGames.map((game, idx) => (
+            {visibleGames.map((game, idx) => (
               <GameRow
                 key={`game-${game.url}-${idx}`}
                 game={game}
@@ -847,6 +999,7 @@ function GameHistory({
                 isAnalysing={analysingUrls.has(game.url)}
                 onTrain={() => onTrainGame(game.url)}
                 onAnalyse={() => void handleAnalyse(game.url)}
+                onShowBreakdown={() => setBreakdownGame(game)}
               />
             ))}
 
@@ -858,6 +1011,13 @@ function GameHistory({
           </div>
         </div>
       )}
+
+      <BlunderCountModal
+        isOpen={breakdownGame !== undefined}
+        total={breakdownGame?.blunder_count ?? 0}
+        categories={breakdownGame?.blunder_categories ?? {}}
+        onClose={() => setBreakdownGame(undefined)}
+      />
     </div>
   );
 }

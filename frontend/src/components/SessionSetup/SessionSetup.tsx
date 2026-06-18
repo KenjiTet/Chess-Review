@@ -7,6 +7,8 @@ import useSettings from '../../hooks/useSettings';
 import useAuth from '../../hooks/useAuth';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
+import CategoryFilter from '../CategoryFilter/CategoryFilter';
+import { ALL_CATEGORY_KEYS } from '../../constants/blunderCategories';
 import ProfileBand from './ProfileBand';
 import LinkAccountModal from './LinkAccountModal';
 import type { GameHistoryEntry } from '../../api/client.ts';
@@ -55,6 +57,34 @@ function getSavedTimeClass(): TimeClass {
   }
 
   return 'all';
+}
+
+// ── Persisted blunder-type / display filter ────────────────────────────────
+
+const FILTER_CATEGORIES_KEY = 'recall_filter_categories';
+const SHOW_CLEAN_KEY = 'recall_filter_show_clean';
+const SHOW_REVIEWED_KEY = 'recall_filter_show_reviewed';
+const SHOW_ANALYSED_KEY = 'recall_filter_show_analysed';
+
+function loadSelectedCategories(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FILTER_CATEGORIES_KEY);
+
+    if (raw === null) {
+      return new Set(ALL_CATEGORY_KEYS);
+    }
+
+    // Keep only keys that still exist (drops removed types like positional).
+    const parsed = JSON.parse(raw) as string[];
+    return new Set(parsed.filter((key) => ALL_CATEGORY_KEYS.includes(key)));
+  } catch {
+    return new Set(ALL_CATEGORY_KEYS);
+  }
+}
+
+// Display toggles default to true (show everything) when not previously saved.
+function loadShowToggle(key: string): boolean {
+  return localStorage.getItem(key) !== '0';
 }
 
 // ── Custom time-class select with icons ────────────────────────────────────
@@ -145,6 +175,14 @@ function ListIconSvg(): JSX.Element {
   );
 }
 
+function FilterIconSvg(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  );
+}
+
 function StarIconSvg(): JSX.Element {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -188,6 +226,35 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
   const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
   const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
+  // Blunder-category filter — all categories selected and clean games shown by default.
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(loadSelectedCategories);
+  const [showCleanGames, setShowCleanGames] = useState<boolean>(() => loadShowToggle(SHOW_CLEAN_KEY));
+  const [showReviewedGames, setShowReviewedGames] = useState<boolean>(() => loadShowToggle(SHOW_REVIEWED_KEY));
+  const [showAnalysedGames, setShowAnalysedGames] = useState<boolean>(() => loadShowToggle(SHOW_ANALYSED_KEY));
+  // Whether the collapsible filter section is expanded.
+  const [filterOpen, setFilterOpen] = useState<boolean>(false);
+  // True when the filter differs from its defaults (drives the button's active dot).
+  const filterActive = selectedCategories.size !== ALL_CATEGORY_KEYS.length
+    || !showCleanGames
+    || !showReviewedGames
+    || !showAnalysedGames;
+
+  // Persist the filter so it survives page reloads and entering/leaving the trainer.
+  useEffect(() => {
+    localStorage.setItem(FILTER_CATEGORIES_KEY, JSON.stringify([...selectedCategories]));
+  }, [selectedCategories]);
+
+  useEffect(() => {
+    localStorage.setItem(SHOW_CLEAN_KEY, showCleanGames ? '1' : '0');
+  }, [showCleanGames]);
+
+  useEffect(() => {
+    localStorage.setItem(SHOW_REVIEWED_KEY, showReviewedGames ? '1' : '0');
+  }, [showReviewedGames]);
+
+  useEffect(() => {
+    localStorage.setItem(SHOW_ANALYSED_KEY, showAnalysedGames ? '1' : '0');
+  }, [showAnalysedGames]);
 
   const username = authUsername ?? '';
   // Account username drives display; the linked platform handle drives game/profile fetches.
@@ -205,8 +272,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     platform,
     timeClass,
     threshold,
-    isAccount,
-    isGuest,
   });
 
   function handleTimeClassChange(tc: TimeClass): void {
@@ -253,7 +318,62 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     return 'Analysing your games…';
   }
 
+  function handleToggleCategory(key: string): void {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+  }
+
+  function renderFilterButton(extraClass?: string): JSX.Element {
+    return (
+      <button
+        type="button"
+        className={`setup__filterbtn${filterOpen ? ' setup__filterbtn--on' : ''}${extraClass !== undefined ? ` ${extraClass}` : ''}`}
+        onClick={() => setFilterOpen((open) => !open)}
+        aria-expanded={filterOpen}
+        aria-label="Filter games by blunder type"
+      >
+        <FilterIconSvg />
+        <span className="setup__filterbtn-label">Filter</span>
+        {filterActive && <span className="setup__filterbtn-dot" />}
+      </button>
+    );
+  }
+
+  function renderFilterPanel(mobile: boolean = false): JSX.Element {
+    return (
+      <div className={`setup__filterpanel${filterOpen ? ' setup__filterpanel--open' : ''}`}>
+        <div className="setup__filterpanel-inner">
+          <CategoryFilter
+            selected={selectedCategories}
+            onToggle={handleToggleCategory}
+            showClean={showCleanGames}
+            onToggleClean={setShowCleanGames}
+            showReviewed={showReviewedGames}
+            onToggleReviewed={setShowReviewedGames}
+            showAnalysed={showAnalysedGames}
+            onToggleAnalysed={setShowAnalysedGames}
+            isMobile={mobile}
+          />
+        </div>
+      </div>
+    );
+  }
+
   function handleTrainGame(gameUrl: string): void {
+    // When every category is selected, omit the filter so the session trains all
+    // types; otherwise scope the review to the chosen categories.
+    const allSelected = selectedCategories.size === ALL_CATEGORY_KEYS.length;
+    const categories = allSelected ? undefined : Array.from(selectedCategories);
+
     buildSession({
       username: playerUsername,
       time_class: timeClass === 'all' ? 'rapid' : timeClass,
@@ -261,6 +381,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       threshold,
       game_url: gameUrl,
       platform: platform ?? 'chesscom',
+      categories,
     }, resolveLoadingTitle(gameUrl));
   }
 
@@ -502,6 +623,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                     </span>
                     <ThresholdPicker value={threshold} onChange={setThreshold} />
                   </div>
+                  {renderFilterButton('setup__filterbtn--mobile')}
                 </>
               ) : (
                 <div className="setup__mobile-field setup__mobile-field--grow">
@@ -557,17 +679,24 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
               </div>
             ) : (
               playerUsername && (
-                <GameHistory
-                  username={playerUsername}
-                  timeClass={timeClass}
-                  isGuest={isGuest}
-                  platform={platform ?? 'chesscom'}
-                  threshold={threshold}
-                  isMobile
-                  onTrainGame={handleTrainGame}
-                  onGamesLoaded={handleGamesLoaded}
-                  onAnalysisComplete={refreshStats}
-                />
+                <>
+                  {renderFilterPanel(true)}
+                  <GameHistory
+                    username={playerUsername}
+                    timeClass={timeClass}
+                    isGuest={isGuest}
+                    platform={platform ?? 'chesscom'}
+                    threshold={threshold}
+                    isMobile
+                    selectedCategories={selectedCategories}
+                    showCleanGames={showCleanGames}
+                    showReviewedGames={showReviewedGames}
+                    showAnalysedGames={showAnalysedGames}
+                    onTrainGame={handleTrainGame}
+                    onGamesLoaded={handleGamesLoaded}
+                    onAnalysisComplete={refreshStats}
+                  />
+                </>
               )
             )}
           </div>
@@ -704,6 +833,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                 </span>
                 <ThresholdPicker value={threshold} onChange={setThreshold} />
               </div>
+
+              {renderFilterButton()}
             </>
           )}
 
@@ -758,16 +889,23 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {!showFavorites && (
           <div className="setup__tablewrap">
             {playerUsername && (
-              <GameHistory
-                username={playerUsername}
-                timeClass={timeClass}
-                isGuest={isGuest}
-                platform={platform ?? 'chesscom'}
-                threshold={threshold}
-                onTrainGame={handleTrainGame}
-                onGamesLoaded={handleGamesLoaded}
-                onAnalysisComplete={refreshStats}
-              />
+              <>
+                {renderFilterPanel()}
+                <GameHistory
+                  username={playerUsername}
+                  timeClass={timeClass}
+                  isGuest={isGuest}
+                  platform={platform ?? 'chesscom'}
+                  threshold={threshold}
+                  selectedCategories={selectedCategories}
+                  showCleanGames={showCleanGames}
+                  showReviewedGames={showReviewedGames}
+                  showAnalysedGames={showAnalysedGames}
+                  onTrainGame={handleTrainGame}
+                  onGamesLoaded={handleGamesLoaded}
+                  onAnalysisComplete={refreshStats}
+                />
+              </>
             )}
           </div>
         )}

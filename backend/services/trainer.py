@@ -4,11 +4,12 @@ No FastAPI imports. All state is held in a plain dict passed explicitly
 between functions — no global mutable state.
 """
 
+from services.categorize import resolve_category
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
 from services.cache import get_cached_game, is_cached, store_game
 
 
-def build_session(username: str, time_class: str, games: list[dict], threshold: int) -> dict:
+def build_session(username: str, time_class: str, games: list[dict], threshold: int, categories: list[str] | None = None) -> dict:
     """Assemble the full trainer session, using the disk cache to skip re-analysis.
 
     For each game, checks the cache first. On a cache hit all expensive data
@@ -31,6 +32,9 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
     # cache argument is a no-op stub kept for interface compatibility; SQLite is used directly.
     cache: dict = {}
     all_blunders: list[dict] = []
+
+    # Normalise the requested category filter; empty set means "all categories".
+    category_filter: set[str] = set(categories) if categories else set()
 
     for game_index, game in enumerate(games):
         pgn: str = game.get("pgn", "")
@@ -59,6 +63,7 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
             uci_moves: list[str] = entry["uci_moves"]
             # Make a mutable copy so we can add missing blunder positions below.
             best_moves_per_blunder: dict[str, list[str]] = dict(entry["best_moves_per_blunder"])
+            categories_per_blunder: dict[str, str] = dict(entry["categories_per_blunder"])
 
         else:
             # Slow path: run Stockfish analysis and persist results.
@@ -66,6 +71,7 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
             move_data = analyze_game(pgn)
             fens, uci_moves = get_board_snapshots(pgn)
             best_moves_per_blunder = {}
+            categories_per_blunder = {}
 
         # Identify blunders for this session's threshold.
         blunders = find_blunders(move_data, min_cp_loss=threshold)
@@ -93,6 +99,17 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
                 cache_needs_update = True
 
             best_moves: list[str] = best_moves_per_blunder[idx_str]
+
+            # Resolve the blunder category (engine-derived), caching it like best moves.
+            if idx_str not in categories_per_blunder:
+                categories_per_blunder[idx_str] = resolve_category(move_data, fens, uci_moves, move_index, best_moves)
+                cache_needs_update = True
+
+            category: str = categories_per_blunder[idx_str]
+
+            # Skip blunders whose category is not in the requested filter (empty = all).
+            if category_filter and category not in category_filter:
+                continue
 
             # Previous position/move so the UI can replay the opponent's last move.
             if move_index > 0:
@@ -127,6 +144,7 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
                 "move_san": blunder["move_san"],
                 "cp_loss": blunder["cp_loss"],
                 "classification": blunder["classification"],
+                "category": category,
                 "fen_before": fen_before,
                 "uci_played": uci_played,
                 "best_moves": best_moves,
@@ -144,7 +162,7 @@ def build_session(username: str, time_class: str, games: list[dict], threshold: 
             })
 
         if cache_needs_update:
-            store_game(cache, url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, DEPTH)
+            store_game(cache, url, pgn, move_data, fens, uci_moves, best_moves_per_blunder, DEPTH, categories_per_blunder)
 
     return {
         "username": username,

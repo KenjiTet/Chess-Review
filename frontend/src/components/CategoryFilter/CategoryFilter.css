@@ -1,10 +1,26 @@
+/* ── Desktop: types on the left, switches on the right, separators top & bottom ── */
+
 .catfilter {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.5rem 0.25rem 0.75rem;
+  gap: 1.5rem;
+  padding: 0.7rem 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.catfilter__title {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.catfilter__types {
+  min-width: 0;
 }
 
 .catfilter__pills {
@@ -48,17 +64,45 @@
   opacity: 0.4;
 }
 
-.catfilter__clean {
+/* ── Visibility switches ──────────────────────────────────────────────── */
+
+.catfilter__switches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.catfilter__switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font-size: 0.75rem;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
 }
 
-.catfilter__clean input {
+.catfilter__switch input {
   cursor: pointer;
   accent-color: var(--gold, #d4a548);
+}
+
+/* ── Mobile: switches stacked on top, a divider, then the blunder types ── */
+
+.catfilter--mobile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+
+.catfilter--mobile .catfilter__types {
+  padding: 0.7rem 0;
+}
+
+/* Divider between the blunder types and the Display switches below them. */
+.catfilter--mobile .catfilter__switches {
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border);
 }
