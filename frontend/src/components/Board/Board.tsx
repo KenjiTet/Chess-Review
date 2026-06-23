@@ -82,9 +82,15 @@ const LEGAL_CAPTURE_RING: CSSProperties = {
 const HINT_ARROW_RGB = '59, 130, 246';
 const HINT_ARROW_ALPHAS = [1, 0.78, 0.6, 0.45] as const;
 const BLUNDER_ARROW_COLOR = '#dc2626';
+// The best move (rank 0) is highlighted green; the remaining hints stay blue.
+const BEST_HINT_ARROW_COLOR = 'rgba(34, 197, 94, 1)';
 
-/** Blue hint colour for the given rank (0 = best). */
+/** Hint colour for the given rank — green for the best move (0), blue otherwise. */
 function hintArrowColor(rank: number): string {
+  if (rank === 0) {
+    return BEST_HINT_ARROW_COLOR;
+  }
+
   const alpha = HINT_ARROW_ALPHAS[Math.min(rank, HINT_ARROW_ALPHAS.length - 1)];
   return `rgba(${HINT_ARROW_RGB}, ${alpha})`;
 }
