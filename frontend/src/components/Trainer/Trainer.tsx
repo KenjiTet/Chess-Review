@@ -313,18 +313,27 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
       // Side that played this move ('w' / 'b') — drives the move-log row tint.
       const moveSide: 'w' | 'b' = capturedFen.split(' ')[1] === 'b' ? 'b' : 'w';
 
-      // The strongest suggested move for the captured position. At the blunder
+      // The full set of suggested moves for the captured position. At the blunder
       // position this is the cached best_moves; elsewhere it is the live hint
-      // arrows. Playing it must always read as "best", even in a losing position.
-      let topSuggested: string | undefined;
+      // arrows. Every suggested move was filtered to be within the "good" band,
+      // so playing any of them must never read worse than "good" — and the top
+      // (or only) suggestion must always read "best", even in a losing position.
+      // This is derived from the suggestions rather than the move-quality
+      // re-analysis, which runs a separate Stockfish search that can disagree at
+      // the label boundaries and downgrade a perfectly valid hinted move.
+      let suggestedMoves: string[] = [];
       if (capturedFen === currentBlunder.fen_before) {
         // Cached best moves are always valid for the blunder position.
-        topSuggested = currentBlunder.best_moves?.[0];
+        suggestedMoves = currentBlunder.best_moves ?? [];
       } else if (showArrows) {
         // Live arrows only match the current position while hints are shown.
-        topSuggested = currentArrows[0];
+        suggestedMoves = currentArrows;
       }
-      const playedTopMove = topSuggested !== undefined && uci === topSuggested;
+
+      const playedSuggested = suggestedMoves.includes(uci);
+      // The top suggestion, or the sole suggestion, is "best" by definition.
+      const playedTopMove =
+        playedSuggested && (uci === suggestedMoves[0] || suggestedMoves.length === 1);
 
       if (firstMove === null) {
         setFirstMove(uci);
@@ -369,8 +378,27 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
         });
         // The top engine suggestion is best by definition, regardless of how
         // bad the resulting position is — never let it be flagged as a mistake.
-        const classification = playedTopMove ? 'best' : result.classification;
-        const cpLoss = playedTopMove ? 0 : result.cp_loss;
+        // Any other suggested (hinted) move was filtered to be within the "good"
+        // band, so clamp it to no worse than "good" even if the separate
+        // move-quality search disagrees at a label boundary.
+        const downgraded =
+          result.classification === 'inaccuracy' ||
+          result.classification === 'mistake' ||
+          result.classification === 'blunder';
+
+        let classification: string;
+        let cpLoss: number;
+        if (playedTopMove) {
+          classification = 'best';
+          cpLoss = 0;
+        } else if (playedSuggested && downgraded) {
+          // Hinted move that the re-analysis tried to downgrade — pin to "good".
+          classification = 'good';
+          cpLoss = result.cp_loss;
+        } else {
+          classification = result.classification;
+          cpLoss = result.cp_loss;
+        }
         setMoveLog((prev) =>
           prev.map((entry) =>
             entry.id === id
