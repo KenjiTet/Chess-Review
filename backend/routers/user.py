@@ -18,6 +18,7 @@ from services.analysis_store import CANONICAL_THRESHOLD
 from services.cache import get_cached_game
 from services.chess_com import get_player_profile as chesscom_get_profile
 from services.chess_com import get_player_stats as chesscom_get_stats
+import services.lichess as lichess_svc
 from services.db import get_connection
 from services.jwt_service import get_current_user
 from services.stats_aggregate import get_full_stats
@@ -29,6 +30,15 @@ _CHESSCOM_RATING_KEYS: dict[str, str] = {
     "chess_blitz": "blitz",
     "chess_bullet": "bullet",
     "chess_daily": "daily",
+}
+
+# Lichess perf keys for the time classes we surface, mapped to our short keys.
+# Lichess has no "daily" perf — its slow time control is "classical".
+_LICHESS_RATING_KEYS: dict[str, str] = {
+    "rapid": "rapid",
+    "blitz": "blitz",
+    "bullet": "bullet",
+    "classical": "daily",
 }
 
 router = APIRouter()
@@ -257,6 +267,66 @@ def _build_account_stats(handle: str) -> AccountStats:
     )
 
 
+def _build_lichess_account_stats(handle: str) -> AccountStats:
+    """Build section A (platform ratings/records) from the Lichess API.
+
+    Lichess exposes per-perf ratings but not per-perf W/L/D records or peak
+    ratings, so those fields stay at their defaults; the overall record comes from
+    the profile-wide `count` block. Returns an empty AccountStats when the lookup
+    fails so the dashboard still renders the analysis-derived sections.
+
+    Args:
+        handle: The linked Lichess handle to fetch.
+    """
+    try:
+        profile: dict = lichess_svc.get_player_profile(handle)
+    except (ValueError, req_lib.RequestException):
+        # Platform unreachable / unknown handle — degrade gracefully to empty.
+        return AccountStats()
+
+    perfs: dict = profile.get("perfs", {})
+
+    ratings: dict[str, RatingRecord] = {}
+
+    for perf_key, short_key in _LICHESS_RATING_KEYS.items():
+        block: dict = perfs.get(perf_key, {})
+
+        # Lichess returns provisional perfs with 0 games — skip unplayed classes.
+        if not block or not block.get("games"):
+            continue
+
+        # Lichess gives no per-perf W/L/D or peak; only the current rating.
+        ratings[short_key] = RatingRecord(current=block.get("rating"))
+
+    # Profile-wide record (all time classes combined).
+    count: dict = profile.get("count", {})
+    wins: int = count.get("win", 0)
+    losses: int = count.get("loss", 0)
+    draws: int = count.get("draw", 0)
+
+    total_games: int = wins + losses + draws
+    overall_win_rate: float | None = None
+
+    if total_games > 0:
+        overall_win_rate = wins / total_games * 100
+
+    # Lichess country lives under the nested profile block; no public avatar.
+    profile_block: dict = profile.get("profile", {})
+
+    return AccountStats(
+        joined_year=_lichess_joined_year(profile),
+        avatar=None,
+        country=profile_block.get("country"),
+        followers=profile.get("nbFollowers"),
+        league=None,
+        name=profile_block.get("realName"),
+        title=profile.get("title"),
+        ratings=ratings,
+        total_games=total_games,
+        overall_win_rate=overall_win_rate,
+    )
+
+
 @router.get("/stats/full")
 def user_stats_full(
     handle: str,
@@ -271,16 +341,16 @@ def user_stats_full(
 
     Args (query params):
         handle: Linked platform username the analysed stats are scoped to.
-        platform: "chesscom" or "lichess" (only chesscom provides section A).
+        platform: "chesscom" or "lichess" (both provide section A ratings).
         user: Injected JWT payload from the Authorization header.
     """
     username_lower: str = user["sub"].lower()
     aggregate: dict = get_full_stats(username_lower, handle.lower())
 
-    if platform == "chesscom":
-        account: AccountStats = _build_account_stats(handle)
+    if platform == "lichess":
+        account: AccountStats = _build_lichess_account_stats(handle)
     else:
-        account = AccountStats()
+        account = _build_account_stats(handle)
 
     return UserFullStatsResponse(
         account=account,
@@ -294,13 +364,59 @@ def user_stats_full(
     )
 
 
+def _lichess_joined_year(profile: dict) -> int | None:
+    """Extract the join year from a Lichess profile (createdAt is epoch milliseconds)."""
+    created_ms: int | None = profile.get("createdAt")
+
+    if created_ms is None:
+        return None
+
+    return datetime.fromtimestamp(created_ms / 1000, tz=timezone.utc).year
+
+
+def _lichess_profile(username: str) -> UserProfileResponse:
+    """Build the public profile response for a Lichess player.
+
+    Lichess returns all per-perf ratings on the single /api/user endpoint, so one
+    call covers both the joined date and the rapid/blitz/bullet ratings. Lichess
+    has no public avatar, so that stays unset (the UI falls back to its logo).
+
+    Args:
+        username: Lichess username.
+
+    Raises:
+        404 if the player is not found.
+        502 on network errors.
+    """
+    try:
+        profile: dict = lichess_svc.get_player_profile(username)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except req_lib.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"API error: {exc}")
+
+    perfs: dict = profile.get("perfs", {})
+
+    rapid: int | None = perfs.get("rapid", {}).get("rating")
+    blitz: int | None = perfs.get("blitz", {}).get("rating")
+    bullet: int | None = perfs.get("bullet", {}).get("rating")
+
+    return UserProfileResponse(
+        joined_year=_lichess_joined_year(profile),
+        rapid_rating=rapid,
+        blitz_rating=blitz,
+        bullet_rating=bullet,
+        avatar=None,
+    )
+
+
 @router.get("/profile")
 def user_profile(username: str, platform: str = "chesscom") -> UserProfileResponse:
     """Fetch public profile info and ratings for a player.
 
     For Chess.com: fetches /pub/player/{username} (joined date) and
     /pub/player/{username}/stats (ratings for rapid, blitz, bullet).
-    For Lichess: returns null ratings (not yet implemented).
+    For Lichess: fetches /api/user/{username} (joined date + per-perf ratings).
 
     Args (query params):
         username: Player username.
@@ -313,8 +429,8 @@ def user_profile(username: str, platform: str = "chesscom") -> UserProfileRespon
         404 if the player is not found.
         502 on network errors.
     """
-    if platform != "chesscom":
-        return UserProfileResponse()
+    if platform == "lichess":
+        return _lichess_profile(username)
 
     try:
         profile: dict = chesscom_get_profile(username)

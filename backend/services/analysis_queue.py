@@ -27,6 +27,9 @@ import services.lichess as lichess_svc
 # ── Configuration (env-overridable) ────────────────────────────────────────
 ANALYSIS_CONCURRENCY: int = int(os.getenv("ANALYSIS_CONCURRENCY", "2"))
 BACKFILL_TARGET: int = int(os.getenv("BACKFILL_TARGET", "20"))
+# Guests (player lookups with no account) get a shallower auto-analysis than
+# logged-in accounts so we don't burn CPU on throwaway sessions.
+GUEST_BACKFILL_TARGET: int = int(os.getenv("GUEST_BACKFILL_TARGET", "10"))
 POLL_INTERVAL: int = int(os.getenv("POLL_INTERVAL", "60"))
 # How many recent games each poll inspects per stream. Larger than 1 so a user
 # who played several games between polls gets all of them analysed, not just the
@@ -342,6 +345,69 @@ def notify_streams_changed(username_lower: str | None = None) -> None:
             pass
 
     _wake_event.set()
+
+
+def _run_guest_backfill(username_lower: str, platform: str, handle: str, n: int) -> None:
+    """Analyse a guest stream's first n unanalysed games, tracking status. Never raises."""
+    stream = _Stream(username_lower, platform, handle)
+
+    recent: list[dict] = _fetch_recent_games(platform, handle, n)
+    done: set[str] = analysed_game_urls(username_lower)
+
+    pending: list[tuple[_Stream, dict]] = [
+        (stream, game)
+        for game in recent
+        if game.get("url") and game.get("url") not in done
+    ]
+
+    if not pending:
+        return
+
+    # Register the pending view so the UI shows analysing spinners for the guest,
+    # mirroring how the scheduler reports progress for logged-in accounts.
+    with _lock:
+        user_urls: set[str] = {game["url"] for _, game in pending}
+        in_flight: set[str] = _in_flight_by_user.get(username_lower, set())
+        remaining: set[str] = user_urls - in_flight
+        if remaining:
+            _pending_by_user[username_lower] = remaining
+
+    _process(pending)
+
+
+def enqueue_guest_backfill(
+    username_lower: str,
+    platform: str,
+    handle: str,
+    n: int = GUEST_BACKFILL_TARGET,
+) -> None:
+    """Kick a one-shot background analysis of a guest lookup's first n games.
+
+    Guests have no row in the users table, so the scheduler never picks them up.
+    This gives guest sessions the same auto-analysis as accounts, just shallower
+    (n games instead of BACKFILL_TARGET). Fully detached so the identify request
+    returns immediately; best-effort, so any failure is swallowed.
+
+    Args:
+        username_lower: Lowercased guest identity (the looked-up handle).
+        platform: "chesscom" or "lichess".
+        handle: The platform handle whose games to analyse.
+        n: How many recent games to backfill (defaults to GUEST_BACKFILL_TARGET).
+    """
+    if not _ENABLED:
+        return
+
+    def _work() -> None:
+        try:
+            _run_guest_backfill(username_lower, platform, handle, n)
+        except Exception:
+            # A throwaway guest backfill must never crash anything.
+            pass
+
+    thread = threading.Thread(
+        target=_work, name=f"guest-backfill-{username_lower}", daemon=True
+    )
+    thread.start()
 
 
 def get_user_queue_status(username_lower: str) -> dict:

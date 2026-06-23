@@ -82,8 +82,7 @@ function ProfileBand({
           </span>
         </div>
 
-        {platform !== 'lichess' && (
-          <div className="profile-band__ratings">
+        <div className="profile-band__ratings">
             {/* Skeleton pills while the profile fetch is in flight */}
             {ratingsLoading && (
               <>
@@ -130,7 +129,6 @@ function ProfileBand({
               </button>
             )}
           </div>
-        )}
       </div>
 
       {/* Stats block — the 3 shared stats grouped inside one border. The full

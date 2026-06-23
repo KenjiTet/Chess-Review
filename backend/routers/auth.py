@@ -221,6 +221,11 @@ def identify(req: IdentifyRequest) -> AuthResponse:
     payload: dict = _jwt.get_unverified_claims(token)
     is_admin: bool = bool(payload.get("is_admin", False))
 
+    # Guests get no scheduler stream (they have no users-table row), so kick a
+    # shallow one-shot backfill here. The guest's handle doubles as their identity,
+    # so stats recorded under it line up with what the frontend later queries.
+    analysis_queue.enqueue_guest_backfill(req.username.lower(), req.platform, req.username)
+
     return AuthResponse(
         success=True,
         username=req.username,
