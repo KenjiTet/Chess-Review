@@ -628,3 +628,71 @@ export function adminGetUserStats(): Promise<AdminUserStat[]> {
 export function adminGetQueueStatus(): Promise<AdminQueueStatus> {
   return fetchJson<AdminQueueStatus>(`${BASE_URL}/api/admin/queue-status`);
 }
+
+// ── Admin DB browser ─────────────────────────────────────────────────────────
+
+/** A cell value as delivered by SQLite over JSON. */
+export type DbCellValue = string | number | boolean | null;
+
+export interface DbTableSummary {
+  name: string;
+  row_count: number;
+  columns: string[];
+}
+
+/** PRAGMA table_info row describing one column. */
+export interface DbColumn {
+  cid: number;
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: DbCellValue;
+  pk: number;
+}
+
+export interface DbTablePage {
+  table: string;
+  columns: DbColumn[];
+  /** Identity columns used to address a row (the primary key, or ["rowid"]). */
+  primary_key: string[];
+  rows: Record<string, DbCellValue>[];
+  total: number;
+}
+
+/** List every table with row counts and column names (admin only). */
+export function adminDbTables(): Promise<DbTableSummary[]> {
+  return fetchJson<DbTableSummary[]>(`${BASE_URL}/api/admin/db/tables`);
+}
+
+/** Fetch one page of rows + column metadata for a table (admin only). */
+export function adminDbTable(table: string, limit: number = 100, offset: number = 0): Promise<DbTablePage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return fetchJson<DbTablePage>(`${BASE_URL}/api/admin/db/table/${encodeURIComponent(table)}?${params}`);
+}
+
+/** Update one row addressed by its primary-key values (admin only). */
+export function adminDbUpdateRow(table: string, key: Record<string, DbCellValue>, updates: Record<string, DbCellValue>): Promise<{ affected: number }> {
+  return fetchJson<{ affected: number }>(`${BASE_URL}/api/admin/db/table/${encodeURIComponent(table)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, updates }),
+  });
+}
+
+/** Insert a new row from a column -> value map (admin only). */
+export function adminDbInsertRow(table: string, values: Record<string, DbCellValue>): Promise<{ inserted: number }> {
+  return fetchJson<{ inserted: number }>(`${BASE_URL}/api/admin/db/table/${encodeURIComponent(table)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values }),
+  });
+}
+
+/** Delete one row addressed by its primary-key values (admin only). */
+export function adminDbDeleteRow(table: string, key: Record<string, DbCellValue>): Promise<{ affected: number }> {
+  return fetchJson<{ affected: number }>(`${BASE_URL}/api/admin/db/table/${encodeURIComponent(table)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key }),
+  });
+}

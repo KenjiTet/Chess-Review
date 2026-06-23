@@ -62,6 +62,17 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
   },
 ];
 
+/** Default red pill shown in the trainer when a blunder has no displayable category. */
+export const DEFAULT_BLUNDER_CATEGORY: BlunderCategory = {
+  key: 'blunder',
+  label: 'Blunder',
+  color: '#ef4444',
+  bg: 'rgba(239, 68, 68, 0.12)',
+  border: 'rgba(239, 68, 68, 0.35)',
+  prompt: 'this was a blunder',
+  shortPrompt: 'blundering',
+};
+
 /** Fallback shown for legacy blunders whose category could not be recovered. */
 export const UNCATEGORIZED_CATEGORY: BlunderCategory = {
   key: 'uncategorized',

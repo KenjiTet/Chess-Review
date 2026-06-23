@@ -1,7 +1,7 @@
 /** Blunder info card — shown above the board in the trainer screen. */
 
 import type { JSX } from 'react';
-import { getBlunderCategory } from '../../constants/blunderCategories';
+import { DEFAULT_BLUNDER_CATEGORY, getBlunderCategory } from '../../constants/blunderCategories';
 import './BlunderCard.css';
 
 interface BlunderCardProps {
@@ -38,22 +38,23 @@ function bestSequenceLabel(categoryKey: string | undefined, compact: boolean): s
 }
 
 function BlunderCard({ moveSan, cpLoss, category, onShowBlunderSequence, onShowBestSequence, sequenceDisabled, compactSequenceLabel = false, compactPrompt = false }: BlunderCardProps): JSX.Element {
-  // Resolve the category to its label/colour; undefined renders no pill.
+  // Resolve the category to its label/colour; the prompt text still falls back
+  // to a generic message when there's no displayable category.
   const categoryInfo = category !== undefined ? getBlunderCategory(category) : undefined;
+  // The pill always shows — default to the red "Blunder" pill when uncategorized.
+  const pillInfo = categoryInfo ?? DEFAULT_BLUNDER_CATEGORY;
   const bestLabel = bestSequenceLabel(category, compactSequenceLabel);
 
   return (
     <div className="blunder-card">
-      {categoryInfo && (
-        <div className="blunder-card__meta">
-          <span
-            className="blunder-card__category"
-            style={{ color: categoryInfo.color, background: categoryInfo.bg, borderColor: categoryInfo.border }}
-          >
-            {categoryInfo.label}
-          </span>
-        </div>
-      )}
+      <div className="blunder-card__meta">
+        <span
+          className="blunder-card__category"
+          style={{ color: pillInfo.color, background: pillInfo.bg, borderColor: pillInfo.border }}
+        >
+          {pillInfo.label}
+        </span>
+      </div>
       <div className="blunder-card__body">
         <p className="blunder-card__prompt">
           {compactPrompt

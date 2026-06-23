@@ -1,5 +1,7 @@
 """Pydantic request/response models for the Recall FastAPI backend."""
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -280,3 +282,21 @@ class GameAnalysisResult(BaseModel):
     black_accuracy: float | None = None
     # Count of the player's blunders per category, e.g. {"material_loss": 2}.
     blunder_categories: dict[str, int] = {}
+
+
+class AdminRowUpdateRequest(BaseModel):
+    """Admin DB browser — update one row addressed by its primary-key values."""
+    # Map of identity column -> original value identifying the row to update.
+    key: dict[str, Any]
+    # Map of column -> new value to write.
+    updates: dict[str, Any]
+
+
+class AdminRowInsertRequest(BaseModel):
+    """Admin DB browser — insert a new row from a column -> value map."""
+    values: dict[str, Any]
+
+
+class AdminRowDeleteRequest(BaseModel):
+    """Admin DB browser — delete one row addressed by its primary-key values."""
+    key: dict[str, Any]

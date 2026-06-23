@@ -14,9 +14,10 @@ import {
   type AdminUser,
   type AdminUserStat,
 } from '../../api/client';
+import DbBrowser from './DbBrowser';
 import './Admin.css';
 
-type Tab = 'stats' | 'users' | 'userStats' | 'queue' | 'cache';
+type Tab = 'stats' | 'users' | 'userStats' | 'queue' | 'cache' | 'database';
 
 function Admin(): JSX.Element {
   const [tab, setTab] = useState<Tab>('stats');
@@ -231,7 +232,7 @@ function Admin(): JSX.Element {
   }
 
   return (
-    <div className="admin">
+    <div className={`admin${tab === 'database' ? ' admin--wide' : ''}`}>
       <div className="admin__header">
         <h1 className="admin__title">Admin Dashboard</h1>
         <button className="admin__refresh" type="button" onClick={() => handleTab(tab)}>
@@ -246,6 +247,7 @@ function Admin(): JSX.Element {
           ['userStats', 'User stats'],
           ['queue', 'Queue'],
           ['cache', 'Cache'],
+          ['database', 'Database'],
         ] as [Tab, string][]).map(([t, label]) => (
           <button
             key={`tab-${t}`}
@@ -266,6 +268,7 @@ function Admin(): JSX.Element {
         {!loading && !error && tab === 'userStats' && renderUserStats()}
         {!loading && !error && tab === 'queue' && renderQueue()}
         {!loading && !error && tab === 'cache' && renderCache()}
+        {!loading && !error && tab === 'database' && <DbBrowser />}
       </div>
     </div>
   );

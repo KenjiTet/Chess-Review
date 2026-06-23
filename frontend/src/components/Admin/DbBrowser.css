@@ -1,0 +1,264 @@
+.dbb {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+/* ── Sidebar: table list ─────────────────────────────────────────────────── */
+.dbb__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 0 210px;
+  max-height: 74vh;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.dbb__table-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.dbb__table-btn:hover {
+  background: var(--bg);
+}
+
+.dbb__table-btn--active {
+  background: var(--bg);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.dbb__table-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dbb__table-count {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.05rem 0.5rem;
+}
+
+.dbb__table-btn--active .dbb__table-count {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+/* ── Main grid area ──────────────────────────────────────────────────────── */
+.dbb__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dbb__state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+
+.dbb__error {
+  color: var(--error);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.8rem;
+  margin: 0 0 0.75rem;
+}
+
+.dbb__grid-wrap {
+  overflow: auto;
+  max-height: 74vh;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.dbb__grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+/* Sticky, fully-opaque header so labels stay readable while scrolling. */
+.dbb__grid th {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-h);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+
+.dbb__pk {
+  margin-left: 0.35rem;
+  font-size: 0.58rem;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 0 0.22rem;
+  vertical-align: middle;
+}
+
+.dbb__coltype {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.dbb__grid td {
+  padding: 0.2rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+/* Row-level zebra + hover. Kept on the <tr> (not <td>) so the sticky actions
+   cell can paint its own opaque background over the top without a fight. */
+.dbb__grid tbody tr:nth-child(even) {
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.dbb__grid tbody tr:hover {
+  background: var(--bg);
+}
+
+.dbb__input {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  padding: 0.32rem 0.45rem;
+  width: 100%;
+  min-width: 90px;
+  max-width: 300px;
+}
+
+.dbb__input:hover {
+  border-color: var(--border);
+}
+
+.dbb__input:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.dbb__input--null::placeholder {
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* New-row form highlighted so it's clearly the "insert" line. */
+.dbb__new-row {
+  background: var(--success-bg);
+}
+
+.dbb__new-row td {
+  border-bottom: 2px solid var(--border);
+}
+
+/* ── Action buttons (sticky to the right edge so they never scroll off) ───── */
+.dbb__actions-col {
+  white-space: nowrap;
+  text-align: right;
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.35);
+}
+
+th.dbb__actions-col {
+  z-index: 3;
+}
+
+.dbb__new-row .dbb__actions-col {
+  background: var(--surface);
+}
+
+.dbb__btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.74rem;
+  padding: 0.3rem 0.6rem;
+  margin-left: 0.3rem;
+}
+
+.dbb__btn:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.dbb__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dbb__btn--save {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.dbb__btn--add {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.dbb__btn--del {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* ── Pager ───────────────────────────────────────────────────────────────── */
+.dbb__pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  justify-content: flex-end;
+}
+
+.dbb__pager-info {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-right: auto;
+}

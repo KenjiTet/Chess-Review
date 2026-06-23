@@ -1,7 +1,18 @@
 .admin {
   max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  margin: 1.5rem auto;
+  padding: 1.75rem 1.75rem 2rem;
+  /* Opaque panel so the page's chess background doesn't bleed into the data. */
+  background: var(--panel-bg);
+  border: var(--panel-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(8px);
+}
+
+/* The Database tab needs the full width for its data grid. */
+.admin--wide {
+  max-width: 1400px;
 }
 
 .admin__header {
@@ -15,27 +26,28 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
+  color: var(--text-h);
 }
 
 .admin__refresh {
   background: transparent;
-  border: 1px solid var(--color-border, #444);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: inherit;
+  color: var(--text);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
 }
 
 .admin__refresh:hover {
-  background: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
+  background: var(--surface);
 }
 
 .admin__tabs {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border, #333);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 0.5rem;
 }
 
@@ -43,19 +55,19 @@
   background: transparent;
   border: none;
   border-radius: 6px 6px 0 0;
-  color: var(--color-text-muted, #888);
+  color: var(--muted);
   cursor: pointer;
   font-size: 0.9rem;
   padding: 0.5rem 1rem;
 }
 
 .admin__tab:hover {
-  color: inherit;
+  color: var(--text);
 }
 
 .admin__tab--active {
-  background: var(--color-surface-active, rgba(255, 255, 255, 0.08));
-  color: var(--color-accent, #f0c040);
+  background: var(--surface);
+  color: var(--gold);
   font-weight: 600;
 }
 
@@ -65,13 +77,13 @@
 
 .admin__loading,
 .admin__empty {
-  color: var(--color-text-muted, #888);
+  color: var(--muted);
   font-size: 0.9rem;
   padding: 1rem 0;
 }
 
 .admin__error {
-  color: var(--color-error, #e55);
+  color: var(--error);
   font-size: 0.9rem;
   padding: 1rem 0;
 }
@@ -86,8 +98,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: var(--color-surface, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, #333);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1.5rem 2rem;
   min-width: 140px;
@@ -96,12 +108,12 @@
 .admin__stat-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: var(--color-accent, #f0c040);
+  color: var(--gold);
 }
 
 .admin__stat-label {
   font-size: 0.8rem;
-  color: var(--color-text-muted, #888);
+  color: var(--muted);
   margin-top: 0.3rem;
   text-align: center;
 }
@@ -115,8 +127,8 @@
 .admin__table th {
   text-align: left;
   padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid var(--color-border, #333);
-  color: var(--color-text-muted, #888);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
   font-weight: 600;
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -125,7 +137,7 @@
 
 .admin__table td {
   padding: 0.55rem 0.8rem;
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -134,7 +146,7 @@
 }
 
 .admin__link {
-  color: var(--color-accent, #f0c040);
+  color: var(--gold);
   text-decoration: none;
 }
 
