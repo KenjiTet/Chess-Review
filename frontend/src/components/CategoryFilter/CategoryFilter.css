@@ -19,6 +19,14 @@
   margin-bottom: 0.5rem;
 }
 
+/* Left column on desktop — blunder types stacked above the game phases. */
+.catfilter__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
 .catfilter__types {
   min-width: 0;
 }

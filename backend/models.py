@@ -175,6 +175,9 @@ class GameHistoryEntry(BaseModel):
     first_blunder_color: str | None = None
     # Count of the player's blunders per category, e.g. {"material_loss": 2}.
     blunder_categories: dict[str, int] = {}
+    # Count of the player's blunders per game phase then category, e.g.
+    # {"opening": {"material_loss": 1}, "endgame": {"missed_gain": 2}}.
+    blunder_phases: dict[str, dict[str, int]] = {}
 
 
 class UserProfileResponse(BaseModel):
@@ -282,6 +285,8 @@ class GameAnalysisResult(BaseModel):
     black_accuracy: float | None = None
     # Count of the player's blunders per category, e.g. {"material_loss": 2}.
     blunder_categories: dict[str, int] = {}
+    # Count of the player's blunders per game phase then category.
+    blunder_phases: dict[str, dict[str, int]] = {}
 
 
 class AdminRowUpdateRequest(BaseModel):

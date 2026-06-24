@@ -7,7 +7,7 @@ import type { GameHistoryEntry } from '../../api/client';
 import useReviewed from '../../hooks/useReviewed';
 import { TimeClassIcon } from '../TimeClassIcons';
 import BlunderCountModal from '../BlunderCountModal/BlunderCountModal';
-import { ALL_CATEGORY_KEYS, UNCATEGORIZED_CATEGORY } from '../../constants/blunderCategories';
+import { ALL_CATEGORY_KEYS, ALL_PHASE_KEYS, UNCATEGORIZED_CATEGORY } from '../../constants/blunderCategories';
 import './GameHistory.css';
 import './GameHistory.mobile.css';
 
@@ -27,6 +27,8 @@ interface GameHistoryProps {
   isMobile?: boolean;
   /** Selected blunder-category keys; a game shows only if it has a blunder of a selected type. */
   selectedCategories?: Set<string>;
+  /** Selected game-phase keys; a game shows only if it has a blunder in a selected phase. */
+  selectedPhases?: Set<string>;
   /** Whether games with zero blunders are shown. */
   showCleanGames?: boolean;
   /** Whether games the user has already reviewed are shown. */
@@ -34,6 +36,8 @@ interface GameHistoryProps {
   /** Whether games that have been analysed are shown. */
   showAnalysedGames?: boolean;
   onTrainGame: (url: string) => void;
+  /** Open the trainer for one blunder type in a game, optionally scoped to a phase. */
+  onTrainBlunders?: (url: string, category: string, phase?: string) => void;
   onGamesLoaded?: (games: GameHistoryEntry[]) => void;
   /** Fired after a game finishes analysing so the menu can refresh DB-derived stats. */
   onAnalysisComplete?: () => void;
@@ -103,7 +107,14 @@ function BlunderCell({ blunderCount, onShowBreakdown }: { blunderCount: number |
     return <span className="history__blunders history__blunders--low">0</span>;
   }
 
-  const cls = blunderCount >= 4 ? 'high' : blunderCount >= 2 ? 'mid' : 'low';
+  // 1 blunder → dark yellow, 2 → orange, 3+ → red.
+  let cls = 'one';
+
+  if (blunderCount >= 3) {
+    cls = 'high';
+  } else if (blunderCount === 2) {
+    cls = 'mid';
+  }
 
   // Clickable: opens the per-category breakdown modal for this game.
   return (
@@ -290,11 +301,15 @@ function GameCard({
   const resultLabel = game.result === 'win' ? 'Win' : game.result === 'lose' ? 'Loss' : 'Draw';
 
   const blunderCount = game.blunder_count;
-  const blunderCls = blunderCount !== null && blunderCount >= 4
-    ? 'high'
-    : blunderCount !== null && blunderCount >= 2
-      ? 'mid'
-      : 'low';
+
+  // 1 blunder → dark yellow, 2 → orange, 3+ → red.
+  let blunderCls = 'one';
+
+  if (blunderCount !== null && blunderCount >= 3) {
+    blunderCls = 'high';
+  } else if (blunderCount !== null && blunderCount === 2) {
+    blunderCls = 'mid';
+  }
 
   function formatAcc(val: number | null | undefined): string {
     if (val !== null && val !== undefined) {
@@ -468,10 +483,12 @@ function GameHistory({
   threshold,
   isMobile = false,
   selectedCategories,
+  selectedPhases,
   showCleanGames = true,
   showReviewedGames = true,
   showAnalysedGames = true,
   onTrainGame,
+  onTrainBlunders,
   onGamesLoaded,
   onAnalysisComplete,
 }: GameHistoryProps): JSX.Element {
@@ -552,7 +569,7 @@ function GameHistory({
               if (g.url !== game.url) {
                 return g;
               }
-              return { ...g, blunder_categories: result.blunder_categories, blunder_count: result.blunder_count };
+              return { ...g, blunder_categories: result.blunder_categories, blunder_phases: result.blunder_phases, blunder_count: result.blunder_count };
             }),
           );
         } catch {
@@ -642,6 +659,7 @@ function GameHistory({
             white_accuracy: result.white_accuracy,
             black_accuracy: result.black_accuracy,
             blunder_categories: result.blunder_categories,
+            blunder_phases: result.blunder_phases,
           };
         }),
       );
@@ -675,6 +693,7 @@ function GameHistory({
             white_accuracy: result.white_accuracy,
             black_accuracy: result.black_accuracy,
             blunder_categories: result.blunder_categories,
+            blunder_phases: result.blunder_phases,
           };
         }),
       );
@@ -795,6 +814,12 @@ function GameHistory({
       return showCleanGames;
     }
 
+    // A blunder game must pass both the category and the phase filter to remain.
+    return matchesCategoryFilter(game) && matchesPhaseFilter(game);
+  }
+
+  // True when the game has a blunder of a currently-selected category.
+  function matchesCategoryFilter(game: GameHistoryEntry): boolean {
     // No category selection given (filter not in use) — show everything.
     if (selectedCategories === undefined) {
       return true;
@@ -814,6 +839,32 @@ function GameHistory({
     }
 
     return categoryKeys.some((key) => selectedCategories.has(key));
+  }
+
+  // True when the game has a blunder in a currently-selected game phase.
+  function matchesPhaseFilter(game: GameHistoryEntry): boolean {
+    // No phase selection given (filter not in use) — show everything.
+    if (selectedPhases === undefined) {
+      return true;
+    }
+
+    // Every phase chosen (default) — show all blunder games regardless of phase.
+    if (ALL_PHASE_KEYS.every((key) => selectedPhases.has(key))) {
+      return true;
+    }
+
+    // Phases the game actually has blunders in.
+    const phaseKeys = Object.keys(game.blunder_phases ?? {}).filter((phase) => {
+      const phaseCounts = game.blunder_phases?.[phase];
+      return phaseCounts !== undefined && Object.values(phaseCounts).some((count) => count > 0);
+    });
+
+    // Legacy game with blunders but no stored phase breakdown: show while any phase is active.
+    if (phaseKeys.length === 0) {
+      return selectedPhases.size > 0;
+    }
+
+    return phaseKeys.some((key) => selectedPhases.has(key));
   }
 
   const visibleGames = displayedGames.filter(matchesFilter);
@@ -950,7 +1001,19 @@ function GameHistory({
           anchor={breakdownAnchor}
           total={breakdownGame?.blunder_count ?? 0}
           categories={breakdownGame?.blunder_categories ?? {}}
+          phases={breakdownGame?.blunder_phases}
           selectedCategories={selectedCategories}
+          onTrainCategory={onTrainBlunders === undefined
+            ? undefined
+            : (category, phase) => {
+              const url = breakdownGame?.url;
+              setBreakdownGame(undefined);
+              setBreakdownAnchor(undefined);
+
+              if (url !== undefined) {
+                onTrainBlunders(url, category, phase);
+              }
+            }}
           onClose={() => {
             setBreakdownGame(undefined);
             setBreakdownAnchor(undefined);
@@ -1012,7 +1075,19 @@ function GameHistory({
         anchor={breakdownAnchor}
         total={breakdownGame?.blunder_count ?? 0}
         categories={breakdownGame?.blunder_categories ?? {}}
+        phases={breakdownGame?.blunder_phases}
         selectedCategories={selectedCategories}
+        onTrainCategory={onTrainBlunders === undefined
+          ? undefined
+          : (category, phase) => {
+            const url = breakdownGame?.url;
+            setBreakdownGame(undefined);
+            setBreakdownAnchor(undefined);
+
+            if (url !== undefined) {
+              onTrainBlunders(url, category, phase);
+            }
+          }}
         onClose={() => {
           setBreakdownGame(undefined);
           setBreakdownAnchor(undefined);

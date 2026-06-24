@@ -259,7 +259,8 @@
 }
 
 .game-card__istat--high { color: var(--error); }
-.game-card__istat--mid  { color: var(--gold); }
+.game-card__istat--mid  { color: #e07b00; }
+.game-card__istat--one  { color: #c79100; }
 .game-card__istat--low  { color: var(--success); }
 
 /* ── Right column (date + result + action) ───────────────────────────────── */

@@ -25,6 +25,7 @@ import services.lichess as lichess_svc
 from services.db import get_connection
 from services.jwt_service import get_current_user
 from services.categorize import resolve_category
+from services.stats_aggregate import phase_for_move_index
 from services.stockfish import DEPTH, analyze_game, extract_clocks, find_blunders, get_best_moves, get_board_snapshots
 from services.trainer import build_session, get_current_blunder, get_summary, submit_attempt
 
@@ -48,6 +49,7 @@ def _build_stream_generator(
     game_url: str | None = None,
     platform: str = "chesscom",
     categories: list[str] | None = None,
+    phase: str | None = None,
 ):
     """Sync generator that yields SSE events while building a training session.
 
@@ -154,6 +156,10 @@ def _build_stream_generator(
                 if category_filter and category not in category_filter:
                     continue
 
+                # Skip blunders outside the requested game phase (None = all phases).
+                if phase is not None and phase_for_move_index(move_index) != phase:
+                    continue
+
                 if move_index > 0:
                     prev_fen: str | None = fens[move_index - 1]
                     prev_move_uci: str | None = uci_moves[move_index - 1]
@@ -241,6 +247,7 @@ def build_stream(
     game_url: str | None = None,
     platform: str = "chesscom",
     categories: list[str] | None = Query(default=None),
+    phase: str | None = None,
 ):
     """Stream SSE progress events while building a training session.
 
@@ -248,9 +255,10 @@ def build_stream(
     'done' event with session_id, blunder_count, and game_urls for the frontend.
     If game_url is provided, builds the session from that specific game only.
     categories scopes the session to selected blunder types (empty = all).
+    phase scopes the session to one game phase ("opening"/"middlegame"/"endgame"; None = all).
     """
     return StreamingResponse(
-        _build_stream_generator(username, time_class, n_games, threshold, game_url, platform, categories),
+        _build_stream_generator(username, time_class, n_games, threshold, game_url, platform, categories, phase),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

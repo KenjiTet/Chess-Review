@@ -1,7 +1,7 @@
 /** Blunder-category filter — title + toggle pills + game-visibility switches. */
 
 import type { JSX } from 'react';
-import { BLUNDER_CATEGORIES } from '../../constants/blunderCategories';
+import { BLUNDER_CATEGORIES, BLUNDER_PHASES } from '../../constants/blunderCategories';
 import './CategoryFilter.css';
 
 interface CategoryFilterProps {
@@ -9,6 +9,10 @@ interface CategoryFilterProps {
   selected: Set<string>;
   /** Toggle a single category on/off. */
   onToggle: (key: string) => void;
+  /** Currently-selected game-phase keys. */
+  selectedPhases: Set<string>;
+  /** Toggle a single game phase on/off. */
+  onTogglePhase: (key: string) => void;
   /** Whether games with zero blunders are shown. */
   showClean: boolean;
   /** Toggle the show-clean-games switch. */
@@ -28,6 +32,8 @@ interface CategoryFilterProps {
 function CategoryFilter({
   selected,
   onToggle,
+  selectedPhases,
+  onTogglePhase,
   showClean,
   onToggleClean,
   showReviewed,
@@ -86,11 +92,45 @@ function CategoryFilter({
     </div>
   );
 
-  // Types first in both layouts: desktop places types left / switches right;
-  // mobile stacks the Display switches below the blunder types.
+  // Title + the game-phase pills (same interaction model as the blunder types).
+  const phases = (
+    <div className="catfilter__types">
+      <span className="catfilter__title">Game phase to review</span>
+      <div className="catfilter__pills">
+        {BLUNDER_PHASES.map((phase) => {
+          const isActive = selectedPhases.has(phase.key);
+
+          // Active pills use the phase accent; inactive ones are muted/outlined.
+          const pillStyle = isActive
+            ? { color: phase.color, background: phase.bg, borderColor: phase.border }
+            : undefined;
+
+          return (
+            <button
+              key={`phasefilter-${phase.key}`}
+              type="button"
+              className={`catfilter__pill${isActive ? ' catfilter__pill--on' : ''}`}
+              style={pillStyle}
+              aria-pressed={isActive}
+              onClick={() => onTogglePhase(phase.key)}
+            >
+              <span className="catfilter__dot" style={{ background: phase.color }} />
+              {phase.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Types first, then the game-phase filter directly below it (stacked column),
+  // then the Display switches (right on desktop, bottom on mobile).
   return (
     <div className={`catfilter${isMobile ? ' catfilter--mobile' : ''}`}>
-      {types}
+      <div className="catfilter__main">
+        {types}
+        {phases}
+      </div>
       {switches}
     </div>
   );

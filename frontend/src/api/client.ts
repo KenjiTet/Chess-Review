@@ -39,6 +39,8 @@ export interface GameHistoryEntry {
   first_blunder_color: string | null;
   /** Count of the player's blunders per category, e.g. { material_loss: 2 }. */
   blunder_categories: Record<string, number>;
+  /** Blunders bucketed by game phase, then category, e.g. { opening: { material_loss: 1 } }. */
+  blunder_phases?: Record<string, Record<string, number>>;
 }
 
 export interface SessionCreateRequest {
@@ -50,6 +52,8 @@ export interface SessionCreateRequest {
   platform?: string;
   /** Blunder categories to train on. Empty/omitted means all categories. */
   categories?: string[];
+  /** Game phase to train on ("opening"/"middlegame"/"endgame"). Omitted means all phases. */
+  phase?: string;
 }
 
 export interface SessionCreateResponse {
@@ -281,6 +285,10 @@ export function streamBuildSession(
       req.categories.forEach((category) => params.append('categories', category));
     }
 
+    if (req.phase) {
+      params.set('phase', req.phase);
+    }
+
     const source = new EventSource(`${BASE_URL}/api/session/build-stream?${params}`);
 
     source.onmessage = (e: MessageEvent<string>) => {
@@ -434,6 +442,8 @@ export interface GameAnalysisResult {
   black_accuracy: number | null;
   /** Count of the player's blunders per category, e.g. { material_loss: 2 }. */
   blunder_categories: Record<string, number>;
+  /** Blunders bucketed by game phase, then category, e.g. { opening: { material_loss: 1 } }. */
+  blunder_phases?: Record<string, Record<string, number>>;
 }
 
 /** Fetch a player's public profile and ratings. */

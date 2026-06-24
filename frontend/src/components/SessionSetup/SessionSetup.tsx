@@ -8,7 +8,7 @@ import useAuth from '../../hooks/useAuth';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
 import CategoryFilter from '../CategoryFilter/CategoryFilter';
-import { ALL_CATEGORY_KEYS } from '../../constants/blunderCategories';
+import { ALL_CATEGORY_KEYS, ALL_PHASE_KEYS } from '../../constants/blunderCategories';
 import ProfileBand from './ProfileBand';
 import LinkAccountModal from './LinkAccountModal';
 import UserStats from '../UserStats/UserStats';
@@ -63,6 +63,7 @@ function getSavedTimeClass(): TimeClass {
 // ── Persisted blunder-type / display filter ────────────────────────────────
 
 const FILTER_CATEGORIES_KEY = 'recall_filter_categories';
+const FILTER_PHASES_KEY = 'recall_filter_phases';
 const SHOW_CLEAN_KEY = 'recall_filter_show_clean';
 const SHOW_REVIEWED_KEY = 'recall_filter_show_reviewed';
 const SHOW_ANALYSED_KEY = 'recall_filter_show_analysed';
@@ -80,6 +81,22 @@ function loadSelectedCategories(): Set<string> {
     return new Set(parsed.filter((key) => ALL_CATEGORY_KEYS.includes(key)));
   } catch {
     return new Set(ALL_CATEGORY_KEYS);
+  }
+}
+
+function loadSelectedPhases(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FILTER_PHASES_KEY);
+
+    if (raw === null) {
+      return new Set(ALL_PHASE_KEYS);
+    }
+
+    // Keep only keys that still exist (drops any removed phases).
+    const parsed = JSON.parse(raw) as string[];
+    return new Set(parsed.filter((key) => ALL_PHASE_KEYS.includes(key)));
+  } catch {
+    return new Set(ALL_PHASE_KEYS);
   }
 }
 
@@ -239,6 +256,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [showStats, setShowStats] = useState<boolean>(false);
   // Blunder-category filter — all categories selected and clean games shown by default.
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(loadSelectedCategories);
+  // Game-phase filter — all phases selected by default.
+  const [selectedPhases, setSelectedPhases] = useState<Set<string>>(loadSelectedPhases);
   const [showCleanGames, setShowCleanGames] = useState<boolean>(() => loadShowToggle(SHOW_CLEAN_KEY));
   const [showReviewedGames, setShowReviewedGames] = useState<boolean>(() => loadShowToggle(SHOW_REVIEWED_KEY));
   const [showAnalysedGames, setShowAnalysedGames] = useState<boolean>(() => loadShowToggle(SHOW_ANALYSED_KEY));
@@ -246,6 +265,7 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
   // True when the filter differs from its defaults (drives the button's active dot).
   const filterActive = selectedCategories.size !== ALL_CATEGORY_KEYS.length
+    || selectedPhases.size !== ALL_PHASE_KEYS.length
     || !showCleanGames
     || !showReviewedGames
     || !showAnalysedGames;
@@ -254,6 +274,10 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   useEffect(() => {
     localStorage.setItem(FILTER_CATEGORIES_KEY, JSON.stringify([...selectedCategories]));
   }, [selectedCategories]);
+
+  useEffect(() => {
+    localStorage.setItem(FILTER_PHASES_KEY, JSON.stringify([...selectedPhases]));
+  }, [selectedPhases]);
 
   useEffect(() => {
     localStorage.setItem(SHOW_CLEAN_KEY, showCleanGames ? '1' : '0');
@@ -341,6 +365,20 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     });
   }
 
+  function handleTogglePhase(key: string): void {
+    setSelectedPhases((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+
+      return next;
+    });
+  }
+
   function renderFilterButton(extraClass?: string): JSX.Element {
     return (
       <button
@@ -381,6 +419,8 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
           <CategoryFilter
             selected={selectedCategories}
             onToggle={handleToggleCategory}
+            selectedPhases={selectedPhases}
+            onTogglePhase={handleTogglePhase}
             showClean={showCleanGames}
             onToggleClean={setShowCleanGames}
             showReviewed={showReviewedGames}
@@ -408,6 +448,22 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
       game_url: gameUrl,
       platform: platform ?? 'chesscom',
       categories,
+    }, resolveLoadingTitle(gameUrl));
+  }
+
+  // Open the trainer for a single blunder type in one game, optionally scoped to
+  // a game phase. Drilled straight from a breakdown pill, so it ignores the
+  // category filter and trains exactly the clicked type.
+  function handleTrainBlunders(gameUrl: string, category: string, phase?: string): void {
+    buildSession({
+      username: playerUsername,
+      time_class: timeClass === 'all' ? 'rapid' : timeClass,
+      n_games: 1,
+      threshold,
+      game_url: gameUrl,
+      platform: platform ?? 'chesscom',
+      categories: [category],
+      phase,
     }, resolveLoadingTitle(gameUrl));
   }
 
@@ -745,10 +801,12 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   threshold={threshold}
                   isMobile
                   selectedCategories={selectedCategories}
+                  selectedPhases={selectedPhases}
                   showCleanGames={showCleanGames}
                   showReviewedGames={showReviewedGames}
                   showAnalysedGames={showAnalysedGames}
                   onTrainGame={handleTrainGame}
+                  onTrainBlunders={handleTrainBlunders}
                   onGamesLoaded={handleGamesLoaded}
                   onAnalysisComplete={refreshStats}
                 />
@@ -965,10 +1023,12 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   platform={platform ?? 'chesscom'}
                   threshold={threshold}
                   selectedCategories={selectedCategories}
+                  selectedPhases={selectedPhases}
                   showCleanGames={showCleanGames}
                   showReviewedGames={showReviewedGames}
                   showAnalysedGames={showAnalysedGames}
                   onTrainGame={handleTrainGame}
+                  onTrainBlunders={handleTrainBlunders}
                   onGamesLoaded={handleGamesLoaded}
                   onAnalysisComplete={refreshStats}
                 />

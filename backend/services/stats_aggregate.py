@@ -76,7 +76,7 @@ def compute_signature(username_lower: str, handle_lower: str) -> str:
     return f"{analysed['n']}:{analysed['last']}:{reviewed['n']}:{reviewed['last']}:{reviewed['drilled']}"
 
 
-def _phase_for_move_index(move_index: int) -> str:
+def phase_for_move_index(move_index: int) -> str:
     """Return the game phase ("opening"/"middlegame"/"endgame") for a ply index.
 
     move_index is a 0-based ply index, so the fullmove number is index // 2 + 1.
@@ -321,7 +321,7 @@ def compute_full_stats(username_lower: str, handle_lower: str) -> dict:
                 category = "uncategorized"
             blunder_types[category] += 1
 
-            phases[_phase_for_move_index(move_index)] += 1
+            phases[phase_for_move_index(move_index)] += 1
             colors[player_color] += 1
             severity[_severity_bucket(cp_loss)] += 1
 

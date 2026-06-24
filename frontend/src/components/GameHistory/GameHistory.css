@@ -320,7 +320,8 @@
 }
 
 .history__blunders--high { color: var(--error); }
-.history__blunders--mid  { color: var(--gold); }
+.history__blunders--mid  { color: #e07b00; }
+.history__blunders--one  { color: #c79100; }
 .history__blunders--low  { color: var(--success); }
 
 /* Clickable blunder count opens the per-category breakdown modal. */

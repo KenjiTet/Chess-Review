@@ -62,6 +62,51 @@ export const BLUNDER_CATEGORIES: BlunderCategory[] = [
   },
 ];
 
+/** A game phase used to bucket blunders in the breakdown popover. */
+export interface BlunderPhase {
+  /** Stable key sent to / received from the backend. */
+  key: string;
+  /** Human-readable label shown on the phase tab. */
+  label: string;
+  /** Solid accent colour (text / icon) for the filter pill. */
+  color: string;
+  /** Translucent background for the pill. */
+  bg: string;
+  /** Border colour for the pill. */
+  border: string;
+}
+
+/**
+ * Ordered game phases, matching the backend boundaries in stats_aggregate.py
+ * (opening ≤ move 10, middlegame ≤ move 30, endgame after).
+ */
+export const BLUNDER_PHASES: BlunderPhase[] = [
+  {
+    key: 'opening',
+    label: 'Opening',
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.12)',
+    border: 'rgba(16, 185, 129, 0.35)',
+  },
+  {
+    key: 'middlegame',
+    label: 'Mid game',
+    color: '#6366f1',
+    bg: 'rgba(99, 102, 241, 0.12)',
+    border: 'rgba(99, 102, 241, 0.35)',
+  },
+  {
+    key: 'endgame',
+    label: 'End game',
+    color: '#ec4899',
+    bg: 'rgba(236, 72, 153, 0.12)',
+    border: 'rgba(236, 72, 153, 0.35)',
+  },
+];
+
+/** All filterable phase keys. */
+export const ALL_PHASE_KEYS: string[] = BLUNDER_PHASES.map((phase) => phase.key);
+
 /** Default red pill shown in the trainer when a blunder has no displayable category. */
 export const DEFAULT_BLUNDER_CATEGORY: BlunderCategory = {
   key: 'blunder',

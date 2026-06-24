@@ -14,6 +14,7 @@ from services.chess_com import get_recent_games as chesscom_recent_games
 from services.chess_com import get_recent_games_all as chesscom_recent_games_all
 import services.lichess as lichess_svc
 from services.categorize import UNCATEGORIZED, categorize_from_eval, derive_mover_evals, resolve_category
+from services.stats_aggregate import phase_for_move_index
 from services.stockfish import DEPTH, analyze_game, compute_player_accuracy, find_blunders, get_best_moves, get_board_snapshots
 
 router = APIRouter()
@@ -81,6 +82,39 @@ def _category_breakdown(
     return counts
 
 
+def _phase_breakdown(
+    blunders: list[dict],
+    move_data: list[dict],
+    categories_per_blunder: dict[str, str],
+) -> dict[str, dict[str, int]]:
+    """Tally the player's blunders by game phase, then by category within each phase.
+
+    Same category-resolution rules as _category_breakdown, with each blunder
+    additionally bucketed into opening / middlegame / endgame by its move index.
+
+    Args:
+        blunders: The player's blunder dicts (each carries move_index).
+        move_data: Output of analyze_game() for the eval-only fallback.
+        categories_per_blunder: Cached {move_index (str) -> category} map.
+    """
+    breakdown: dict[str, dict[str, int]] = {}
+
+    for blunder in blunders:
+        move_index: int = blunder["move_index"]
+        category: str | None = categories_per_blunder.get(str(move_index))
+
+        if category is None:
+            # Legacy game: recover mate categories from eval, else uncategorized.
+            eval_before_mover, eval_after_mover = derive_mover_evals(move_data, move_index)
+            category = categorize_from_eval(eval_before_mover, eval_after_mover) or UNCATEGORIZED
+
+        phase: str = phase_for_move_index(move_index)
+        phase_counts: dict[str, int] = breakdown.setdefault(phase, {})
+        phase_counts[category] = phase_counts.get(category, 0) + 1
+
+    return breakdown
+
+
 def _backfill_categories(game_url: str, threshold: int, player_color: str) -> None:
     """Compute and persist missing categories for a cached game's player blunders.
 
@@ -133,16 +167,17 @@ def _blunder_data_from_cache(
     game_url: str,
     threshold: int,
     player_color: str | None = None,
-) -> tuple[int | None, str | None, str | None, dict[str, float], dict[str, int]]:
-    """Return (blunder_count, first_blunder_fen, first_blunder_color, computed_accuracy, categories) from cache.
+) -> tuple[int | None, str | None, str | None, dict[str, float], dict[str, int], dict[str, dict[str, int]]]:
+    """Return (blunder_count, first_blunder_fen, first_blunder_color, computed_accuracy, categories, phases) from cache.
 
     computed_accuracy is a dict {"white": float, "black": float} derived from Stockfish data.
     categories is a {category -> count} map for the player's blunders.
-    Returns (None, None, None, {}, {}) if the game is not in cache.
+    phases is a {phase -> {category -> count}} map for the player's blunders.
+    Returns (None, None, None, {}, {}, {}) if the game is not in cache.
     If player_color is provided, only blunders for that color are counted (matches trainer behaviour).
     """
     if not is_cached(cache, game_url, DEPTH):
-        return None, None, None, {}, {}
+        return None, None, None, {}, {}, {}
 
     entry: dict = get_cached_game(cache, game_url)
     move_data: list[dict] = entry.get("move_data", [])
@@ -158,6 +193,7 @@ def _blunder_data_from_cache(
 
     blunder_count: int = len(blunders)
     categories: dict[str, int] = _category_breakdown(blunders, move_data, categories_per_blunder)
+    phases: dict[str, dict[str, int]] = _phase_breakdown(blunders, move_data, categories_per_blunder)
 
     if blunders and fens:
         first_idx: int = blunders[0]["move_index"]
@@ -167,7 +203,7 @@ def _blunder_data_from_cache(
         first_fen = None
         first_color = None
 
-    return blunder_count, first_fen, first_color, computed_acc, categories
+    return blunder_count, first_fen, first_color, computed_acc, categories, phases
 
 
 def _resolve_accuracies(game: dict, computed_acc: dict[str, float]) -> tuple[float | None, float | None]:
@@ -284,11 +320,12 @@ def game_history(
             player_color = "black"
 
         blunder_categories: dict[str, int] = {}
+        blunder_phases: dict[str, dict[str, int]] = {}
 
         if is_guest:
             blunder_count, first_fen, first_color = None, None, None
         else:
-            blunder_count, first_fen, first_color, computed_acc, blunder_categories = _blunder_data_from_cache(cache, url, threshold, player_color)
+            blunder_count, first_fen, first_color, computed_acc, blunder_categories, blunder_phases = _blunder_data_from_cache(cache, url, threshold, player_color)
 
         accuracies: dict = game.get("accuracies", {})
 
@@ -321,6 +358,7 @@ def game_history(
             first_blunder_fen=first_fen,
             first_blunder_color=first_color,
             blunder_categories=blunder_categories,
+            blunder_phases=blunder_phases,
         ))
 
     return entries
@@ -386,7 +424,7 @@ def analyze_game_history(
     if not is_guest and is_cached(cache, game_url, DEPTH):
         # Backfill categories for games cached before they were computed (one-time, engine only for missing).
         _backfill_categories(game_url, threshold, player_color_analyze)
-        blunder_count, first_fen, first_color, computed_acc, blunder_categories = _blunder_data_from_cache(cache, game_url, threshold, player_color_analyze)
+        blunder_count, first_fen, first_color, computed_acc, blunder_categories, blunder_phases = _blunder_data_from_cache(cache, game_url, threshold, player_color_analyze)
         white_accuracy, black_accuracy = _resolve_accuracies(game, computed_acc)
         return GameAnalysisResult(
             blunder_count=blunder_count or 0,
@@ -395,6 +433,7 @@ def analyze_game_history(
             white_accuracy=white_accuracy,
             black_accuracy=black_accuracy,
             blunder_categories=blunder_categories,
+            blunder_phases=blunder_phases,
         )
 
     pgn: str = game.get("pgn", "")
@@ -432,6 +471,7 @@ def analyze_game_history(
         categories_per_blunder[idx_str] = resolve_category(move_data, fens, uci_moves, move_index, best_moves_per_blunder[idx_str])
 
     blunder_categories: dict[str, int] = _category_breakdown(blunders, move_data, categories_per_blunder)
+    blunder_phases: dict[str, dict[str, int]] = _phase_breakdown(blunders, move_data, categories_per_blunder)
 
     # Persist to cache unless this is a guest session.
     if not is_guest:
@@ -446,4 +486,5 @@ def analyze_game_history(
         white_accuracy=white_accuracy,
         black_accuracy=black_accuracy,
         blunder_categories=blunder_categories,
+        blunder_phases=blunder_phases,
     )

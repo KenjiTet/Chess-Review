@@ -91,6 +91,39 @@
   background: rgba(128, 128, 128, 0.12);
 }
 
+/* Phase tabs */
+.bcm-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: rgba(128, 128, 128, 0.08);
+  border-radius: 9px;
+}
+
+.bcm-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.4rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+  white-space: nowrap;
+}
+
+.bcm-tab:hover {
+  color: var(--text);
+}
+
+.bcm-tab--active {
+  color: var(--text-h);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
 /* Category rows */
 .bcm-rows {
   display: flex;
@@ -109,6 +142,19 @@
 .bcm-row--off {
   opacity: 0.4;
   filter: grayscale(1);
+}
+
+/* Clickable category row — opens the trainer for that blunder type. */
+.bcm-row--clickable {
+  cursor: pointer;
+  border-radius: 8px;
+  margin: 0 -0.4rem;
+  padding: 0.18rem 0.4rem;
+  transition: background 0.12s;
+}
+
+.bcm-row--clickable:hover {
+  background: rgba(128, 128, 128, 0.1);
 }
 
 .bcm-row__pill {
