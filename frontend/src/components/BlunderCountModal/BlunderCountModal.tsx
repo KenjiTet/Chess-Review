@@ -109,6 +109,8 @@ function BlunderCountModal({ isOpen, anchor, total, categories, phases, selected
   // drop the frozen placement so the new anchor gets a fresh above/below decision.
   useEffect(() => {
     if (isOpen) {
+      // Reset the active tab when the popover (re)opens — sync to the open prop.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActivePhase(ALL_PHASE);
       placementRef.current = undefined;
     }
@@ -119,6 +121,8 @@ function BlunderCountModal({ isOpen, anchor, total, categories, phases, selected
   // active phase changes (the card height changes with the row count).
   useLayoutEffect(() => {
     if (!isOpen || anchor === undefined) {
+      // Clear the resolved placement while closed — sync to the open/anchor state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPosition(undefined);
       return undefined;
     }

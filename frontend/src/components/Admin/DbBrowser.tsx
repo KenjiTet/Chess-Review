@@ -145,6 +145,8 @@ function DbBrowser(): JSX.Element {
       return;
     }
 
+    // Data-fetch effect: loadPage syncs external (server) state into React.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPage(selected, offset);
   }, [selected, offset, loadPage]);
 
