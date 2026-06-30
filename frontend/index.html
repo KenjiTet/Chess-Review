@@ -2,11 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Theme-aware tab/bookmark favicon (modern browsers): black mark on light
-         UI, gold mark on dark UI. The .ico is the legacy/search-engine fallback. -->
-    <link rel="icon" type="image/svg+xml" href="/blunderdrill_favicon_black.svg?v=3" media="(prefers-color-scheme: light)" />
-    <link rel="icon" type="image/svg+xml" href="/blunderdrill_favicon_gold.svg?v=3" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" />
+    <!-- Theme-aware tab favicon (modern browsers): black mark on light UI,
+         gold mark on dark UI. -->
+    <link rel="icon" type="image/svg+xml" href="/blunderdrill_favicon_black.svg?v=4" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/blunderdrill_favicon_gold.svg?v=4" media="(prefers-color-scheme: dark)" />
+    <!-- Raster fallback (favorites bar, Google, browsers without SVG/media support):
+         the black favicon design, NOT the app icon. -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- PWA: theme + iOS home-screen install support (Android reads the manifest). -->
     <meta name="theme-color" content="#863bff" />
