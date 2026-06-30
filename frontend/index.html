@@ -2,43 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Theme-aware tab favicon. The `media` attribute on <link rel="icon"> is
-         unreliable in Chrome, so a single favicon is managed in JS (see below):
-         solid gold mark on dark UI, black vector mark on light UI.
-         The .ico is the static fallback for crawlers / no-JS (e.g. Google). -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=8" />
-    <script>
-      // Pick the favicon that matches the current colour scheme and keep it in
-      // sync when the user toggles light/dark. Managing one <link> in JS avoids
-      // Chrome's flaky `media`-on-icon support and the resulting black/gold mixups.
-      (function () {
-        var darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-        function applyFavicon() {
-          var isDark = darkQuery.matches;
-          var link = document.getElementById('app-favicon');
-
-          if (link === null) {
-            link = document.createElement('link');
-            link.id = 'app-favicon';
-            link.rel = 'icon';
-            document.head.appendChild(link);
-          }
-
-          if (isDark === true) {
-            link.type = 'image/png';
-            link.href = '/favicon-gold-256.png?v=8';
-            return;
-          }
-
-          link.type = 'image/svg+xml';
-          link.href = '/blunderdrill_favicon_black.svg?v=8';
-        }
-
-        applyFavicon();
-        darkQuery.addEventListener('change', applyFavicon);
-      })();
-    </script>
+    <!-- Self-contained favicon: dark horse on a gold rounded tile. Carries its own
+         background so it stays legible on any tab-bar colour (light or dark) without
+         theme detection. Multiple sizes let high-DPI screens pick a sharp source. -->
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon-256.png?v=9" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=9" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=9" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=9" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=9" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- PWA: theme + iOS home-screen install support (Android reads the manifest). -->
     <meta name="theme-color" content="#863bff" />

@@ -10,7 +10,7 @@ export default defineConfig({
       // autoUpdate fetches the new service worker on each visit and swaps it in,
       // so the home-screen app always reflects the latest Railway deploy.
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon-32.png', 'favicon-48.png', 'favicon-96.png', 'favicon-256.png', 'favicon-gold-32.png', 'favicon-gold-48.png', 'favicon-gold-96.png', 'favicon-gold-256.png', 'blunderdrill_favicon_black.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon-32.png', 'favicon-48.png', 'favicon-96.png', 'favicon-256.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'BlunderDrill — Chess Blunder Trainer',
         short_name: 'BlunderDrill',
