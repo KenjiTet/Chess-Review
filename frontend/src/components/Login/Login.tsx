@@ -20,7 +20,6 @@ const TRYOUT_USERNAMES: Record<Platform, string[]> = {
 function Login(): JSX.Element {
   const loginAuth = useAuth((s) => s.login);
   const setScreen = useSession((s) => s.reset);
-
   const [mode, setMode] = useState<Mode>('login');
   const [platform, setPlatform] = useState<Platform>('chesscom');
   const [username, setUsername] = useState<string>('');
