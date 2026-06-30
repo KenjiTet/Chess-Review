@@ -148,7 +148,7 @@ npm run dev
 
 ```python
 load_dotenv()   # Must be first so STOCKFISH_PATH reaches every service module
-app = FastAPI(title="Recall — Chess Blunder Trainer API", version="1.0.0")
+app = FastAPI(title="BlunderDrill — Chess Blunder Trainer API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)
 app.include_router(auth.router,     prefix="/api/auth")
 app.include_router(session.router,  prefix="/api/session")

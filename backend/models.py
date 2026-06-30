@@ -1,4 +1,4 @@
-"""Pydantic request/response models for the Recall FastAPI backend."""
+"""Pydantic request/response models for the BlunderDrill FastAPI backend."""
 
 from typing import Any
 

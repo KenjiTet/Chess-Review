@@ -7,7 +7,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ---
 
-# Recall — Chess Blunder Trainer
+# BlunderDrill — Chess Blunder Trainer
 
 ## Project overview
 Full-stack web app that fetches chess games from Chess.com, analyses them with Stockfish, and presents the player's blunders as interactive training positions.

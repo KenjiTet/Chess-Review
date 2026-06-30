@@ -1,4 +1,4 @@
-"""Recall FastAPI application entry point.
+"""BlunderDrill FastAPI application entry point.
 
 Run with: uvicorn main:app --reload
 Docs at:  http://localhost:8000/docs
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     analysis_queue.stop()
 
 
-app = FastAPI(title="Recall — Chess Blunder Trainer API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="BlunderDrill — Chess Blunder Trainer API", version="1.0.0", lifespan=lifespan)
 
 # CORS: locked to CORS_ORIGIN env var in production; open in local dev.
 _CORS_ORIGIN: str = os.getenv("CORS_ORIGIN", "*")

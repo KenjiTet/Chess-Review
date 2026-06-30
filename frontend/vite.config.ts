@@ -10,10 +10,10 @@ export default defineConfig({
       // autoUpdate fetches the new service worker on each visit and swaps it in,
       // so the home-screen app always reflects the latest Railway deploy.
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon-96x96.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Recall — Chess Blunder Trainer',
-        short_name: 'Recall',
+        name: 'BlunderDrill — Chess Blunder Trainer',
+        short_name: 'BlunderDrill',
         description: 'Train on your own chess blunders.',
         theme_color: '#863bff',
         background_color: '#863bff',

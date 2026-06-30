@@ -1,5 +1,5 @@
 /**
- * Typed API client for the Recall FastAPI backend.
+ * Typed API client for the BlunderDrill FastAPI backend.
  * All functions throw ApiError on non-2xx responses.
  * Optional backend fields typed as string | null (what JSON actually delivers).
  */
