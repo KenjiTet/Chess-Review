@@ -30,25 +30,25 @@ interface FaqItem {
 const STEPS: Step[] = [
   {
     number: '1',
-    title: 'Connect your games',
-    body: 'Enter your Chess.com or Lichess username. BlunderDrill pulls your recent games straight from the public API — no password, no downloads.',
+    title: 'Link your account',
+    body: 'Enter your Chess.com or Lichess username. BlunderDrill pulls your recent games straight from the public API, with no password and no downloads.',
   },
   {
     number: '2',
-    title: 'Stockfish finds your blunders',
-    body: 'Every move is analysed by the Stockfish engine. It flags the exact moments you dropped a piece, missed a tactic, or walked into mate.',
+    title: 'Analyse your games',
+    body: 'The Stockfish engine reviews every move you played and flags the exact moments you dropped a piece, missed a tactic, or walked into mate.',
   },
   {
     number: '3',
-    title: 'Drill them like puzzles',
-    body: 'Each blunder becomes an interactive position. Replay it, find the move you should have played, and burn the pattern in so it never happens again.',
+    title: 'Review the blunders',
+    body: 'Each blunder becomes an interactive position. Replay it, find the move you should have played, and burn the pattern in so it stops happening.',
   },
 ];
 
 const FAQ: FaqItem[] = [
   {
     question: 'Is BlunderDrill free?',
-    answer: 'Yes. You can look up any public Chess.com or Lichess player and start drilling their blunders for free — create an account only if you want to save your progress.',
+    answer: 'Yes. You can look up any public Chess.com or Lichess player and start drilling their blunders for free. Create an account only if you want to save your progress.',
   },
   {
     question: 'Do I need to install anything?',
@@ -74,8 +74,7 @@ function Landing(): JSX.Element {
           Chess <span className="landing__gold">Blunder</span> Trainer
         </h1>
         <p className="landing__tagline">
-          Turn your own games into puzzles. Stockfish finds the blunders you
-          actually made — you drill them until they stop happening.
+          Review your blunders like daily puzzles.
         </p>
 
         <div className="landing__cta">
@@ -106,7 +105,7 @@ function Landing(): JSX.Element {
   // ── "Why drill your own blunders" — the core value proposition. ─────────────
   function renderWhy(): JSX.Element {
     return (
-      <section className="landing__section" id="why">
+      <section className="landing__section landing__section--card" id="why">
         <h2 className="landing__section-title">Why drill your own blunders</h2>
         <p className="landing__prose">
           Generic puzzle trainers show you positions from other people's games.
@@ -115,10 +114,29 @@ function Landing(): JSX.Element {
         </p>
         <p className="landing__prose">
           BlunderDrill is different. It trains you on the exact positions where{' '}
-          <em>you</em> went wrong — the pinned knight you missed, the back-rank
+          <em>you</em> went wrong: the pinned knight you missed, the back-rank
           mate you allowed, the free pawn you gave away. Repeatedly facing your
-          own patterns is the fastest way to stop repeating them, and the reason
+          own patterns is the fastest way to stop repeating them, and it is why
           reviewing your games is the advice every coach gives first.
+        </p>
+      </section>
+    );
+  }
+
+  // ── Filtering: pick which blunders to drill by type and game phase. ─────────
+  function renderFilter(): JSX.Element {
+    return (
+      <section className="landing__section landing__section--card" id="filter">
+        <h2 className="landing__section-title">Filter by type and game phase</h2>
+        <p className="landing__prose">
+          Not every mistake is worth the same drill. BlunderDrill lets you filter
+          your blunders by type, such as hanging a piece, missing a tactic, or
+          allowing checkmate, and by the phase of the game they happened in,
+          whether opening, middlegame, or endgame.
+        </p>
+        <p className="landing__prose">
+          Focus on the patterns that cost you the most, drill one weakness at a
+          time, and skip the mistakes you already have covered.
         </p>
       </section>
     );
@@ -127,13 +145,13 @@ function Landing(): JSX.Element {
   // ── Supported sites. ────────────────────────────────────────────────────────
   function renderSupported(): JSX.Element {
     return (
-      <section className="landing__section" id="supported-sites">
+      <section className="landing__section landing__section--card" id="supported-sites">
         <h2 className="landing__section-title">Works with Chess.com and Lichess</h2>
         <p className="landing__prose">
           Connect any Chess.com or Lichess account and BlunderDrill reads your
           games straight from the official public APIs. No password is ever
           required to look up a player, and no game data is uploaded from your
-          device — everything comes from the sites you already play on.
+          device. Everything comes from the sites you already play on.
         </p>
       </section>
     );
@@ -142,7 +160,7 @@ function Landing(): JSX.Element {
   // ── FAQ — question/answer pairs for long-tail search queries. ───────────────
   function renderFaq(): JSX.Element {
     return (
-      <section className="landing__section" id="faq">
+      <section className="landing__section landing__section--card" id="faq">
         <h2 className="landing__section-title">Frequently asked questions</h2>
         <dl className="landing__faq">
           {FAQ.map((item, index) => (
@@ -161,12 +179,13 @@ function Landing(): JSX.Element {
       {renderHero()}
       <main className="landing__content">
         {renderSteps()}
+        {renderFilter()}
         {renderWhy()}
         {renderSupported()}
         {renderFaq()}
       </main>
       <footer className="landing__footer">
-        <p>BlunderDrill — train chess by drilling your own blunders.</p>
+        <p>BlunderDrill. Train chess by drilling your own blunders.</p>
       </footer>
     </div>
   );

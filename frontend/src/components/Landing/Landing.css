@@ -73,6 +73,16 @@
   gap: 1rem;
 }
 
+/* Card variant: an opaque panel so prose stays legible over the background
+   image. Used for the text-heavy sections (filter, why, supported, FAQ). */
+.landing__section--card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
 .landing__section-title {
   font-size: 1.6rem;
   font-weight: 800;
