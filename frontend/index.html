@@ -25,10 +25,10 @@
          Single indexable URL (state-based SPA), so static head tags on / are
          sufficient and the most reliable option. Keep copy in sync with the
          PWA manifest description in vite.config.ts. -->
-    <title>Chess Blunder Trainer — Drill Your Own Mistakes | BlunderDrill</title>
+    <title>Chess Blunder Trainer — Drill Your Mistakes | BlunderDrill</title>
     <meta
       name="description"
-      content="BlunderDrill turns your real Chess.com and Lichess games into training puzzles. Stockfish finds every blunder you made, then you drill them like a daily puzzle. Start free."
+      content="Turn your real Chess.com and Lichess games into puzzles. Stockfish finds every blunder you made — drill them until they stop happening. Free, no install."
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://blunderdrill.com/" />
@@ -43,6 +43,7 @@
       content="Turn your real Chess.com and Lichess games into puzzles. Stockfish finds your blunders — you drill them until they stop happening."
     />
     <meta property="og:image" content="https://blunderdrill.com/og-image.png" />
+    <meta property="og:image:alt" content="BlunderDrill — chess blunder trainer" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -54,6 +55,7 @@
       content="Turn your real Chess.com and Lichess games into puzzles. Stockfish finds your blunders — you drill them until they stop happening."
     />
     <meta name="twitter:image" content="https://blunderdrill.com/og-image.png" />
+    <meta name="twitter:image:alt" content="BlunderDrill — chess blunder trainer" />
 
     <!-- Structured data: rich result eligibility for a free web application. -->
     <script type="application/ld+json">
@@ -70,6 +72,60 @@
           "price": "0",
           "priceCurrency": "USD"
         }
+      }
+    </script>
+
+    <!-- Structured data: FAQ rich-result eligibility. Text must match the on-page
+         FAQ copy in Landing.tsx word-for-word (structured-data compliance). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is BlunderDrill free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. You can look up any public Chess.com or Lichess player and start drilling their blunders for free — create an account only if you want to save your progress."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need to install anything?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. BlunderDrill runs entirely in your browser and can be installed as an app on your phone home screen if you want, but nothing is required."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Which chess sites are supported?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Chess.com and Lichess. BlunderDrill reads your games directly from their public APIs, so any rated or casual game you have played is available."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How are blunders detected?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The Stockfish engine evaluates each position before and after your move. When your move loses significant evaluation compared to the best available move, it is classified as a mistake or blunder."
+            }
+          }
+        ]
+      }
+    </script>
+
+    <!-- Structured data: brand entity for BlunderDrill. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "BlunderDrill",
+        "url": "https://blunderdrill.com/",
+        "logo": "https://blunderdrill.com/pwa-512x512.png"
       }
     </script>
   </head>
