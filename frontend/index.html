@@ -20,7 +20,58 @@
     <!-- Stop Chrome/Google from offering to translate the page (it triggers when the
          browser UI language differs from the page's lang="en"). -->
     <meta name="google" content="notranslate" />
-    <title>BlunderDrill</title>
+
+    <!-- ── SEO ──────────────────────────────────────────────────────────────
+         Single indexable URL (state-based SPA), so static head tags on / are
+         sufficient and the most reliable option. Keep copy in sync with the
+         PWA manifest description in vite.config.ts. -->
+    <title>Chess Blunder Trainer — Drill Your Own Mistakes | BlunderDrill</title>
+    <meta
+      name="description"
+      content="BlunderDrill turns your real Chess.com and Lichess games into training puzzles. Stockfish finds every blunder you made, then you drill them like a daily puzzle. Start free."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://blunderdrill.com/" />
+
+    <!-- Open Graph (Facebook, Discord, Slack, LinkedIn, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BlunderDrill" />
+    <meta property="og:url" content="https://blunderdrill.com/" />
+    <meta property="og:title" content="Chess Blunder Trainer — Drill Your Own Mistakes" />
+    <meta
+      property="og:description"
+      content="Turn your real Chess.com and Lichess games into puzzles. Stockfish finds your blunders — you drill them until they stop happening."
+    />
+    <meta property="og:image" content="https://blunderdrill.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chess Blunder Trainer — Drill Your Own Mistakes" />
+    <meta
+      name="twitter:description"
+      content="Turn your real Chess.com and Lichess games into puzzles. Stockfish finds your blunders — you drill them until they stop happening."
+    />
+    <meta name="twitter:image" content="https://blunderdrill.com/og-image.png" />
+
+    <!-- Structured data: rich result eligibility for a free web application. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "BlunderDrill",
+        "url": "https://blunderdrill.com/",
+        "description": "Train chess by drilling your own blunders. BlunderDrill analyses your Chess.com and Lichess games with Stockfish and turns your mistakes into interactive training positions.",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,0 +1,7 @@
+# BlunderDrill — crawl rules
+# Allow everything except the JSON API (nothing indexable lives under /api).
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://blunderdrill.com/sitemap.xml

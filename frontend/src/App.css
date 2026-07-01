@@ -6,6 +6,14 @@
   height: 100svh;
 }
 
+/* Landing (unauthenticated) is a tall marketing page: let it grow past the
+   viewport so the page scrolls on the window itself — the scrollbar sits at the
+   browser edge rather than inside the max-width app shell. */
+.app--landing {
+  height: auto;
+  min-height: 100svh;
+}
+
 .app__main {
   flex: 1;
   min-height: 0;

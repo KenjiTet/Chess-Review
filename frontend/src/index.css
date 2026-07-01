@@ -94,15 +94,43 @@ html[data-theme="light"] {
   box-sizing: border-box;
 }
 
+/* Modern thin scrollbar — applied to every scroll container (page + panels).
+   Firefox uses the standard properties; WebKit/Blink use the pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
+}
+
 /* Background image — dark default, light override */
 body {
   margin: 0;
   background-color: var(--bg);
-  background-image: url('./assets/bg-dark.png');
+  background-image: url('./assets/bg-dark.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: scroll;
+  /* Fixed so the image stays sized to the viewport — otherwise, once the page
+     scrolls (landing), "cover" scales it to the full document height and it
+     looks zoomed in. */
+  background-attachment: fixed;
   min-height: 100svh;
 }
 
@@ -116,16 +144,16 @@ body {
 
 @media (prefers-color-scheme: light) {
   body {
-    background-image: url('./assets/bg-light.png');
+    background-image: url('./assets/bg-light.webp');
   }
 }
 
 html[data-theme="dark"] body {
-  background-image: url('./assets/bg-dark.png');
+  background-image: url('./assets/bg-dark.webp');
 }
 
 html[data-theme="light"] body {
-  background-image: url('./assets/bg-light.png');
+  background-image: url('./assets/bg-light.webp');
 }
 
 /* Semi-transparent overlay above background image */

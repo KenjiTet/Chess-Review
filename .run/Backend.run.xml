@@ -1,0 +1,21 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Runs the FastAPI backend from backend/ using the chess-analysis conda env's uvicorn.
+       The Stop-Process call is baked into the command, so every Run AND Rerun (the circular arrow
+       in the Run tool window) first kills any lingering uvicorn/python processes, then starts fresh.
+       EXECUTE_IN_TERMINAL=false makes it run in the Run tool window so the Stop/Rerun buttons appear. -->
+  <configuration default="false" name="Backend" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="Stop-Process -Name &quot;uvicorn&quot;,&quot;python&quot; -Force -ErrorAction SilentlyContinue; &amp; &quot;C:\Users\Kenji\Anaconda3\envs\chess-analysis\Scripts\uvicorn.exe&quot; main:app --reload" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="powershell.exe" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="false" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

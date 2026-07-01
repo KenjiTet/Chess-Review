@@ -6,18 +6,26 @@ import { identifyUser, loginUser, registerUser } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
 import useSession from '../../hooks/useSession';
 import chesscomLogo from '../../assets/chesscom_logo.png';
-import lichessLogo from '../../assets/Lichess_logo.png';
+import lichessLogo from '../../assets/Lichess_logo.webp';
 import './Login.css';
 
 type Platform = 'chesscom' | 'lichess';
 type Mode = 'login' | 'register' | 'guest';
+
+interface LoginProps {
+  // When embedded in the marketing Landing page, the Landing supplies the page
+  // hero (and the single <h1>), so Login suppresses its own hero to avoid a
+  // duplicate heading.
+  embedded?: boolean;
+}
 
 const TRYOUT_USERNAMES: Record<Platform, string[]> = {
   chesscom: ['MagnusCarlsen', 'Hikaru', 'GothamChess'],
   lichess: ['SindarovGM'],
 };
 
-function Login(): JSX.Element {
+function Login(props: LoginProps): JSX.Element {
+  const embedded = props.embedded ?? false;
   const loginAuth = useAuth((s) => s.login);
   const setScreen = useSession((s) => s.reset);
   const [mode, setMode] = useState<Mode>('login');
@@ -181,8 +189,14 @@ function Login(): JSX.Element {
 
   const submitLabel = mode === 'register' ? 'Create account' : mode === 'guest' ? 'Continue' : 'Log in';
 
-  return (
-    <div className="login">
+  // Standalone hero — only shown when Login renders on its own (not embedded in
+  // the Landing page, which owns the page's single <h1>).
+  function renderHero(): JSX.Element | undefined {
+    if (embedded) {
+      return undefined;
+    }
+
+    return (
       <div className="login__hero">
         <span className="login__hero-icon">♚</span>
         <h1 className="login__hero-title">
@@ -190,6 +204,12 @@ function Login(): JSX.Element {
         </h1>
         <p className="login__hero-sub">Review your blunders like a daily puzzle</p>
       </div>
+    );
+  }
+
+  return (
+    <div className={`login${embedded ? ' login--embedded' : ''}`}>
+      {renderHero()}
 
       <div className="login__card">
         <h2 className="login__title">{title}</h2>

@@ -6,7 +6,7 @@ import type { UserProfileResponse } from '../../api/client';
 import type { MenuStatItem } from '../../hooks/useMenuStats';
 import { TimeClassIcon } from '../TimeClassIcons';
 import chesscomLogo from '../../assets/chesscom_logo.png';
-import lichessLogo from '../../assets/Lichess_logo.png';
+import lichessLogo from '../../assets/Lichess_logo.webp';
 import './ProfileBand.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────

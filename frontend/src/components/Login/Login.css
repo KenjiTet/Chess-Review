@@ -10,6 +10,14 @@
   overflow-y: auto;
 }
 
+/* Embedded in the Landing page: the Landing controls the outer layout, so drop
+   the full-height centering and padding and let the card sit inline. */
+.login--embedded {
+  flex: none;
+  padding: 0;
+  overflow-y: visible;
+}
+
 /* Hero */
 
 .login__hero {

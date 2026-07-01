@@ -11,7 +11,7 @@ import useFavorites from './hooks/useFavorites';
 import useReviewed from './hooks/useReviewed';
 import useIsMobile from './hooks/useIsMobile';
 import ErrorBanner from './components/ErrorBanner/ErrorBanner';
-import Login from './components/Login/Login';
+import Landing from './components/Landing/Landing';
 import SessionSetup from './components/SessionSetup/SessionSetup';
 import Loading from './components/Loading/Loading';
 import Trainer from './components/Trainer/Trainer';
@@ -29,7 +29,9 @@ function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenPro
   const { isMobile, isAdmin, adminView, onAdminToggle } = props;
 
   if (!isAuthenticated) {
-    return <Login />;
+    // Unauthenticated visitors get the indexable marketing landing page, which
+    // embeds the login/guest form as its call-to-action.
+    return <Landing />;
   }
 
   if (adminView && isAdmin) {
@@ -143,7 +145,7 @@ function App(): JSX.Element {
   };
 
   return (
-    <div className="app">
+    <div className={`app${!isAuthenticated ? ' app--landing' : ''}`}>
       <ErrorBanner />
       <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
         {renderScreen(screen, isAuthenticated, screenProps)}

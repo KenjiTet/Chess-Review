@@ -20,7 +20,7 @@ import { TimeClassIcon } from '../TimeClassIcons';
 import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import SeverityInfo from '../SeverityInfo/SeverityInfo';
 import chesscomLogo from '../../assets/chesscom_logo.png';
-import lichessLogo from '../../assets/Lichess_logo.png';
+import lichessLogo from '../../assets/Lichess_logo.webp';
 import settingsIcon from '../../assets/settings.svg';
 import linkIcon from '../../assets/link_icon.svg';
 import logoutIcon from '../../assets/logout_icon.svg';

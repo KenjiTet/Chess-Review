@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Compound configuration that launches both the Backend and Frontend configs at once.
+       Each child keeps its own behaviour (Backend still kills stale processes before starting). -->
+  <configuration default="false" name="Backend + Frontend" type="CompoundRunConfigurationType">
+    <toRun name="Backend" type="ShConfigurationType" />
+    <toRun name="Frontend" type="ShConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>
