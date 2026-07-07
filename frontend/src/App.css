@@ -33,6 +33,38 @@
   margin: 0;
 }
 
+/* One-off email-confirmation result notice (from a ?confirm= link) */
+.app__confirm-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1040px;
+  width: 100%;
+  margin: 0.75rem auto 0;
+  padding: 0.6rem 0.9rem;
+  box-sizing: border-box;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.app__confirm-notice button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
+.app__confirm-notice button:hover {
+  color: var(--text);
+}
+
 /* Theme toggle — fixed circle button, bottom-right */
 .theme-toggle {
   position: fixed;

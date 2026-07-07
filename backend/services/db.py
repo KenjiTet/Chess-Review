@@ -54,6 +54,20 @@ def init_db() -> None:
             )
         """)
 
+        # Single-use, expiring tokens for email confirmation and password reset.
+        # A row is created when a confirmation/reset link is issued and marked used
+        # (used = 1) the moment it is redeemed, so links cannot be replayed.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS auth_tokens (
+                token          TEXT PRIMARY KEY,
+                username_lower TEXT NOT NULL,
+                purpose        TEXT NOT NULL,
+                expires_at     TEXT NOT NULL,
+                used           INTEGER NOT NULL DEFAULT 0,
+                created_at     TEXT NOT NULL
+            )
+        """)
+
         # Per-user record of every analysed game. Source of truth for the
         # avg-blunders stat and for the background queue's "already analysed" set.
         # handle records which linked platform username the games belong to, so an
@@ -110,6 +124,10 @@ def init_db() -> None:
         # Forward migration: last_login tracks activity for the admin panel
         # (added after the users table shipped).
         _add_last_login_column(conn)
+
+        # Forward migration: email-based login, confirmation state, and OAuth
+        # provider columns (added when the app went public).
+        _add_users_email_columns(conn)
 
         conn.commit()
 
@@ -246,3 +264,39 @@ def _add_last_login_column(conn: sqlite3.Connection) -> None:
 
     if "last_login" not in existing:
         conn.execute("ALTER TABLE users ADD COLUMN last_login TEXT")
+
+
+def _add_users_email_columns(conn: sqlite3.Connection) -> None:
+    """Add email-login and OAuth columns to users if missing.
+
+    Idempotent: inspects PRAGMA table_info and only adds absent columns, so it is
+    safe to run on every startup. email is nullable so legacy username-only
+    accounts keep working; a partial unique index enforces uniqueness only over
+    the non-null emails. auth_provider distinguishes password vs google accounts,
+    and google_sub stores the Google subject id for OAuth accounts.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(users)").fetchall()
+    }
+
+    if "email" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
+
+    if "email_verified" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0")
+
+    if "auth_provider" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'password'")
+
+    if "google_sub" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN google_sub TEXT")
+
+    # Partial unique index: two accounts may share a NULL email (legacy rows),
+    # but any real email address must be unique across the table.
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL"
+    )

@@ -115,9 +115,15 @@ class RespondResponse(BaseModel):
 
 
 class AuthRequest(BaseModel):
-    """Request body for login or registration."""
-    username: str
+    """Request body for login. The identifier is an email or (for legacy
+    username-only accounts) a username."""
+    email: str
     password: str
+
+
+class SetEmailRequest(BaseModel):
+    """Request body for adding or changing the authenticated account's email."""
+    email: str
 
 
 class IdentifyRequest(BaseModel):
@@ -129,13 +135,50 @@ class IdentifyRequest(BaseModel):
 class RegisterRequest(BaseModel):
     """Request body for creating an account linked to one platform handle.
 
-    The account username is the login identity; platform_username is the
-    Chess.com / Lichess handle whose games the account will train on.
+    The email is the login identity; platform_username is the Chess.com / Lichess
+    handle whose games the account will train on. The internal account username is
+    derived from the email server-side.
     """
-    username: str
+    email: str
     password: str
     platform: str  # "chesscom" | "lichess"
     platform_username: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request body to trigger a password-reset email."""
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request body to set a new password using a reset token."""
+    token: str
+    new_password: str
+
+
+class ConfirmEmailRequest(BaseModel):
+    """Request body to confirm an email address using a confirmation token."""
+    token: str
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request body for an authenticated password change."""
+    current_password: str
+    new_password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    """Request body carrying a Google Identity Services ID token."""
+    id_token: str
+
+
+class DeleteAccountRequest(BaseModel):
+    """Request body for deleting the authenticated account.
+
+    Password confirmation is required for password accounts; Google accounts may
+    omit it.
+    """
+    password: str | None = None
 
 
 class LinkAccountRequest(BaseModel):
@@ -153,9 +196,23 @@ class AuthResponse(BaseModel):
     token: str | None = None
     is_admin: bool = False
     avatar: str | None = None
+    # Login identity and confirmation state — drive the confirm-email banner.
+    email: str | None = None
+    email_verified: bool = False
+    # "password" or "google" — the client hides password-change for Google accounts.
+    auth_provider: str = "password"
+    # True when a Google account has no linked platform handle yet and the client
+    # must run its one-time link-completion step before entering the app.
+    needs_link: bool = False
     # Linked platform handles — tell the client whose games to fetch.
     chesscom_username: str | None = None
     lichess_username: str | None = None
+
+
+class SimpleResponse(BaseModel):
+    """Generic success/message response for auth side-effects (reset, confirm, etc.)."""
+    success: bool
+    message: str
 
 
 class GameHistoryEntry(BaseModel):

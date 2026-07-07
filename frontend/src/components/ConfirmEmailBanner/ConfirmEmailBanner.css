@@ -1,0 +1,62 @@
+.confirm-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(226, 160, 63, 0.1);
+  border: 1px solid rgba(226, 160, 63, 0.3);
+  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+  margin: 0.75rem auto 0;
+  max-width: 1040px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.confirm-banner__text {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.confirm-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.confirm-banner__status {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.confirm-banner__resend {
+  background: var(--gold);
+  color: var(--gold-text);
+  border: none;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.confirm-banner__resend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-banner__dismiss {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+}
+
+.confirm-banner__dismiss:hover {
+  color: var(--text);
+}

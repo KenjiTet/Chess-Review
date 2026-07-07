@@ -1,0 +1,62 @@
+.legal {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.legal__card {
+  width: 100%;
+  max-width: 760px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem 2.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.legal__back {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-family: var(--sans);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1.25rem;
+}
+
+.legal__back:hover {
+  color: var(--gold);
+}
+
+.legal__title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-h);
+  margin: 0 0 1.25rem;
+}
+
+.legal__updated {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 1.5rem;
+}
+
+.legal__body h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 1.5rem 0 0.5rem;
+}
+
+.legal__body p {
+  font-size: 0.92rem;
+  color: var(--text);
+  line-height: 1.65;
+  margin: 0 0 0.5rem;
+}
+
+.legal__body a {
+  color: var(--gold);
+}

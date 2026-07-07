@@ -5,17 +5,24 @@ import type { JSX } from 'react';
 import useSession from './hooks/useSession';
 import type { Screen } from './hooks/useSession';
 import { decodeSharePayload } from './utils/sharePosition';
+import { ApiError, confirmEmail } from './api/client';
 import useSettings from './hooks/useSettings';
 import useAuth from './hooks/useAuth';
 import useFavorites from './hooks/useFavorites';
 import useReviewed from './hooks/useReviewed';
 import useIsMobile from './hooks/useIsMobile';
 import ErrorBanner from './components/ErrorBanner/ErrorBanner';
+import ConfirmEmailBanner from './components/ConfirmEmailBanner/ConfirmEmailBanner';
+import Footer from './components/Footer/Footer';
 import Landing from './components/Landing/Landing';
 import SessionSetup from './components/SessionSetup/SessionSetup';
 import Loading from './components/Loading/Loading';
 import Trainer from './components/Trainer/Trainer';
 import Admin from './components/Admin/Admin';
+import Settings from './components/Settings/Settings';
+import Terms from './components/Legal/Terms';
+import Privacy from './components/Legal/Privacy';
+import ResetPassword from './components/ResetPassword/ResetPassword';
 import './App.css';
 
 interface ScreenProps {
@@ -23,10 +30,24 @@ interface ScreenProps {
   isAdmin: boolean;
   adminView: boolean;
   onAdminToggle: () => void;
+  resetToken: string | undefined;
 }
 
 function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenProps): JSX.Element {
-  const { isMobile, isAdmin, adminView, onAdminToggle } = props;
+  const { isMobile, isAdmin, adminView, onAdminToggle, resetToken } = props;
+
+  // Public screens — reachable with or without authentication (email links + footer).
+  if (screen === 'reset') {
+    return <ResetPassword token={resetToken ?? ''} />;
+  }
+
+  if (screen === 'terms') {
+    return <Terms />;
+  }
+
+  if (screen === 'privacy') {
+    return <Privacy />;
+  }
 
   if (!isAuthenticated) {
     // Unauthenticated visitors get the indexable marketing landing page, which
@@ -36,6 +57,10 @@ function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenPro
 
   if (adminView && isAdmin) {
     return <Admin />;
+  }
+
+  if (screen === 'settings') {
+    return <Settings />;
   }
 
   if (screen === 'setup') {
@@ -64,6 +89,8 @@ function App(): JSX.Element {
   const isAdmin = useAuth((s) => s.isAdmin);
   const getNamespace = useAuth((s) => s.getNamespace);
   const [adminView, setAdminView] = useState<boolean>(false);
+  const [resetToken, setResetToken] = useState<string | undefined>(undefined);
+  const [confirmNotice, setConfirmNotice] = useState<string | undefined>(undefined);
 
   const isAuthenticated = username !== undefined;
   const isMobileViewport = useIsMobile();
@@ -80,6 +107,40 @@ function App(): JSX.Element {
       const clean = new URL(window.location.href);
       clean.searchParams.delete('share');
       window.history.replaceState(null, '', clean.toString());
+    }
+  }, []);
+
+  // On first mount, handle email-confirmation and password-reset links.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const confirmToken = params.get('confirm');
+    const resetParam = params.get('reset');
+
+    // Strip a handled param from the URL so a refresh doesn't re-trigger it.
+    function stripParam(name: string): void {
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete(name);
+      window.history.replaceState(null, '', clean.toString());
+    }
+
+    if (confirmToken) {
+      stripParam('confirm');
+      void confirmEmail(confirmToken)
+        .then((res) => {
+          setConfirmNotice(res.message);
+          // Clear the confirm-email banner immediately for a logged-in user.
+          useAuth.getState().setEmailVerified(true);
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof ApiError ? err.message : 'Email confirmation failed.';
+          setConfirmNotice(msg);
+        });
+    }
+
+    if (resetParam) {
+      stripParam('reset');
+      setResetToken(resetParam);
+      useSession.getState().setScreen('reset');
     }
   }, []);
 
@@ -137,19 +198,40 @@ function App(): JSX.Element {
     setAdminView((v) => !v);
   }
 
+  // The footer sits at the bottom of the page, but the full-bleed trainer, the
+  // loading screen, and the admin dashboard need the whole viewport, so hide it there.
+  const inAdminView = adminView && isAdmin;
+  const showFooter = screen !== 'trainer' && screen !== 'loading' && !inAdminView;
+
   const screenProps: ScreenProps = {
     isMobile,
     isAdmin,
     adminView,
     onAdminToggle: handleAdminToggle,
+    resetToken,
   };
 
   return (
     <div className={`app${!isAuthenticated ? ' app--landing' : ''}`}>
       <ErrorBanner />
+
+      {/* One-off email-confirmation result notice (from a ?confirm= link). */}
+      {confirmNotice && (
+        <div className="app__confirm-notice" role="status">
+          <span>{confirmNotice}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setConfirmNotice(undefined)}>
+            ✕
+          </button>
+        </div>
+      )}
+
+      {isAuthenticated && <ConfirmEmailBanner />}
+
       <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
         {renderScreen(screen, isAuthenticated, screenProps)}
       </main>
+
+      {showFooter && <Footer />}
 
       {/* Fixed floating buttons — hidden on mobile (controls move into profile settings) */}
       {!isMobile && isAdmin && isAuthenticated && (

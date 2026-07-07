@@ -182,6 +182,45 @@
   padding: 0.5rem 0.75rem;
 }
 
+/* Success / info notice (e.g. reset-link sent) */
+
+.login__notice {
+  font-size: 0.8rem;
+  color: var(--success);
+  background: rgba(120, 180, 120, 0.1);
+  border: 1px solid rgba(120, 180, 120, 0.25);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Forgot-password inline link */
+
+.login__forgot-link {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-family: var(--sans);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-top: -0.4rem;
+}
+
+.login__forgot-link:hover {
+  color: var(--gold);
+}
+
+/* Google sign-in button wrapper — centre GIS's fixed-width button. */
+
+.login__google {
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
 /* Primary button */
 
 .login__btn {

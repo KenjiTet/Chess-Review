@@ -18,9 +18,22 @@ export interface AuthResponse {
   token?: string;
   is_admin?: boolean;
   avatar?: string;
+  /** Login identity and confirmation state — drive the confirm-email banner. */
+  email?: string | null;
+  email_verified?: boolean;
+  /** "password" or "google" — the client hides password-change for Google accounts. */
+  auth_provider?: string;
+  /** True when a Google account still needs to link a platform handle. */
+  needs_link?: boolean;
   /** Linked platform handles — tell the client whose games to fetch. */
   chesscom_username?: string | null;
   lichess_username?: string | null;
+}
+
+/** Generic success/message response for auth side-effects (reset, confirm, etc.). */
+export interface SimpleResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface GameHistoryEntry {
@@ -188,21 +201,92 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 
-/** Attempt to log in with username and password. */
-export function loginUser(username: string, password: string): Promise<AuthResponse> {
+/** Attempt to log in with email and password. */
+export function loginUser(email: string, password: string): Promise<AuthResponse> {
   return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
 }
 
-/** Register a new account, linking one Chess.com / Lichess handle. Returns a JWT (auto-login). */
-export function registerUser(username: string, password: string, platform: string, platformUsername: string): Promise<AuthResponse> {
+/** Register a new account (email login) linking one Chess.com / Lichess handle. Returns a JWT (auto-login). */
+export function registerUser(email: string, password: string, platform: string, platformUsername: string): Promise<AuthResponse> {
   return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, platform, platform_username: platformUsername }),
+    body: JSON.stringify({ email, password, platform, platform_username: platformUsername }),
+  });
+}
+
+/** Sign in (or sign up) with a Google Identity Services ID token. */
+export function googleLogin(idToken: string): Promise<AuthResponse> {
+  return fetchJson<AuthResponse>(`${BASE_URL}/api/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_token: idToken }),
+  });
+}
+
+/** Request a password-reset email. Always resolves (no user enumeration). */
+export function forgotPassword(email: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Set a new password using a reset token from the emailed link. */
+export function resetPassword(token: string, newPassword: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
+/** Confirm an email address using a confirmation token from the emailed link. */
+export function confirmEmail(token: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/confirm-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+}
+
+/** Add or change the authenticated account's email (sends a confirmation). */
+export function setAccountEmail(email: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/set-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Re-send the confirmation email for the authenticated account. */
+export function resendConfirmation(): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/resend-confirmation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/** Change the authenticated account's password. */
+export function changePassword(currentPassword: string, newPassword: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+}
+
+/** Permanently delete the authenticated account. Password required for password accounts. */
+export function deleteAccount(password?: string): Promise<SimpleResponse> {
+  return fetchJson<SimpleResponse>(`${BASE_URL}/api/auth/account`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: password ?? null }),
   });
 }
 

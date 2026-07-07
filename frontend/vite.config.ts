@@ -2,7 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// npm sets npm_package_version from package.json when running any npm script, so
+// the footer can display the deployed app version without importing package.json.
+const appVersion = process.env.npm_package_version ?? '0.0.0'
+
 export default defineConfig({
+  // Expose the package version to the client bundle for the footer.
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     // PWA layer: installable on iOS/Android home screen, auto-updates on each deploy.

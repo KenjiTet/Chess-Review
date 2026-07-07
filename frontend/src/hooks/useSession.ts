@@ -8,7 +8,7 @@ import { ApiError, getBlunder, recordSessionProgress, skipBlunder as apiSkipBlun
 import type { BlunderResponse, SessionCreateRequest } from '../api/client';
 import useReviewed from './useReviewed';
 
-export type Screen = 'login' | 'setup' | 'loading' | 'trainer';
+export type Screen = 'login' | 'setup' | 'loading' | 'trainer' | 'settings' | 'terms' | 'privacy' | 'reset';
 
 interface SessionStore {
   sessionId: string | undefined;
@@ -28,6 +28,8 @@ interface SessionStore {
   /** The last request used to build a session, so the user can replay next game. */
   lastSessionRequest: SessionCreateRequest | undefined;
 
+  /** Navigate directly to a screen without touching session state (used by Settings, Footer, legal pages). */
+  setScreen: (screen: Screen) => void;
   buildSession: (req: SessionCreateRequest, loadingTitle?: string) => Promise<void>;
   fetchBlunder: () => Promise<void>;
   submitAttempt: (uciMove: string) => Promise<void>;
@@ -62,6 +64,10 @@ const useSession = create<SessionStore>((set, get) => ({
   sessionDone: false,
   sessionDoneReason: undefined,
   lastSessionRequest: undefined,
+
+  setScreen: (screen: Screen) => {
+    set({ screen });
+  },
 
   buildSession: async (req: SessionCreateRequest, loadingTitle?: string) => {
     set({

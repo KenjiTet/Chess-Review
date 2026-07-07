@@ -1,16 +1,18 @@
-/** Entry screen — log in, create an account, or continue as a guest. */
+/** Entry screen — log in with email, create an account, reset a password, or continue as a guest. */
 
 import { useState } from 'react';
 import type { JSX } from 'react';
-import { identifyUser, loginUser, registerUser } from '../../api/client';
+import { forgotPassword, googleLogin, identifyUser, loginUser, registerUser } from '../../api/client';
+import type { AuthResponse } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
 import useSession from '../../hooks/useSession';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.webp';
+import GoogleButton from './GoogleButton';
 import './Login.css';
 
 type Platform = 'chesscom' | 'lichess';
-type Mode = 'login' | 'register' | 'guest';
+type Mode = 'login' | 'register' | 'guest' | 'forgot';
 
 interface LoginProps {
   // When embedded in the marketing Landing page, the Landing supplies the page
@@ -24,16 +26,39 @@ const TRYOUT_USERNAMES: Record<Platform, string[]> = {
   lichess: ['SindarovGM'],
 };
 
+/** Client-side mirror of the backend password policy (>= 8 chars, at least one digit). */
+function passwordPolicyError(password: string): string | undefined {
+  const hasDigit = /\d/.test(password);
+
+  if (password.length < 8 || !hasDigit) {
+    return 'Password must be at least 8 characters and include a digit.';
+  }
+
+  return undefined;
+}
+
+/** Derive which platform an account is on from the linked handles in a response. */
+function platformFromLinks(res: AuthResponse): Platform {
+  if (res.lichess_username && !res.chesscom_username) {
+    return 'lichess';
+  }
+
+  return 'chesscom';
+}
+
 function Login(props: LoginProps): JSX.Element {
   const embedded = props.embedded ?? false;
   const loginAuth = useAuth((s) => s.login);
-  const setScreen = useSession((s) => s.reset);
+  const resetToSetup = useSession((s) => s.reset);
+  const setScreen = useSession((s) => s.setScreen);
   const [mode, setMode] = useState<Mode>('login');
   const [platform, setPlatform] = useState<Platform>('chesscom');
+  const [email, setEmail] = useState<string>('');
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [platformUsername, setPlatformUsername] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [notice, setNotice] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   const platformPlaceholder = platform === 'chesscom'
@@ -44,6 +69,7 @@ function Login(props: LoginProps): JSX.Element {
   function switchMode(next: Mode): void {
     setMode(next);
     setError('');
+    setNotice('');
     setPassword('');
     setPlatformUsername('');
 
@@ -72,7 +98,7 @@ function Login(props: LoginProps): JSX.Element {
     try {
       const res = await identifyUser(name.trim(), platform);
       loginAuth(name.trim(), res.token ?? '', res.is_admin ?? false, platform, res.avatar);
-      setScreen();
+      resetToSetup();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
       setError(msg);
@@ -88,8 +114,8 @@ function Login(props: LoginProps): JSX.Element {
 
   // ── Log in ─────────────────────────────────────────────────────────────────
   async function submitLogin(): Promise<void> {
-    if (!username.trim() || !password) {
-      setError('Username and password are required.');
+    if (!email.trim() || !password) {
+      setError('Email and password are required.');
       return;
     }
 
@@ -97,12 +123,16 @@ function Login(props: LoginProps): JSX.Element {
     setLoading(true);
 
     try {
-      const res = await loginUser(username.trim(), password);
-      loginAuth(username.trim(), res.token ?? '', res.is_admin ?? false, platform, res.avatar, {
+      const res = await loginUser(email.trim(), password);
+      const accountPlatform = platformFromLinks(res);
+      loginAuth(res.username, res.token ?? '', res.is_admin ?? false, accountPlatform, res.avatar, {
         chesscomUsername: res.chesscom_username ?? undefined,
         lichessUsername: res.lichess_username ?? undefined,
+        email: res.email ?? undefined,
+        emailVerified: res.email_verified ?? false,
+        authProvider: res.auth_provider ?? undefined,
       });
-      setScreen();
+      resetToSetup();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
       setError(msg);
@@ -113,8 +143,15 @@ function Login(props: LoginProps): JSX.Element {
 
   // ── Create account ───────────────────────────────────────────────────────────
   async function submitRegister(): Promise<void> {
-    if (!username.trim() || !password) {
-      setError('Choose a username and password.');
+    if (!email.trim() || !password) {
+      setError('Enter an email and password.');
+      return;
+    }
+
+    const policyError = passwordPolicyError(password);
+
+    if (policyError) {
+      setError(policyError);
       return;
     }
 
@@ -127,14 +164,70 @@ function Login(props: LoginProps): JSX.Element {
     setLoading(true);
 
     try {
-      const res = await registerUser(username.trim(), password, platform, platformUsername.trim());
-      loginAuth(username.trim(), res.token ?? '', res.is_admin ?? false, platform, res.avatar, {
+      const res = await registerUser(email.trim(), password, platform, platformUsername.trim());
+      loginAuth(res.username, res.token ?? '', res.is_admin ?? false, platform, res.avatar, {
         chesscomUsername: res.chesscom_username ?? undefined,
         lichessUsername: res.lichess_username ?? undefined,
+        email: res.email ?? undefined,
+        emailVerified: res.email_verified ?? false,
+        authProvider: res.auth_provider ?? undefined,
       });
-      setScreen();
+      resetToSetup();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Forgot password ──────────────────────────────────────────────────────────
+  async function submitForgot(): Promise<void> {
+    if (!email.trim()) {
+      setError('Enter your email.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await forgotPassword(email.trim());
+      setNotice(res.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Google sign-in ───────────────────────────────────────────────────────────
+  async function handleGoogleCredential(idToken: string): Promise<void> {
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await googleLogin(idToken);
+      const accountPlatform = platformFromLinks(res);
+      loginAuth(res.username, res.token ?? '', res.is_admin ?? false, accountPlatform, res.avatar, {
+        chesscomUsername: res.chesscom_username ?? undefined,
+        lichessUsername: res.lichess_username ?? undefined,
+        email: res.email ?? undefined,
+        emailVerified: res.email_verified ?? false,
+        authProvider: res.auth_provider ?? undefined,
+      });
+
+      // Brand-new Google accounts have no chess handle yet — send them to Settings
+      // to link one before training (a session needs a real platform handle).
+      if (res.needs_link) {
+        setScreen('settings');
+        return;
+      }
+
+      resetToSetup();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Google sign-in failed.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -151,6 +244,11 @@ function Login(props: LoginProps): JSX.Element {
 
     if (mode === 'login') {
       void submitLogin();
+      return;
+    }
+
+    if (mode === 'forgot') {
+      void submitForgot();
       return;
     }
 
@@ -185,9 +283,17 @@ function Login(props: LoginProps): JSX.Element {
     ? 'Log in'
     : mode === 'register'
       ? 'Create your account'
-      : 'Look up a player';
+      : mode === 'forgot'
+        ? 'Reset your password'
+        : 'Look up a player';
 
-  const submitLabel = mode === 'register' ? 'Create account' : mode === 'guest' ? 'Continue' : 'Log in';
+  const submitLabel = mode === 'register'
+    ? 'Create account'
+    : mode === 'guest'
+      ? 'Continue'
+      : mode === 'forgot'
+        ? 'Send reset link'
+        : 'Log in';
 
   // Standalone hero — only shown when Login renders on its own (not embedded in
   // the Landing page, which owns the page's single <h1>).
@@ -238,18 +344,21 @@ function Login(props: LoginProps): JSX.Element {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Account username — login + register. */}
-          {(mode === 'login' || mode === 'register') && (
+          {/* Email — login (email or legacy username) + register + forgot. */}
+          {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
             <div className="login__field">
-              <label className="login__label" htmlFor="login-account">Account username</label>
+              <label className="login__label" htmlFor="login-email">
+                {mode === 'login' ? 'Email or username' : 'Email'}
+              </label>
               <input
-                id="login-account"
+                id="login-email"
                 className={`login__input${error ? ' login__input--error' : ''}`}
-                type="text"
-                placeholder="Choose a username..."
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
+                // Login accepts legacy usernames too, so it can't be a strict email input.
+                type={mode === 'login' ? 'text' : 'email'}
+                placeholder={mode === 'login' ? 'Email or username...' : 'you@example.com'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete={mode === 'login' ? 'username' : 'email'}
                 autoFocus
                 required
               />
@@ -264,13 +373,20 @@ function Login(props: LoginProps): JSX.Element {
                 id="login-password"
                 className={`login__input${error ? ' login__input--error' : ''}`}
                 type="password"
-                placeholder={mode === 'register' ? 'At least 5 characters...' : 'Enter password...'}
+                placeholder={mode === 'register' ? 'At least 8 characters, incl. a digit...' : 'Enter password...'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 required
               />
             </div>
+          )}
+
+          {/* Forgot-password link — login only. */}
+          {mode === 'login' && (
+            <button type="button" className="login__forgot-link" onClick={() => switchMode('forgot')}>
+              Forgot password?
+            </button>
           )}
 
           {/* Linked platform handle — register. */}
@@ -310,11 +426,21 @@ function Login(props: LoginProps): JSX.Element {
           )}
 
           {error && <p className="login__error">{error}</p>}
+          {notice && <p className="login__notice">{notice}</p>}
 
           <button className="login__btn" type="submit" disabled={loading}>
             {loading ? 'Please wait...' : submitLabel}
           </button>
         </form>
+
+        {/* Google sign-in — hidden when no client id is configured. Not shown in
+            the forgot-password flow. */}
+        {mode !== 'forgot' && mode !== 'guest' && (
+          <>
+            <div className="login__divider">or</div>
+            <GoogleButton onCredential={(idToken) => void handleGoogleCredential(idToken)} />
+          </>
+        )}
 
         {/* Mode toggles. */}
         {mode === 'login' && (
@@ -333,6 +459,14 @@ function Login(props: LoginProps): JSX.Element {
             </button>
           </p>
         )}
+        {mode === 'forgot' && (
+          <p className="login__toggle">
+            Remembered it?{' '}
+            <button type="button" className="login__toggle-link" onClick={() => switchMode('login')}>
+              Back to log in
+            </button>
+          </p>
+        )}
         {mode === 'guest' && (
           <p className="login__toggle">
             Want to save your progress?{' '}
@@ -343,7 +477,7 @@ function Login(props: LoginProps): JSX.Element {
         )}
 
         {/* Guest entry point — visible from the account modes. */}
-        {mode !== 'guest' && (
+        {(mode === 'login' || mode === 'register') && (
           <>
             <div className="login__divider">or</div>
             <button type="button" className="login__guest-btn" onClick={() => switchMode('guest')}>

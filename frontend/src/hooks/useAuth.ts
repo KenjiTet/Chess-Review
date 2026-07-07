@@ -16,12 +16,18 @@ interface StoredAuth {
   avatar: string | undefined;
   chesscomUsername: string | undefined;
   lichessUsername: string | undefined;
+  email: string | undefined;
+  emailVerified: boolean;
+  authProvider: string | undefined;
 }
 
-/** Optional linked platform handles passed to login(). */
-interface LoginLinks {
+/** Optional linked handles + email details passed to login(). */
+interface LoginExtra {
   chesscomUsername?: string | undefined;
   lichessUsername?: string | undefined;
+  email?: string | undefined;
+  emailVerified?: boolean;
+  authProvider?: string | undefined;
 }
 
 interface AuthState {
@@ -33,9 +39,15 @@ interface AuthState {
   avatar: string | undefined;
   chesscomUsername: string | undefined;
   lichessUsername: string | undefined;
+  email: string | undefined;
+  emailVerified: boolean;
+  authProvider: string | undefined;
 
-  login: (username: string, token: string, isAdmin: boolean, platform: string, avatar: string | undefined, links?: LoginLinks) => void;
-  setLinks: (links: LoginLinks) => void;
+  login: (username: string, token: string, isAdmin: boolean, platform: string, avatar: string | undefined, extra?: LoginExtra) => void;
+  setLinks: (links: LoginExtra) => void;
+  setEmailVerified: (verified: boolean) => void;
+  /** Update the stored email after the user adds/changes it (resets verified state). */
+  setAccountEmail: (email: string) => void;
   logout: () => void;
   getNamespace: () => string;
   getToken: () => string | undefined;
@@ -54,6 +66,9 @@ function loadStoredAuth(): StoredAuth {
     avatar: undefined,
     chesscomUsername: undefined,
     lichessUsername: undefined,
+    email: undefined,
+    emailVerified: false,
+    authProvider: undefined,
   };
 
   try {
@@ -76,7 +91,7 @@ function persistAuth(state: StoredAuth): void {
 const useAuth = create<AuthState>((set, get) => ({
   ...loadStoredAuth(),
 
-  login: (username, token, isAdmin, platform, avatar, links) => {
+  login: (username, token, isAdmin, platform, avatar, extra) => {
     const next: StoredAuth = {
       username,
       isGuest: false,
@@ -84,8 +99,11 @@ const useAuth = create<AuthState>((set, get) => ({
       isAdmin,
       platform,
       avatar,
-      chesscomUsername: links?.chesscomUsername,
-      lichessUsername: links?.lichessUsername,
+      chesscomUsername: extra?.chesscomUsername,
+      lichessUsername: extra?.lichessUsername,
+      email: extra?.email,
+      emailVerified: extra?.emailVerified ?? false,
+      authProvider: extra?.authProvider,
     };
     persistAuth(next);
     set(next);
@@ -114,6 +132,49 @@ const useAuth = create<AuthState>((set, get) => ({
       avatar: current.avatar,
       chesscomUsername: current.chesscomUsername,
       lichessUsername: current.lichessUsername,
+      email: current.email,
+      emailVerified: current.emailVerified,
+      authProvider: current.authProvider,
+    });
+  },
+
+  setEmailVerified: (verified) => {
+    set({ emailVerified: verified });
+
+    // Persist so the confirm-email banner stays cleared across reloads.
+    const current = get();
+    persistAuth({
+      username: current.username,
+      isGuest: current.isGuest,
+      token: current.token,
+      isAdmin: current.isAdmin,
+      platform: current.platform,
+      avatar: current.avatar,
+      chesscomUsername: current.chesscomUsername,
+      lichessUsername: current.lichessUsername,
+      email: current.email,
+      emailVerified: current.emailVerified,
+      authProvider: current.authProvider,
+    });
+  },
+
+  setAccountEmail: (email) => {
+    // A newly set email is always unconfirmed until the link is clicked.
+    set({ email, emailVerified: false });
+
+    const current = get();
+    persistAuth({
+      username: current.username,
+      isGuest: current.isGuest,
+      token: current.token,
+      isAdmin: current.isAdmin,
+      platform: current.platform,
+      avatar: current.avatar,
+      chesscomUsername: current.chesscomUsername,
+      lichessUsername: current.lichessUsername,
+      email: current.email,
+      emailVerified: current.emailVerified,
+      authProvider: current.authProvider,
     });
   },
 
@@ -127,6 +188,9 @@ const useAuth = create<AuthState>((set, get) => ({
       avatar: undefined,
       chesscomUsername: undefined,
       lichessUsername: undefined,
+      email: undefined,
+      emailVerified: false,
+      authProvider: undefined,
     };
     persistAuth(next);
     set(next);

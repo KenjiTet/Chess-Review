@@ -30,13 +30,17 @@ def create_token(username: str) -> str:
         Encoded JWT string.
     """
     # Admin rights come from either the env-var override or the user's DB flag.
-    # Imported lazily to avoid a circular import (users -> db; jwt_service -> users).
+    # email_verified rides along so the client can render the confirm-email banner
+    # without an extra request. Imported lazily to avoid a circular import
+    # (users -> db; jwt_service -> users).
     from services.users import is_admin as user_is_admin
+    from services.users import is_email_verified as user_email_verified
 
     is_admin: bool = username.lower() == _ADMIN_USERNAME or user_is_admin(username)
     payload: dict = {
         "sub": username,
         "is_admin": is_admin,
+        "email_verified": user_email_verified(username),
         "exp": datetime.now(timezone.utc) + timedelta(days=_EXPIRE_DAYS),
     }
     return jwt.encode(payload, _SECRET, algorithm=_ALGORITHM)
