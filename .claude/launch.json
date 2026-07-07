@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "frontend", "run", "preview", "--", "--port", "4173", "--strictPort"],
       "port": 4173
+    },
+    {
+      "name": "chess-backend",
+      "runtimeExecutable": "uvicorn",
+      "runtimeArgs": ["main:app", "--app-dir", "backend", "--port", "8000"],
+      "port": 8000
     }
   ]
 }

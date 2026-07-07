@@ -13,7 +13,7 @@ export type FavLayout = 'blocks' | 'inline';
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function favShareUrl(fav: FavoritePosition): string {

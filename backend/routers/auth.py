@@ -9,7 +9,7 @@ import services.analysis_queue as analysis_queue
 from services.chess_com import get_player_profile as chesscom_get_profile
 import services.lichess as lichess_svc
 from services.jwt_service import create_token, get_current_user
-from services.users import check_password, create_user, get_user, set_linked_accounts
+from services.users import check_password, create_user, get_user, record_login, set_linked_accounts
 
 router = APIRouter()
 
@@ -90,6 +90,8 @@ def login(req: AuthRequest) -> AuthResponse:
     if not check_password(req.username, req.password):
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
+    record_login(req.username)
+
     token: str = create_token(req.username)
     # Peek at the payload to include is_admin in the response without re-importing the secret logic.
     payload: dict = _jwt.get_unverified_claims(token)
@@ -138,6 +140,8 @@ def register(req: RegisterRequest) -> AuthResponse:
         create_user(req.username, req.password, chesscom_username, lichess_username)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    record_login(req.username)
 
     token: str = create_token(req.username)
     payload: dict = _jwt.get_unverified_claims(token)

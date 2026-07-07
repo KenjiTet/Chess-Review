@@ -19,6 +19,82 @@ import './Admin.css';
 
 type Tab = 'stats' | 'users' | 'userStats' | 'queue' | 'cache' | 'database';
 
+// Zurich, simple "YYYY-MM-DD HH:mm:ss" — sv-SE happens to format that way natively.
+function formatZurich(iso: string | null): string {
+  if (iso === null) {
+    return '—';
+  }
+
+  try {
+    return new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Zurich' });
+  } catch {
+    return iso;
+  }
+}
+
+// Coarse "time since" badge, e.g. "3d ago", "6mo ago" — for at-a-glance activity scanning.
+function formatRelative(iso: string | null): string {
+  if (iso === null) {
+    return '—';
+  }
+
+  const then = new Date(iso).getTime();
+
+  if (Number.isNaN(then)) {
+    return '—';
+  }
+
+  const diffMs = Date.now() - then;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) {
+    return 'just now';
+  }
+
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
+
+  const diffHr = Math.floor(diffMin / 60);
+
+  if (diffHr < 24) {
+    return `${diffHr}h ago`;
+  }
+
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffDay < 30) {
+    return `${diffDay}d ago`;
+  }
+
+  const diffMonth = Math.floor(diffDay / 30);
+
+  if (diffMonth < 12) {
+    return `${diffMonth}mo ago`;
+  }
+
+  const diffYear = Math.floor(diffMonth / 12);
+  return `${diffYear}y ago`;
+}
+
+function formatPlatform(u: AdminUser): string {
+  const parts: string[] = [];
+
+  if (u.chesscom_username !== null) {
+    parts.push(`Chess.com: ${u.chesscom_username}`);
+  }
+
+  if (u.lichess_username !== null) {
+    parts.push(`Lichess: ${u.lichess_username}`);
+  }
+
+  if (parts.length === 0) {
+    return '—';
+  }
+
+  return parts.join(' · ');
+}
+
 function Admin(): JSX.Element {
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<AdminStats | undefined>(undefined);
@@ -183,7 +259,11 @@ function Admin(): JSX.Element {
         <thead>
           <tr>
             <th>Username</th>
-            <th>Created at</th>
+            <th>Platform</th>
+            <th>Created at (Zurich)</th>
+            <th>Last login</th>
+            <th>Last activity</th>
+            <th>Games analysed</th>
             <th>Admin</th>
           </tr>
         </thead>
@@ -191,7 +271,24 @@ function Admin(): JSX.Element {
           {users.map((u, i) => (
             <tr key={`user-${u.username_lower}-${i}`}>
               <td>{u.username}</td>
-              <td>{u.created_at}</td>
+              <td>{formatPlatform(u)}</td>
+              <td>
+                {formatZurich(u.created_at)}
+                <span className="admin__td-sub"> ({formatRelative(u.created_at)})</span>
+              </td>
+              <td>
+                {formatZurich(u.last_login)}
+                {u.last_login !== null && (
+                  <span className="admin__td-sub"> ({formatRelative(u.last_login)})</span>
+                )}
+              </td>
+              <td>
+                {formatZurich(u.last_activity)}
+                {u.last_activity !== null && (
+                  <span className="admin__td-sub"> ({formatRelative(u.last_activity)})</span>
+                )}
+              </td>
+              <td>{u.games_analysed}</td>
               <td>{u.is_admin ? '✓' : ''}</td>
             </tr>
           ))}

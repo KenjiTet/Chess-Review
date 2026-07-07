@@ -17,9 +17,16 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 3rem 1rem 2.5rem;
-  width: 100%;
-  max-width: 640px;
+  padding: 3rem 1.25rem 2.5rem;
+  /* Comfortable fixed column: caps at a roomy width on desktop (no width
+     changes once capped) and falls back to near-full width on smaller screens.
+     Matches .landing__content so the hero and content share one column width. */
+  width: 70%;
+  max-width: 1040px;
+
+  @media (max-width: 700px) {
+    width: 90%;
+  }
 }
 
 .landing__hero-icon {
@@ -36,6 +43,13 @@
   color: var(--text-h);
   margin: 0 0 0.6rem;
   letter-spacing: -0.5px;
+  /* Keep "Chess Blunder Trainer" on a single line; the mobile rule below sizes
+     it down so it still fits inline within the narrow column. */
+  white-space: nowrap;
+
+  @media (max-width: 700px) {
+    font-size: 1.7rem;
+  }
 }
 
 .landing__gold {
@@ -59,12 +73,17 @@
 /* ── Content sections ─────────────────────────────────────────────────────── */
 
 .landing__content {
-  width: 100%;
-  max-width: 760px;
+  /* Matches the hero column width so the layout stays a single fixed width. */
+  width: 70%;
+  max-width: 1040px;
   padding: 0 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 3rem;
+
+  @media (max-width: 700px) {
+    width: 90%;
+  }
 }
 
 .landing__section {
@@ -79,7 +98,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 1.75rem 1.5rem;
+  padding: 2.5rem 2rem;
   box-shadow: var(--shadow-card);
 }
 
@@ -94,9 +113,12 @@
 
 .landing__prose {
   color: var(--text);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: 1.05rem;
+  line-height: 1.7;
   margin: 0;
+  /* Cap line length for readability, centred within the now-wider card. */
+  max-width: 62ch;
+  margin-inline: auto;
 }
 
 /* ── How it works: three steps ────────────────────────────────────────────── */
@@ -156,6 +178,10 @@
   flex-direction: column;
   gap: 1.25rem;
   margin: 0;
+  /* Keep Q&A lines readable and centred within the wide FAQ card. */
+  width: 100%;
+  max-width: 62ch;
+  margin-inline: auto;
 }
 
 .landing__faq-item {

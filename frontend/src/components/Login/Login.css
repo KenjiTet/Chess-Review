@@ -12,10 +12,15 @@
 
 /* Embedded in the Landing page: the Landing controls the outer layout, so drop
    the full-height centering and padding and let the card sit inline. */
-.login--embedded {
+/* Doubled class raises specificity so the padding reset and full width survive
+   the max-height media queries below that re-pad the base .login. */
+.login.login--embedded {
   flex: none;
   padding: 0;
   overflow-y: visible;
+  /* Fill the hero column so the card can match the landing text-modal width
+     instead of shrinking to its content. */
+  width: 100%;
 }
 
 /* Hero */
@@ -59,7 +64,9 @@
 
 .login__card {
   width: 100%;
-  max-width: 420px;
+  /* Match the landing text modals' column width (see .landing__content) so the
+     login card lines up with them at every breakpoint. */
+  max-width: 1040px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;

@@ -107,6 +107,10 @@ def init_db() -> None:
         # blunder type per move_index (added after the cache table shipped).
         _add_cache_categories_column(conn)
 
+        # Forward migration: last_login tracks activity for the admin panel
+        # (added after the users table shipped).
+        _add_last_login_column(conn)
+
         conn.commit()
 
 
@@ -223,3 +227,22 @@ def _add_analysed_handle_column(conn: sqlite3.Connection) -> None:
         WHERE platform = 'lichess' AND handle IS NULL
         """
     )
+
+
+def _add_last_login_column(conn: sqlite3.Connection) -> None:
+    """Add the last_login column to users if missing.
+
+    Idempotent: inspects PRAGMA table_info and only adds the column when absent,
+    so it is safe to run on every startup. Populated on every successful login
+    so the admin panel can surface real activity, not just signup date.
+
+    Args:
+        conn: An open SQLite connection.
+    """
+    existing: set[str] = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(users)").fetchall()
+    }
+
+    if "last_login" not in existing:
+        conn.execute("ALTER TABLE users ADD COLUMN last_login TEXT")

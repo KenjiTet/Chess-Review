@@ -92,6 +92,20 @@ def get_user(username: str) -> dict | None:
     }
 
 
+def record_login(username: str) -> None:
+    """Stamp the account's last_login with the current UTC time.
+
+    Args:
+        username: Account username to update (case-insensitive).
+    """
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE users SET last_login = ? WHERE username_lower = ?",
+            (datetime.now(timezone.utc).isoformat(), username.lower()),
+        )
+        conn.commit()
+
+
 def is_admin(username: str) -> bool:
     """Return True if the account is flagged as an admin in the database.
 

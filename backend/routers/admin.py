@@ -13,19 +13,57 @@ router = APIRouter()
 
 @router.get("/users")
 def list_users(_admin: dict = Depends(require_admin)) -> list[dict]:
-    """Return all registered users (password hashes excluded).
+    """Return all registered users with activity/monitoring info (password hashes excluded).
 
     Args:
         _admin: Injected admin guard — request is rejected if not admin.
 
     Returns:
-        List of user rows: username, username_lower, created_at.
+        List of user rows: username, username_lower, created_at, is_admin, linked
+        platform handles, last_login, games_analysed, and last_activity (the more
+        recent of their last analysed or reviewed game).
     """
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT username, username_lower, created_at, is_admin FROM users ORDER BY created_at DESC"
+            """
+            SELECT
+                u.username,
+                u.username_lower,
+                u.created_at,
+                u.is_admin,
+                u.chesscom_username,
+                u.lichess_username,
+                u.last_login,
+                COALESCE(a.games_analysed, 0) AS games_analysed,
+                a.last_analysed_at,
+                r.last_reviewed_at
+            FROM users u
+            LEFT JOIN (
+                SELECT username_lower, COUNT(*) AS games_analysed, MAX(analysed_at) AS last_analysed_at
+                FROM user_analysed_games
+                GROUP BY username_lower
+            ) a ON a.username_lower = u.username_lower
+            LEFT JOIN (
+                SELECT username_lower, MAX(reviewed_at) AS last_reviewed_at
+                FROM user_reviewed_games
+                GROUP BY username_lower
+            ) r ON r.username_lower = u.username_lower
+            ORDER BY u.created_at DESC
+            """
         ).fetchall()
-    return [dict(row) for row in rows]
+
+    users: list[dict] = []
+
+    for row in rows:
+        user: dict = dict(row)
+        last_analysed: str | None = user.pop("last_analysed_at")
+        last_reviewed: str | None = user.pop("last_reviewed_at")
+        # ISO 8601 timestamps sort correctly as plain strings, so max() picks the
+        # more recent one without parsing dates.
+        user["last_activity"] = max(filter(None, [last_analysed, last_reviewed]), default=None)
+        users.append(user)
+
+    return users
 
 
 @router.get("/cache")

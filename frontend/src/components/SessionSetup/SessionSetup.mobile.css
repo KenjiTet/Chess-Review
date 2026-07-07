@@ -207,6 +207,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 10px 14px 16px;
   display: flex;
   flex-direction: column;
@@ -506,6 +507,7 @@
   min-height: 200px;
   padding: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ── Layout card (replaces the TC/Sensitivity card on Saved tab) ─────────── */

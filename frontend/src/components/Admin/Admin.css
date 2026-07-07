@@ -145,6 +145,11 @@
   border-bottom: none;
 }
 
+.admin__td-sub {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .admin__link {
   color: var(--gold);
   text-decoration: none;

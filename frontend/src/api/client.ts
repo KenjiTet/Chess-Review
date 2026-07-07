@@ -575,6 +575,11 @@ export interface AdminUser {
   username_lower: string;
   created_at: string;
   is_admin: boolean;
+  chesscom_username: string | null;
+  lichess_username: string | null;
+  last_login: string | null;
+  games_analysed: number;
+  last_activity: string | null;
 }
 
 export interface AdminCacheEntry {
