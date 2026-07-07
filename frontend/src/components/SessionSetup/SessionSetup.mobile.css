@@ -17,7 +17,7 @@
   flex-direction: column;
   gap: 10px;
   border-bottom: 1px solid var(--border);
-  padding: 44px 14px 12px;
+  padding: 14px 14px 12px;
   background: linear-gradient(
     to bottom,
     color-mix(in srgb, var(--gold) 9%, var(--surface)) 0%,
@@ -314,6 +314,14 @@
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Current-view title in the mobile section bar (reflects the sidebar choice). */
+.setup__mobile-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.2px;
 }
 
 .setup__mobile-tab-btn {

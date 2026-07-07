@@ -6,7 +6,8 @@
   gap: 22px;
   align-items: center;
   padding: 20px 26px;
-  border-bottom: 1px solid var(--border);
+  /* The single divider under the header lives on .profile-header; the band
+     itself no longer draws one so the two don't stack into a double line. */
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--gold) 6%, var(--surface)) 0%,

@@ -1,0 +1,163 @@
+/* Sidebar contents — shared by the desktop rail and the mobile drawer. */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 1rem 0.75rem;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* ── Brand ── */
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.4rem 0.5rem 1.1rem;
+}
+
+/* Rounded-square tile; the mark image already carries its own gold fill. */
+.sidebar__brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(200, 130, 42, 0.35);
+}
+
+.sidebar__brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sidebar__brand-title {
+  font-weight: 800;
+  font-size: 1.55rem;
+  letter-spacing: -0.5px;
+  color: var(--text-h);
+}
+
+.sidebar__brand-gold {
+  color: var(--gold);
+}
+
+/* ── Nav ── */
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar__item:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sidebar__item--active {
+  background: rgba(226, 160, 63, 0.14);
+  color: var(--gold);
+}
+
+.sidebar__item svg {
+  flex: 0 0 auto;
+}
+
+.sidebar__item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Admin section ── */
+
+.sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar__section-label {
+  padding: 0 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ── Footer ── */
+
+/* Pinned to the very bottom and stretched flush to the sidebar edges (the
+   negative margins cancel the .sidebar padding: 0.75rem sides, 1rem bottom) so
+   it forms one continuous bottom bar with the footer. The divider lives on the
+   button itself (not here) so both borders sit inside an identically-sized
+   border-box and line up exactly. */
+.sidebar__footer {
+  margin: auto -0.75rem -1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  /* Same border-box height + border as .footer, so the two top borders align
+     to the pixel (both rows are bottom-flush). */
+  height: 2.75rem;
+  box-sizing: border-box;
+  padding: 0 1.5rem;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar__logout:hover {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.sidebar__logout-ic {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  /* The asset is a dark glyph; nudge it toward the muted text colour. */
+  opacity: 0.85;
+}

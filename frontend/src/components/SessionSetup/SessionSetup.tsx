@@ -1,18 +1,19 @@
-/** Setup screen — player identity, time control, game history, favorites. */
+/** Setup screen — time control, game history, favorites (profile lives in the shell header). */
 
 import { useState, useRef, useEffect } from 'react';
 import type { JSX } from 'react';
 import useSession from '../../hooks/useSession';
 import useSettings from '../../hooks/useSettings';
 import useAuth from '../../hooks/useAuth';
+import useNav from '../../hooks/useNav';
+import type { TimeClass } from '../../hooks/useNav';
+import { useMenuData } from '../AppShell/MenuDataContext';
 import Favorites from '../Favorites/Favorites';
 import GameHistory from '../GameHistory/GameHistory';
 import CategoryFilter from '../CategoryFilter/CategoryFilter';
 import { ALL_CATEGORY_KEYS, ALL_PHASE_KEYS } from '../../constants/blunderCategories';
-import ProfileBand from './ProfileBand';
 import UserStats from '../UserStats/UserStats';
 import type { GameHistoryEntry } from '../../api/client.ts';
-import { useMenuStats } from '../../hooks/useMenuStats';
 import type { FavoritePosition } from '../../hooks/useFavorites';
 import type { FavLayout } from '../Favorites/Favorites';
 import { TimeClassIcon } from '../TimeClassIcons';
@@ -20,28 +21,13 @@ import ThresholdPicker from '../ThresholdPicker/ThresholdPicker';
 import SeverityInfo from '../SeverityInfo/SeverityInfo';
 import chesscomLogo from '../../assets/chesscom_logo.png';
 import lichessLogo from '../../assets/Lichess_logo.webp';
-import settingsIcon from '../../assets/settings.svg';
-import linkIcon from '../../assets/link_icon.svg';
-import logoutIcon from '../../assets/logout_icon.svg';
 import blocIconUrl from '../../assets/bloc_icon.svg';
 import inlineIconUrl from '../../assets/inline_icon.svg';
 import './SessionSetup.css';
 import './SessionSetup.mobile.css';
 
-const TIME_CLASSES = ['all', 'rapid', 'blitz', 'bullet', 'daily'] as const;
-type TimeClass = (typeof TIME_CLASSES)[number];
-
-const TIME_CLASS_STORAGE_KEY = 'recall_time_class';
-
-function getSavedTimeClass(): TimeClass {
-  const saved = localStorage.getItem(TIME_CLASS_STORAGE_KEY);
-
-  if (saved && (TIME_CLASSES as readonly string[]).includes(saved)) {
-    return saved as TimeClass;
-  }
-
-  return 'all';
-}
+// Options for the Time Control select; the active value + persistence live in useNav.
+const TIME_CLASSES: readonly TimeClass[] = ['all', 'rapid', 'blitz', 'bullet', 'daily'];
 
 // ── Persisted blunder-type / display filter ────────────────────────────────
 
@@ -161,20 +147,7 @@ function TimeClassSelect({ value, onChange }: TimeClassSelectProps): JSX.Element
   );
 }
 
-// ── Tab SVG icons ──────────────────────────────────────────────────────────
-
-function ListIconSvg(): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="8" y1="6" x2="21" y2="6" />
-      <line x1="8" y1="12" x2="21" y2="12" />
-      <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-  );
-}
+// ── Toolbar SVG icons ──────────────────────────────────────────────────────
 
 function FilterIconSvg(): JSX.Element {
   return (
@@ -184,59 +157,42 @@ function FilterIconSvg(): JSX.Element {
   );
 }
 
-function StarIconSvg(): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-}
-
-function StatsIconSvg(): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface SessionSetupProps {
   isMobile?: boolean;
-  isAdmin?: boolean;
-  adminView?: boolean;
-  onAdminToggle?: () => void;
 }
 
-function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, onAdminToggle }: SessionSetupProps): JSX.Element {
+function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
   const buildSession = useSession((s) => s.buildSession);
   const loadFavoritePosition = useSession((s) => s.loadFavoritePosition);
-  const setScreen = useSession((s) => s.setScreen);
 
   const threshold = useSettings((s) => s.threshold);
   const setThreshold = useSettings((s) => s.setThreshold);
 
-  const authUsername = useAuth((s) => s.username);
   const isGuest = useAuth((s) => s.isGuest);
-  const avatar = useAuth((s) => s.avatar);
-  const platform = useAuth((s) => s.platform);
-  const logout = useAuth((s) => s.logout);
-  const getPlatformUsername = useAuth((s) => s.getPlatformUsername);
 
-  const darkMode = useSettings((s) => s.darkMode);
-  const setDarkMode = useSettings((s) => s.setDarkMode);
-  const mobileOverride = useSettings((s) => s.mobileOverride);
-  const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
+  // Shared player data + stats live in the shell-level MenuData context so the
+  // sticky ProfileHeader and this content stay in sync from one source.
+  const {
+    playerUsername,
+    platform,
+    avatar,
+    timeClass,
+    setTimeClass,
+    menuStats,
+    statItems,
+    setLoadedGames,
+    refreshStats,
+  } = useMenuData();
 
-  const [showFavorites, setShowFavorites] = useState<boolean>(false);
+  // The active menu view is driven by the sidebar (AppShell) via useNav; these
+  // derived booleans keep the existing render branches unchanged.
+  const section = useNav((s) => s.section);
+  const showFavorites = section === 'saved';
+  const showStats = section === 'stats';
+
   const [favLayout, setFavLayout] = useState<FavLayout>('blocks');
-  const [timeClass, setTimeClass] = useState<TimeClass>(getSavedTimeClass);
-  const [profileSettingsOpen, setProfileSettingsOpen] = useState<boolean>(false);
-  // Whether the full User Stats dashboard overlay is open (shared by both layouts).
-  const [showStats, setShowStats] = useState<boolean>(false);
   // Blunder-category filter — all categories selected and clean games shown by default.
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(loadSelectedCategories);
   // Game-phase filter — all phases selected by default.
@@ -274,25 +230,9 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     localStorage.setItem(SHOW_ANALYSED_KEY, showAnalysedGames ? '1' : '0');
   }, [showAnalysedGames]);
 
-  // Account username drives display; the linked platform handle drives game/profile fetches.
-  const playerUsername = getPlatformUsername(platform ?? 'chesscom') ?? '';
-  // Any logged-in, non-guest account can link/relink a platform handle — even
-  // when none is linked yet (those accounts need the option most).
-  const isRegisteredAccount = !isGuest && authUsername !== undefined;
-
-  // Single source of truth for every menu stat — both layouts read from this so
-  // their displayed numbers can never diverge.
-  const { stats: menuStats, statItems, setLoadedGames, refreshStats } = useMenuStats({
-    playerUsername,
-    platform,
-    timeClass,
-    threshold,
-  });
-
-  function handleTimeClassChange(tc: TimeClass): void {
-    setTimeClass(tc);
-    localStorage.setItem(TIME_CLASS_STORAGE_KEY, tc);
-  }
+  // Setting the time class persists via the store; keep the local name so the
+  // existing handlers/JSX don't need to change.
+  const handleTimeClassChange = setTimeClass;
 
   const gamesRef = useRef<GameHistoryEntry[]>([]);
 
@@ -449,28 +389,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
     }, resolveLoadingTitle(gameUrl));
   }
 
-  function handleLogout(): void {
-    logout();
-  }
-
-  // ── View switching ──────────────────────────────────────────────────────
-  // The "Showing" toggle is tri-state (Recent / Saved / Stats); these keep the
-  // two booleans mutually exclusive so only one panel renders at a time.
-  function showRecentView(): void {
-    setShowFavorites(false);
-    setShowStats(false);
-  }
-
-  function showSavedView(): void {
-    setShowFavorites(true);
-    setShowStats(false);
-  }
-
-  function showStatsView(): void {
-    setShowFavorites(false);
-    setShowStats(true);
-  }
-
   // ── Mobile layout ─────────────────────────────────────────────────────────
   if (isMobile) {
     const platformLabel = platform === 'lichess' ? 'Lichess' : 'Chess.com';
@@ -513,101 +431,6 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
                   <> · Since {memberSince}</>
                 )}
               </span>
-            </div>
-
-            {/* Settings wheel — single entry point for theme, account linking,
-                admin tools and logout, keeping the banner compact */}
-            <div className="setup__mobile-settings-wrap">
-              <button
-                className="setup__mobile-settings-btn"
-                type="button"
-                onClick={() => setProfileSettingsOpen((v) => !v)}
-                aria-label="Settings"
-                aria-expanded={profileSettingsOpen}
-              >
-                <img src={settingsIcon} alt="" className="setup__mobile-settings-ic" />
-              </button>
-              {profileSettingsOpen && (
-                <>
-                  <div
-                    className="setup__mobile-settings-scrim"
-                    onClick={() => setProfileSettingsOpen(false)}
-                  />
-                  <div className="setup__mobile-settings-dropdown" role="menu">
-                    {/* Theme */}
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setDarkMode(!darkMode);
-                        setProfileSettingsOpen(false);
-                      }}
-                    >
-                      <span className="setup__mobile-dd-ic">{darkMode ? '☀' : '☾'}</span>
-                      {darkMode ? 'Switch to light' : 'Switch to dark'}
-                    </button>
-
-                    {/* Account settings (linked accounts, password, deletion) */}
-                    {isRegisteredAccount && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setScreen('settings');
-                          setProfileSettingsOpen(false);
-                        }}
-                      >
-                        <img src={linkIcon} alt="" className="setup__mobile-dd-img-ic" />
-                        Settings
-                      </button>
-                    )}
-
-                    {/* Admin-only tools */}
-                    {isAdmin && onAdminToggle && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          onAdminToggle();
-                          setProfileSettingsOpen(false);
-                        }}
-                      >
-                        <img src={settingsIcon} alt="" className="setup__mobile-dd-settings-ic" />
-                        {adminView ? 'Exit admin' : 'Admin panel'}
-                      </button>
-                    )}
-
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          toggleMobileOverride();
-                          setProfileSettingsOpen(false);
-                        }}
-                      >
-                        <span className="setup__mobile-dd-ic">{mobileOverride ? '🖥' : '📱'}</span>
-                        {mobileOverride ? 'Exit mobile preview' : 'Mobile preview on'}
-                      </button>
-                    )}
-
-                    {/* Logout — separated as a destructive action */}
-                    <div className="setup__mobile-dd-divider" />
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="setup__mobile-dd-danger"
-                      onClick={() => {
-                        handleLogout();
-                        setProfileSettingsOpen(false);
-                      }}
-                    >
-                      <img src={logoutIcon} alt="" className="setup__mobile-dd-img-ic setup__mobile-dd-img-ic--danger" />
-                      Log out
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -690,42 +513,13 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
         {/* Scrollable body */}
         <div className="setup__mobile-body">
           <div className="setup__mobile-games-panel">
+            {/* Section header reflects the sidebar-selected view; controls sit on the right. */}
             <div className="setup__mobile-section">
-              {/* Left side — Recent/Saved/Stats icon-only tabs */}
-              <div className="setup__mobile-field setup__mobile-field--tabs">
-                <span className="setup__mobile-label">Showing</span>
-                <div className="setup__seg setup__seg--mobile setup__seg--tabs">
-                  <button
-                    type="button"
-                    className={`setup__seg-btn${!showFavorites && !showStats ? ' setup__seg-btn--on' : ''}`}
-                    onClick={showRecentView}
-                    aria-label="Recent games"
-                  >
-                    <ListIconSvg />
-                    <span className="setup__seg-btn-txt">Games</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
-                    onClick={showSavedView}
-                    aria-label="Saved positions"
-                  >
-                    <StarIconSvg />
-                    <span className="setup__seg-btn-txt">Saved</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`setup__seg-btn${showStats ? ' setup__seg-btn--on' : ''}`}
-                    onClick={showStatsView}
-                    aria-label="User stats"
-                  >
-                    <StatsIconSvg />
-                    <span className="setup__seg-btn-txt">Stats</span>
-                  </button>
-                </div>
-              </div>
+              <span className="setup__mobile-section-title">
+                {showFavorites ? 'Saved games' : showStats ? 'Statistics' : 'Recent games'}
+              </span>
 
-              {/* Right side — Filter button (Recent) or layout toggle (Saved) */}
+              {/* Filter button (Recent) or layout toggle (Saved) */}
               {!showFavorites && !showStats && (
                 <div className="setup__mobile-field setup__mobile-field--filter">
                   <span className="setup__mobile-label">Filter</span>
@@ -801,62 +595,13 @@ function SessionSetup({ isMobile = false, isAdmin = false, adminView = false, on
   }
 
   // ── Desktop layout ─────────────────────────────────────────────────────────
+  // The player profile now lives in the shell's sticky ProfileHeader; this
+  // content fills the region below it.
   return (
     <div className="setup">
-      <div className="setup__hero">
-        <span className="setup__hero-icon">♚</span>
-        <h1 className="setup__hero-title">
-          Chess <span className="setup__gold">Blunder</span> Trainer
-        </h1>
-        <p className="setup__hero-sub">Review your blunders like a daily puzzle</p>
-      </div>
-
       <div className="setup__card">
-        {/* ── Profile band ── */}
-        <ProfileBand
-          username={playerUsername}
-          avatar={avatar}
-          platform={platform}
-          ratings={menuStats.ratings}
-          ratingsLoading={menuStats.ratingsLoading}
-          statItems={statItems}
-          activeTimeClass={timeClass}
-          onSelectTimeClass={handleTimeClassChange}
-        />
-
         {/* ── Toolbar ── */}
         <div className="setup__toolbar">
-          {/* Showing tabs — kept on the left of the toolbar */}
-          <div className="setup__field setup__field--tabs">
-            <label className="setup__label">Showing</label>
-            <div className="setup__seg setup__seg--tabs">
-              <button
-                type="button"
-                className={`setup__seg-btn${!showFavorites && !showStats ? ' setup__seg-btn--on' : ''}`}
-                onClick={showRecentView}
-              >
-                <ListIconSvg />
-                Recent games
-              </button>
-              <button
-                type="button"
-                className={`setup__seg-btn${showFavorites ? ' setup__seg-btn--on' : ''}`}
-                onClick={showSavedView}
-              >
-                <StarIconSvg />
-                Saved
-              </button>
-              <button
-                type="button"
-                className={`setup__seg-btn${showStats ? ' setup__seg-btn--on' : ''}`}
-                onClick={showStatsView}
-              >
-                <StatsIconSvg />
-                Stats
-              </button>
-            </div>
-          </div>
-
           {!showFavorites && !showStats && (
             <>
               <div className="setup__field">

@@ -1,37 +1,22 @@
 .settings {
   display: flex;
+  flex-direction: column;
   flex: 1;
-  justify-content: center;
-  padding: 2rem 1rem;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  /* Lighter page background, matching the session-setup page. */
+  background: var(--surface);
 }
 
+/* Fills the whole content region like the other in-app pages — no floating
+   card chrome (border/radius/shadow/max-width). */
 .settings__card {
   width: 100%;
-  max-width: 560px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 2rem 2.25rem;
-  box-shadow: var(--shadow-card);
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-.settings__back {
-  background: none;
+  background: transparent;
   border: none;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-family: var(--sans);
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 1rem;
-}
-
-.settings__back:hover {
-  color: var(--gold);
+  border-radius: 0;
+  padding: 2rem 2.25rem;
+  box-shadow: none;
 }
 
 .settings__title {
@@ -99,6 +84,8 @@
   outline: none;
   transition: border-color 0.15s ease;
   width: 100%;
+  /* Cap the width so fields don't stretch across the full-width page. */
+  max-width: 360px;
   box-sizing: border-box;
 }
 
@@ -130,28 +117,35 @@
   cursor: not-allowed;
 }
 
+/* Compact segmented toggle — sits inline rather than spanning the page. */
 .settings__theme {
-  display: flex;
-  gap: 0.6rem;
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .settings__theme-btn {
-  flex: 1;
-  padding: 0.6rem;
-  background: var(--bg);
-  color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 10px;
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   font-family: var(--sans);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings__theme-btn:not(.settings__theme-btn--on):hover {
+  color: var(--text);
 }
 
 .settings__theme-btn--on {
-  border-color: var(--gold);
-  background: rgba(226, 160, 63, 0.08);
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
   color: var(--gold);
 }
 

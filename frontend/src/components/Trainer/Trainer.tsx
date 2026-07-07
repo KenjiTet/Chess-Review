@@ -1155,14 +1155,9 @@ function Trainer({ isMobile = false }: TrainerProps): JSX.Element {
     <>
     <div className="trainer">
       <header className="trainer__header">
-        <div className="trainer__brand">
-          <span className="trainer__brand-icon">♚</span>
-          <div>
-            <div className="trainer__brand-title">Chess Blunder Trainer</div>
-            <div className="trainer__brand-sub">
-              Blunder {reviewedCount + 1} / {blunderCount}
-            </div>
-          </div>
+        {/* Branding lives in the sidebar now; the header just tracks progress. */}
+        <div className="trainer__progress-label">
+          Blunder {reviewedCount + 1} / {blunderCount}
         </div>
 
         <button className="trainer__menu-btn" type="button" onClick={reset} title="Back to menu">

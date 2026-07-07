@@ -33,6 +33,12 @@
   margin-right: auto;
 }
 
+.trainer__progress-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
 .trainer__brand {
   display: flex;
   align-items: center;

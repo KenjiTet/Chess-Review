@@ -8,7 +8,6 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { changePassword, deleteAccount, setAccountEmail as setAccountEmailApi } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
-import useSession from '../../hooks/useSession';
 import useSettings from '../../hooks/useSettings';
 import LinkAccountModal from '../SessionSetup/LinkAccountModal';
 import './Settings.css';
@@ -32,7 +31,6 @@ function Settings(): JSX.Element {
   const authProvider = useAuth((s) => s.authProvider);
   const setAccountEmailStore = useAuth((s) => s.setAccountEmail);
   const logout = useAuth((s) => s.logout);
-  const setScreen = useSession((s) => s.setScreen);
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
 
@@ -138,9 +136,6 @@ function Settings(): JSX.Element {
   return (
     <div className="settings">
       <div className="settings__card">
-        <button type="button" className="settings__back" onClick={() => setScreen('setup')}>
-          ← Back
-        </button>
         <h1 className="settings__title">Account settings</h1>
 
         {/* ── Email (add for legacy accounts, or change) ───────────────────── */}

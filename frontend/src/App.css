@@ -14,6 +14,16 @@
   min-height: 100svh;
 }
 
+/* Authenticated shell: the app wrapper owns the viewport height as a flex
+   column (banners on top, the shell filling the rest), so the shell's pinned
+   header/footer stay inside the viewport. */
+.app--shell {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: hidden;
+}
+
 .app__main {
   flex: 1;
   min-height: 0;

@@ -20,6 +20,7 @@ import Loading from './components/Loading/Loading';
 import Trainer from './components/Trainer/Trainer';
 import Admin from './components/Admin/Admin';
 import Settings from './components/Settings/Settings';
+import AppShell from './components/AppShell/AppShell';
 import Terms from './components/Legal/Terms';
 import Privacy from './components/Legal/Privacy';
 import ResetPassword from './components/ResetPassword/ResetPassword';
@@ -29,31 +30,16 @@ interface ScreenProps {
   isMobile: boolean;
   isAdmin: boolean;
   adminView: boolean;
-  onAdminToggle: () => void;
   resetToken: string | undefined;
 }
 
-function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenProps): JSX.Element {
-  const { isMobile, isAdmin, adminView, onAdminToggle, resetToken } = props;
+// Public, chrome-free screens reachable with or without authentication.
+const PUBLIC_SCREENS: readonly Screen[] = ['reset', 'terms', 'privacy'];
 
-  // Public screens — reachable with or without authentication (email links + footer).
-  if (screen === 'reset') {
-    return <ResetPassword token={resetToken ?? ''} />;
-  }
-
-  if (screen === 'terms') {
-    return <Terms />;
-  }
-
-  if (screen === 'privacy') {
-    return <Privacy />;
-  }
-
-  if (!isAuthenticated) {
-    // Unauthenticated visitors get the indexable marketing landing page, which
-    // embeds the login/guest form as its call-to-action.
-    return <Landing />;
-  }
+// Renders the active in-app screen content (everything that lives inside the
+// AppShell for authenticated users). Public/landing screens are handled in App.
+function renderScreen(screen: Screen, props: ScreenProps): JSX.Element {
+  const { isMobile, isAdmin, adminView } = props;
 
   if (adminView && isAdmin) {
     return <Admin />;
@@ -63,22 +49,16 @@ function renderScreen(screen: Screen, isAuthenticated: boolean, props: ScreenPro
     return <Settings />;
   }
 
-  if (screen === 'setup') {
-    return (
-      <SessionSetup
-        isMobile={isMobile}
-        isAdmin={isAdmin}
-        adminView={adminView}
-        onAdminToggle={onAdminToggle}
-      />
-    );
-  }
-
   if (screen === 'loading') {
     return <Loading />;
   }
 
-  return <Trainer isMobile={isMobile} />;
+  if (screen === 'trainer') {
+    return <Trainer isMobile={isMobile} />;
+  }
+
+  // Default in-app screen is the setup menu.
+  return <SessionSetup isMobile={isMobile} />;
 }
 
 function App(): JSX.Element {
@@ -194,28 +174,80 @@ function App(): JSX.Element {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // Public/legal screens keep their own chrome; everything else for a logged-in
+  // user renders inside the AppShell (sidebar + content).
+  const isPublicScreen = PUBLIC_SCREENS.includes(screen);
+  const inShell = isAuthenticated && !isPublicScreen;
+
+  // Drop the global background image/overlay on shell screens (kept on Landing).
+  useEffect(() => {
+    if (inShell) {
+      document.documentElement.setAttribute('data-app-shell', '');
+    } else {
+      document.documentElement.removeAttribute('data-app-shell');
+    }
+  }, [inShell]);
+
   function handleAdminToggle(): void {
     setAdminView((v) => !v);
   }
 
-  // The footer sits at the bottom of the page, but the full-bleed trainer, the
-  // loading screen, and the admin dashboard need the whole viewport, so hide it there.
-  const inAdminView = adminView && isAdmin;
-  const showFooter = screen !== 'trainer' && screen !== 'loading' && !inAdminView;
+  // The marketing/legal footer only belongs on the public-facing pages; the
+  // in-app shell provides its own account controls in the sidebar.
+  const showFooter = !inShell;
 
   const screenProps: ScreenProps = {
     isMobile,
     isAdmin,
     adminView,
-    onAdminToggle: handleAdminToggle,
     resetToken,
   };
 
-  return (
-    <div className={`app${!isAuthenticated ? ' app--landing' : ''}`}>
-      <ErrorBanner />
+  // ── Public screens (landing, legal, reset) render without the app shell. ──
+  if (!inShell) {
+    let publicContent: JSX.Element;
 
-      {/* One-off email-confirmation result notice (from a ?confirm= link). */}
+    if (screen === 'reset') {
+      publicContent = <ResetPassword token={resetToken ?? ''} />;
+    } else if (screen === 'terms') {
+      publicContent = <Terms />;
+    } else if (screen === 'privacy') {
+      publicContent = <Privacy />;
+    } else {
+      // Unauthenticated visitors get the indexable marketing landing page.
+      publicContent = <Landing />;
+    }
+
+    return (
+      <div className={`app${!isAuthenticated ? ' app--landing' : ''}`}>
+        <ErrorBanner />
+
+        {confirmNotice && (
+          <div className="app__confirm-notice" role="status">
+            <span>{confirmNotice}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => setConfirmNotice(undefined)}>
+              ✕
+            </button>
+          </div>
+        )}
+
+        {isAuthenticated && <ConfirmEmailBanner />}
+
+        <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
+          {publicContent}
+        </main>
+
+        {showFooter && <Footer isMobile={isMobile} />}
+      </div>
+    );
+  }
+
+  // ── Authenticated in-app screens render inside the AppShell. ──
+  return (
+    <div className="app app--shell">
+      <ErrorBanner />
+      <ConfirmEmailBanner />
+
       {confirmNotice && (
         <div className="app__confirm-notice" role="status">
           <span>{confirmNotice}</span>
@@ -225,25 +257,14 @@ function App(): JSX.Element {
         </div>
       )}
 
-      {isAuthenticated && <ConfirmEmailBanner />}
-
-      <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
-        {renderScreen(screen, isAuthenticated, screenProps)}
-      </main>
-
-      {showFooter && <Footer />}
-
-      {/* Fixed floating buttons — hidden on mobile (controls move into profile settings) */}
-      {!isMobile && isAdmin && isAuthenticated && (
-        <button
-          className="admin-toggle"
-          type="button"
-          onClick={handleAdminToggle}
-          title={adminView ? 'Back to app' : 'Admin dashboard'}
-        >
-          {adminView ? '⬅' : '⚙'}
-        </button>
-      )}
+      <AppShell
+        isMobile={isMobile}
+        isAdmin={isAdmin}
+        adminView={adminView}
+        onAdminToggle={handleAdminToggle}
+      >
+        {renderScreen(screen, screenProps)}
+      </AppShell>
     </div>
   );
 }

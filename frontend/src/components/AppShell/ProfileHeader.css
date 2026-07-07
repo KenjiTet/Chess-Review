@@ -1,0 +1,8 @@
+/* Sticky profile header band across the top of the content region. */
+
+.profile-header {
+  flex: 0 0 auto;
+  padding: 18px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}

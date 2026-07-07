@@ -1,14 +1,20 @@
 .footer {
+  flex: 0 0 auto;
   width: 100%;
+  /* Shared bottom-bar height — kept identical to .sidebar__logout so their top
+     borders line up exactly. min-height (not height) lets the links wrap to a
+     second line on very narrow mobile widths without clipping. */
+  min-height: 2.75rem;
   border-top: 1px solid var(--border);
-  margin-top: 2rem;
-  padding: 1rem 1.25rem;
+  padding: 0 1.5rem;
   box-sizing: border-box;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
 }
 
 .footer__inner {
-  max-width: 1100px;
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -40,7 +46,7 @@
 .footer__links {
   display: flex;
   align-items: center;
-  gap: 1.1rem;
+  gap: 3rem;
   flex-wrap: wrap;
   justify-content: center;
   flex-grow: 1;
@@ -66,4 +72,21 @@
   color: var(--muted);
   font-family: var(--mono);
   flex-shrink: 0;
+}
+
+/* ── Mobile: no version, links kept to a single spread-out line ── */
+
+.footer--mobile {
+  padding: 0 1rem;
+}
+
+.footer--mobile .footer__links {
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+.footer--mobile .footer__link {
+  font-size: 0.78rem;
+  white-space: nowrap;
 }

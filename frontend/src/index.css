@@ -166,6 +166,16 @@ body::before {
   background: var(--overlay);
 }
 
+/* Authenticated app-shell screens have their own solid surfaces — drop the
+   marketing background image and its overlay so only the Landing page shows it. */
+html[data-app-shell] body {
+  background-image: none;
+}
+
+html[data-app-shell] body::before {
+  display: none;
+}
+
 #root {
   position: relative;
   z-index: 1;

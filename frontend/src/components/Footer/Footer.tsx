@@ -1,39 +1,30 @@
-/** Global footer — user actions, legal links, and app version.
+/** Global footer — legal links, contact email, and app version.
  *
- * Rendered once in the app shell on every screen. Legal links navigate to the
- * static Terms/Privacy screens via the session store.
+ * Pinned to the bottom of the shell content on menu pages (and shown at the end
+ * of the public pages). Legal links navigate to the static Terms/Privacy
+ * screens via the session store; account actions live in the sidebar.
  */
 
 import type { JSX } from 'react';
 import useSession from '../../hooks/useSession';
-import useAuth from '../../hooks/useAuth';
 import './Footer.css';
 
 // Injected at build time from package.json via vite.config.ts.
 const APP_VERSION: string = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '0.0.0';
 const CONTACT_EMAIL = 'contact@blunderdrill.com';
 
-function Footer(): JSX.Element {
+interface FooterProps {
+  // On mobile the version is dropped and the links compress onto one line.
+  isMobile?: boolean;
+}
+
+function Footer({ isMobile = false }: FooterProps): JSX.Element {
   const setScreen = useSession((s) => s.setScreen);
-  const logout = useAuth((s) => s.logout);
-  const isGuest = useAuth((s) => s.isGuest);
 
   return (
-    <footer className="footer">
+    <footer className={`footer${isMobile ? ' footer--mobile' : ''}`}>
       <div className="footer__inner">
-        {/* Left: Settings and Logout buttons */}
-        <div className="footer__actions">
-          {!isGuest && (
-            <button type="button" className="footer__btn" onClick={() => setScreen('settings')}>
-              Settings
-            </button>
-          )}
-          <button type="button" className="footer__btn" onClick={logout}>
-            Log out
-          </button>
-        </div>
-
-        {/* Center: Legal links and contact email */}
+        {/* Contact email, then legal links */}
         <nav className="footer__links">
           <a className="footer__link" href={`mailto:${CONTACT_EMAIL}`}>
             {CONTACT_EMAIL}
@@ -46,8 +37,8 @@ function Footer(): JSX.Element {
           </button>
         </nav>
 
-        {/* Right: Version */}
-        <span className="footer__version">v{APP_VERSION}</span>
+        {/* Version — hidden on mobile to save horizontal space. */}
+        {!isMobile && <span className="footer__version">v{APP_VERSION}</span>}
       </div>
     </footer>
   );

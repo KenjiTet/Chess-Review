@@ -3,64 +3,26 @@
 .setup {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 30px 24px 28px;
+  align-items: stretch;
+  padding: 0;
   flex: 1;
   min-height: 0;
   gap: 0;
+  /* Page background matches the profile header (--surface); the table title
+     and toolbar buttons stay on the darker --bg so they read as raised. */
+  background: var(--surface);
 }
 
-/* ── Hero section ─────────────────────────────────────────────────────── */
-
-.setup__hero {
-  text-align: center;
-  margin-bottom: 22px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.setup__hero-icon {
-  display: block;
-  font-size: 2.7rem;
-  line-height: 1;
-  margin-bottom: 0.3rem;
-  color: var(--gold);
-  filter: drop-shadow(0 0 20px rgba(226, 160, 63, 0.5));
-}
-
-.setup__hero-title {
-  font-size: 2.3rem;
-  font-weight: 800;
-  color: var(--text-h);
-  margin: 0;
-  letter-spacing: -0.5px;
-  white-space: nowrap;
-}
-
-.setup__gold {
-  color: var(--gold);
-}
-
-.setup__hero-sub {
-  color: var(--muted);
-  font-size: 0.95rem;
-  margin-top: 0.35rem;
-}
-
-/* ── Card — wide and tall to fill the space ───────────────────────────── */
+/* ── Content fills the whole region below the sticky profile header ────── */
 
 .setup__card {
   width: 100%;
-  max-width: 980px;
   flex: 1;
   min-height: 0;
-  max-height: 760px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
