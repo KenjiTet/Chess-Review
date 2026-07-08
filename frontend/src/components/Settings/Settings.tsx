@@ -9,7 +9,7 @@ import type { JSX } from 'react';
 import { changePassword, deleteAccount, resendConfirmation, setAccountEmail as setAccountEmailApi } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
 import useSettings from '../../hooks/useSettings';
-import LinkAccountModal from '../SessionSetup/LinkAccountModal';
+import AccountManager from './AccountManager';
 import './Settings.css';
 
 /** Client-side mirror of the backend password policy (>= 8 chars, at least one digit). */
@@ -24,8 +24,6 @@ function passwordPolicyError(password: string): string | undefined {
 }
 
 function Settings(): JSX.Element {
-  const chesscomUsername = useAuth((s) => s.chesscomUsername);
-  const lichessUsername = useAuth((s) => s.lichessUsername);
   const email = useAuth((s) => s.email);
   const emailVerified = useAuth((s) => s.emailVerified);
   const authProvider = useAuth((s) => s.authProvider);
@@ -33,8 +31,6 @@ function Settings(): JSX.Element {
   const logout = useAuth((s) => s.logout);
   const darkMode = useSettings((s) => s.darkMode);
   const setDarkMode = useSettings((s) => s.setDarkMode);
-
-  const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
 
   // Email add/change form state.
   const [newEmail, setNewEmail] = useState<string>('');
@@ -218,13 +214,10 @@ function Settings(): JSX.Element {
         {/* ── Linked accounts ─────────────────────────────────────────────── */}
         <section className="settings__section">
           <h2 className="settings__section-title">Chess accounts</h2>
-          <div className="settings__links">
-            <span>Chess.com: <strong>{chesscomUsername ?? '—'}</strong></span>
-            <span>Lichess: <strong>{lichessUsername ?? '—'}</strong></span>
-          </div>
-          <button type="button" className="settings__btn" onClick={() => setShowLinkModal(true)}>
-            Link / change account
-          </button>
+          <p className="settings__hint">
+            Tap a linked account to show its stats — recent games, win rate, avg blunders and ratings.
+          </p>
+          <AccountManager />
         </section>
 
         {/* ── Theme ────────────────────────────────────────────────────────── */}
@@ -338,8 +331,6 @@ function Settings(): JSX.Element {
           )}
         </section>
       </div>
-
-      {showLinkModal && <LinkAccountModal onClose={() => setShowLinkModal(false)} />}
     </div>
   );
 }

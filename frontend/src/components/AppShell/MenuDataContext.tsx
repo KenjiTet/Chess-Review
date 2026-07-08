@@ -36,24 +36,37 @@ const MenuDataContext = createContext<MenuDataValue | undefined>(undefined);
 export function MenuDataProvider({ children }: { children: ReactNode }): JSX.Element {
   const avatar = useAuth((s) => s.avatar);
   const platform = useAuth((s) => s.platform);
-  const getPlatformUsername = useAuth((s) => s.getPlatformUsername);
+  const username = useAuth((s) => s.username);
+  // Subscribe to the linked handles directly so relinking a different account (or
+  // switching the active platform) re-derives playerUsername and re-fetches the
+  // now-reset stats, instead of the provider holding on to the previous handle.
+  const chesscomUsername = useAuth((s) => s.chesscomUsername);
+  const lichessUsername = useAuth((s) => s.lichessUsername);
   const threshold = useSettings((s) => s.threshold);
   const timeClass = useNav((s) => s.timeClass);
   const setTimeClass = useNav((s) => s.setTimeClass);
 
-  // Account username drives display; the linked platform handle drives fetches.
-  const playerUsername = getPlatformUsername(platform ?? 'chesscom') ?? '';
+  // The active platform selects which linked handle drives profile/stats/games.
+  // Guests / unlinked accounts fall back to the account username as the handle.
+  const activePlatform = platform ?? 'chesscom';
+  let playerUsername = '';
+
+  if (activePlatform === 'lichess') {
+    playerUsername = lichessUsername ?? username ?? '';
+  } else {
+    playerUsername = chesscomUsername ?? username ?? '';
+  }
 
   const { stats: menuStats, statItems, setLoadedGames, refreshStats } = useMenuStats({
     playerUsername,
-    platform,
+    platform: activePlatform,
     timeClass,
     threshold,
   });
 
   const value: MenuDataValue = {
     playerUsername,
-    platform,
+    platform: activePlatform,
     avatar,
     timeClass,
     setTimeClass,

@@ -45,6 +45,9 @@ interface AuthState {
 
   login: (username: string, token: string, isAdmin: boolean, platform: string, avatar: string | undefined, extra?: LoginExtra) => void;
   setLinks: (links: LoginExtra) => void;
+  /** Switch which linked platform ("chesscom" | "lichess") drives the displayed
+   *  stats, ratings and recent games. Persisted so the choice survives reloads. */
+  setActivePlatform: (platform: string) => void;
   setEmailVerified: (verified: boolean) => void;
   /** Update the stored email after the user adds/changes it (resets verified state). */
   setAccountEmail: (email: string) => void;
@@ -122,6 +125,26 @@ const useAuth = create<AuthState>((set, get) => ({
     };
     set(next);
 
+    const current = get();
+    persistAuth({
+      username: current.username,
+      isGuest: current.isGuest,
+      token: current.token,
+      isAdmin: current.isAdmin,
+      platform: current.platform,
+      avatar: current.avatar,
+      chesscomUsername: current.chesscomUsername,
+      lichessUsername: current.lichessUsername,
+      email: current.email,
+      emailVerified: current.emailVerified,
+      authProvider: current.authProvider,
+    });
+  },
+
+  setActivePlatform: (platform) => {
+    set({ platform });
+
+    // Persist so the displayed-account choice survives reloads.
     const current = get();
     persistAuth({
       username: current.username,

@@ -1,0 +1,207 @@
+/* Interactive chess-accounts manager — one selectable card per platform. */
+
+.acctmgr {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  max-width: 480px;
+}
+
+/* A single platform card. Linked cards are clickable to become the active
+   (displayed) account; unlinked cards only offer the Link action. */
+.acctmgr__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.acctmgr__card--linked {
+  cursor: pointer;
+}
+
+.acctmgr__card--linked:hover {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+}
+
+/* Active = the account currently driving the displayed stats. */
+.acctmgr__card--active {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 8%, var(--bg));
+  box-shadow: 0 0 0 1px var(--gold) inset;
+}
+
+/* ── Header ── */
+.acctmgr__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.acctmgr__logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.acctmgr__platform {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+/* "Showing" pill on the active card, pushed to the right edge. */
+.acctmgr__badge {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  border-radius: 999px;
+}
+
+/* Hollow radio dot on linked-but-inactive cards, hinting they're selectable. */
+.acctmgr__radio {
+  margin-left: auto;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.acctmgr__card--linked:hover .acctmgr__radio {
+  border-color: var(--gold);
+}
+
+/* ── Body ── */
+.acctmgr__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.acctmgr__handle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acctmgr__unlinked {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.acctmgr__link-btn {
+  flex-shrink: 0;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.acctmgr__link-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── Inline link / change form ── */
+.acctmgr__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.acctmgr__input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.45rem 0.65rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: var(--sans);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.acctmgr__input:focus {
+  border-color: var(--gold);
+}
+
+.acctmgr__input--error {
+  border-color: var(--error);
+}
+
+.acctmgr__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--error);
+}
+
+.acctmgr__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.acctmgr__btn {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.acctmgr__btn:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.acctmgr__btn--primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #1a1a1a;
+}
+
+.acctmgr__btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gold) 85%, #000);
+  color: #1a1a1a;
+}
+
+.acctmgr__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Stack the two cards on narrow screens. */
+@media (max-width: 520px) {
+  .acctmgr {
+    grid-template-columns: 1fr;
+  }
+}
