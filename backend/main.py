@@ -44,6 +44,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Static-asset caching policy ──────────────────────────────────────────────
+# The service worker (sw.js), the HTML entry point and the PWA manifest must
+# never be cached, otherwise a deploy can't be picked up: a stale sw.js means the
+# browser never installs the new worker, and a stale index.html points at hashed
+# chunks that no longer exist (the "loads forever / white screen" symptom). The
+# content-hashed bundles under /assets/ are immutable and safe to cache forever.
+_NO_CACHE_PATHS: set[str] = {"/", "/index.html", "/sw.js", "/registerSW.js", "/manifest.webmanifest"}
+
+
+@app.middleware("http")
+async def cache_control_headers(request, call_next):
+    """Force revalidation of PWA entry points; cache hashed assets long-term."""
+    response = await call_next(request)
+    path: str = request.url.path
+
+    # API responses set their own caching; never touch them here.
+    if path.startswith("/api"):
+        return response
+
+    if path in _NO_CACHE_PATHS or path.endswith(".webmanifest"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    elif path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+
+    return response
+
+
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(session.router, prefix="/api/session", tags=["session"])
