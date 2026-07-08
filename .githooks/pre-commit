@@ -1,0 +1,39 @@
+#!/bin/sh
+# Auto-bump the PATCH version on every commit.
+#
+# VERSION (repo root) is the single source of truth for the app version.
+# frontend/package.json is kept in sync so npm/Vite surface the same number in
+# the app footer; the backend reads VERSION directly at runtime.
+
+root="$(git rev-parse --show-toplevel)"
+version_file="$root/VERSION"
+
+# Read the current version, defaulting to 0.0.0 when the file is missing.
+if [ -f "$version_file" ]; then
+  current="$(tr -d ' \t\r\n' < "$version_file")"
+else
+  current="0.0.0"
+fi
+
+# Split MAJOR.MINOR.PATCH and increment the PATCH component.
+major="${current%%.*}"
+rest="${current#*.}"
+minor="${rest%%.*}"
+patch="${rest#*.}"
+patch=$((patch + 1))
+next="$major.$minor.$patch"
+
+# Write the bumped version back to the source of truth.
+printf '%s\n' "$next" > "$version_file"
+
+# Sync frontend/package.json so npm_package_version (and thus the footer) matches.
+pkg="$root/frontend/package.json"
+if [ -f "$pkg" ]; then
+  sed -i.bak -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[^\"]*(\")/\1$next\2/" "$pkg"
+  rm -f "$pkg.bak"
+fi
+
+# Stage the version changes so they are part of this commit.
+git add "$version_file" "$pkg"
+
+echo "Version bumped to $next"

@@ -6,6 +6,7 @@ Docs at:  http://localhost:8000/docs
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -24,6 +25,21 @@ from services.db import init_db
 init_db()
 
 
+def _read_app_version() -> str:
+    """Read the app version from the repo-root VERSION file (single source of truth)."""
+    # main.py lives in backend/, so VERSION sits one directory up.
+    version_path = Path(__file__).resolve().parent.parent / "VERSION"
+
+    try:
+        return version_path.read_text(encoding="utf-8").strip()
+    except OSError:
+        # Missing file (e.g. an unusual deploy layout) — fall back rather than crash.
+        return "0.0.0"
+
+
+APP_VERSION = _read_app_version()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start the background analysis queue on startup, stop it on shutdown."""
@@ -32,7 +48,7 @@ async def lifespan(app: FastAPI):
     analysis_queue.stop()
 
 
-app = FastAPI(title="BlunderDrill — Chess Blunder Trainer API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="BlunderDrill — Chess Blunder Trainer API", version=APP_VERSION, lifespan=lifespan)
 
 # CORS: locked to CORS_ORIGIN env var in production; open in local dev.
 _CORS_ORIGIN: str = os.getenv("CORS_ORIGIN", "*")
