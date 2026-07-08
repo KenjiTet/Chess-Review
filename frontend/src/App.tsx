@@ -5,7 +5,7 @@ import type { JSX } from 'react';
 import useSession from './hooks/useSession';
 import type { Screen } from './hooks/useSession';
 import { decodeSharePayload } from './utils/sharePosition';
-import { ApiError, confirmEmail } from './api/client';
+import { confirmEmail } from './api/client';
 import useSettings from './hooks/useSettings';
 import useAuth from './hooks/useAuth';
 import useFavorites from './hooks/useFavorites';
@@ -69,7 +69,6 @@ function App(): JSX.Element {
   const getNamespace = useAuth((s) => s.getNamespace);
   const [adminView, setAdminView] = useState<boolean>(false);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
-  const [confirmNotice, setConfirmNotice] = useState<string | undefined>(undefined);
   // Ensures a confirmation token is only ever redeemed once per page load.
   const confirmHandledRef = useRef<boolean>(false);
 
@@ -112,20 +111,19 @@ function App(): JSX.Element {
       stripParam('confirm');
       void confirmEmail(confirmToken)
         .then((res) => {
-          setConfirmNotice(res.message);
-
           // Sync the store from the response so the confirmed email + verified
           // state show up in account settings even when this link is opened in a
-          // session that hadn't loaded the email yet.
+          // session that hadn't loaded the email yet. The confirmation status is
+          // surfaced on the account settings page itself — no app-wide banner.
           if (res.email) {
             useAuth.getState().setAccountEmail(res.email);
           }
 
           useAuth.getState().setEmailVerified(res.email_verified ?? true);
         })
-        .catch((err: unknown) => {
-          const msg = err instanceof ApiError ? err.message : 'Email confirmation failed.';
-          setConfirmNotice(msg);
+        .catch(() => {
+          // Swallow — a failed confirmation leaves the email showing as
+          // unconfirmed in account settings, which already prompts a resend.
         });
     }
 
@@ -234,15 +232,6 @@ function App(): JSX.Element {
       <div className={`app${!isAuthenticated ? ' app--landing' : ''}`}>
         <ErrorBanner />
 
-        {confirmNotice && (
-          <div className="app__confirm-notice" role="status">
-            <span>{confirmNotice}</span>
-            <button type="button" aria-label="Dismiss" onClick={() => setConfirmNotice(undefined)}>
-              ✕
-            </button>
-          </div>
-        )}
-
         <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
           {publicContent}
         </main>
@@ -256,15 +245,6 @@ function App(): JSX.Element {
   return (
     <div className="app app--shell">
       <ErrorBanner />
-
-      {confirmNotice && (
-        <div className="app__confirm-notice" role="status">
-          <span>{confirmNotice}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setConfirmNotice(undefined)}>
-            ✕
-          </button>
-        </div>
-      )}
 
       <AppShell
         isMobile={isMobile}

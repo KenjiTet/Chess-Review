@@ -343,7 +343,7 @@ function Login(props: LoginProps): JSX.Element {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} className="login__form">
           {/* Email — login (email or legacy username) + register + forgot. */}
           {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
             <div className="login__field">
