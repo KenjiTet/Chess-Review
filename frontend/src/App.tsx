@@ -1,6 +1,6 @@
 /** App entry point — routes to the active screen based on session and auth state. */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import useSession from './hooks/useSession';
 import type { Screen } from './hooks/useSession';
@@ -12,7 +12,6 @@ import useFavorites from './hooks/useFavorites';
 import useReviewed from './hooks/useReviewed';
 import useIsMobile from './hooks/useIsMobile';
 import ErrorBanner from './components/ErrorBanner/ErrorBanner';
-import ConfirmEmailBanner from './components/ConfirmEmailBanner/ConfirmEmailBanner';
 import Footer from './components/Footer/Footer';
 import Landing from './components/Landing/Landing';
 import SessionSetup from './components/SessionSetup/SessionSetup';
@@ -71,6 +70,8 @@ function App(): JSX.Element {
   const [adminView, setAdminView] = useState<boolean>(false);
   const [resetToken, setResetToken] = useState<string | undefined>(undefined);
   const [confirmNotice, setConfirmNotice] = useState<string | undefined>(undefined);
+  // Ensures a confirmation token is only ever redeemed once per page load.
+  const confirmHandledRef = useRef<boolean>(false);
 
   const isAuthenticated = username !== undefined;
   const isMobileViewport = useIsMobile();
@@ -103,13 +104,24 @@ function App(): JSX.Element {
       window.history.replaceState(null, '', clean.toString());
     }
 
-    if (confirmToken) {
+    // Guard against processing the same token twice (StrictMode remount, a
+    // service-worker-triggered reload, etc.) — a confirm token is single-use, so
+    // a second call would spuriously report "invalid or expired".
+    if (confirmToken && !confirmHandledRef.current) {
+      confirmHandledRef.current = true;
       stripParam('confirm');
       void confirmEmail(confirmToken)
         .then((res) => {
           setConfirmNotice(res.message);
-          // Clear the confirm-email banner immediately for a logged-in user.
-          useAuth.getState().setEmailVerified(true);
+
+          // Sync the store from the response so the confirmed email + verified
+          // state show up in account settings even when this link is opened in a
+          // session that hadn't loaded the email yet.
+          if (res.email) {
+            useAuth.getState().setAccountEmail(res.email);
+          }
+
+          useAuth.getState().setEmailVerified(res.email_verified ?? true);
         })
         .catch((err: unknown) => {
           const msg = err instanceof ApiError ? err.message : 'Email confirmation failed.';
@@ -231,8 +243,6 @@ function App(): JSX.Element {
           </div>
         )}
 
-        {isAuthenticated && <ConfirmEmailBanner />}
-
         <main className={`app__main${isMobile ? ' app__main--mobile' : ''}`}>
           {publicContent}
         </main>
@@ -246,7 +256,6 @@ function App(): JSX.Element {
   return (
     <div className="app app--shell">
       <ErrorBanner />
-      <ConfirmEmailBanner />
 
       {confirmNotice && (
         <div className="app__confirm-notice" role="status">

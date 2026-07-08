@@ -26,7 +26,7 @@ from services.email_service import send_confirmation, send_reset
 from services.google_auth import verify_google_token
 from services.jwt_service import create_token, get_current_user
 import services.lichess as lichess_svc
-from services.tokens import consume_token, create_token_row
+from services.tokens import consume_token, create_token_row, peek_token_username
 from services.users import (
     check_password,
     create_user,
@@ -307,12 +307,38 @@ def confirm_email(req: ConfirmEmailRequest) -> SimpleResponse:
     """
     username: str | None = consume_token(req.token, "confirm")
 
+    # Idempotency: a confirm link clicked twice (or re-fetched after a reload)
+    # consumes on the first hit, then returns None here. Rather than showing a
+    # misleading "invalid or expired" error, resolve the token's owner and, if
+    # their email is already verified, treat the repeat click as a success.
     if username is None:
+        owner: str | None = peek_token_username(req.token, "confirm")
+
+        if owner is not None:
+            account = get_user(owner)
+
+            if account is not None and account["email_verified"]:
+                return SimpleResponse(
+                    success=True,
+                    message="Your email is confirmed. Thanks!",
+                    email=account["email"],
+                    email_verified=True,
+                )
+
         raise HTTPException(status_code=400, detail="This confirmation link is invalid or has expired.")
 
     set_email_verified(username)
 
-    return SimpleResponse(success=True, message="Your email is confirmed. Thanks!")
+    # Return the confirmed email so the frontend can update its store even when
+    # the link is opened in a session that didn't have the email loaded.
+    account = get_user(username)
+
+    return SimpleResponse(
+        success=True,
+        message="Your email is confirmed. Thanks!",
+        email=account["email"] if account is not None else None,
+        email_verified=True,
+    )
 
 
 @router.post("/resend-confirmation")

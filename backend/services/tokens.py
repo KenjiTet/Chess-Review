@@ -48,6 +48,35 @@ def create_token_row(username: str, purpose: str) -> str:
     return token
 
 
+def peek_token_username(token: str, purpose: str) -> str | None:
+    """Return the owning username for a token without consuming it.
+
+    Unlike consume_token, this ignores the used/expired state — it simply resolves
+    which account a token belongs to. Used to make confirmation idempotent: a link
+    clicked twice can still be tied back to its (already-verified) account.
+
+    Args:
+        token: The token value from the link.
+        purpose: The expected purpose ("confirm" or "reset").
+
+    Returns:
+        The owning account's username_lower, or None if no matching token exists.
+    """
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT username_lower, purpose FROM auth_tokens WHERE token = ?",
+            (token,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    if row["purpose"] != purpose:
+        return None
+
+    return row["username_lower"]
+
+
 def consume_token(token: str, purpose: str) -> str | None:
     """Validate and burn a token, returning the owning username on success.
 

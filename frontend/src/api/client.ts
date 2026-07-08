@@ -34,6 +34,9 @@ export interface AuthResponse {
 export interface SimpleResponse {
   success: boolean;
   message: string;
+  // Present on email-confirmation responses so the client can sync its store.
+  email?: string | undefined;
+  email_verified?: boolean | undefined;
 }
 
 export interface GameHistoryEntry {

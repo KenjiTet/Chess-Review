@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import type { JSX } from 'react';
-import { changePassword, deleteAccount, setAccountEmail as setAccountEmailApi } from '../../api/client';
+import { changePassword, deleteAccount, resendConfirmation, setAccountEmail as setAccountEmailApi } from '../../api/client';
 import useAuth from '../../hooks/useAuth';
 import useSettings from '../../hooks/useSettings';
 import LinkAccountModal from '../SessionSetup/LinkAccountModal';
@@ -41,6 +41,28 @@ function Settings(): JSX.Element {
   const [emailError, setEmailError] = useState<string>('');
   const [emailNotice, setEmailNotice] = useState<string>('');
   const [emailLoading, setEmailLoading] = useState<boolean>(false);
+
+  // Resend-confirmation state (shown when the current email is unconfirmed).
+  const [resendStatus, setResendStatus] = useState<string>('');
+  const [resendLoading, setResendLoading] = useState<boolean>(false);
+
+  // Show the confirmation prompt only for password accounts that have set an
+  // email which is not yet verified.
+  const emailNeedsConfirm = authProvider !== 'google' && email !== undefined && !emailVerified;
+
+  async function handleResendConfirmation(): Promise<void> {
+    setResendLoading(true);
+    setResendStatus('');
+
+    try {
+      const res = await resendConfirmation();
+      setResendStatus(res.message);
+    } catch {
+      setResendStatus('Could not send the email. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  }
 
   // Change-password form state.
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -147,6 +169,26 @@ function Settings(): JSX.Element {
                 ? <>Current: <strong>{email}</strong>{emailVerified ? ' (confirmed)' : ' (unconfirmed)'}</>
                 : 'No email set yet — add one to enable password reset and recovery.'}
             </p>
+
+            {/* Unconfirmed email → in-context confirmation prompt + resend. */}
+            {emailNeedsConfirm && (
+              <div className="settings__confirm" role="status">
+                <span className="settings__confirm-text">
+                  Please confirm your email to secure your account and enable password recovery.
+                </span>
+                <div className="settings__confirm-actions">
+                  {resendStatus && <span className="settings__notice">{resendStatus}</span>}
+                  <button
+                    type="button"
+                    className="settings__btn"
+                    disabled={resendLoading}
+                    onClick={() => void handleResendConfirmation()}
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend confirmation email'}
+                  </button>
+                </div>
+              </div>
+            )}
             <form onSubmit={(e) => void handleSetEmail(e)} className="settings__form">
               <input
                 className="settings__input"

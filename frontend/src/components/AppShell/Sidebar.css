@@ -94,6 +94,13 @@
   text-overflow: ellipsis;
 }
 
+/* Amber alert badge on the Settings tab while an email is unconfirmed. */
+.sidebar__item .sidebar__warning {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: #f5a623;
+}
+
 /* ── Admin section ── */
 
 .sidebar__section {

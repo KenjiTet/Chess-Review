@@ -78,6 +78,16 @@ function AdminIcon(): JSX.Element {
   );
 }
 
+function WarningIcon(): JSX.Element {
+  return (
+    <svg className="sidebar__warning" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
 function MobilePreviewIcon(): JSX.Element {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -94,7 +104,14 @@ function Sidebar({ isAdmin, adminView, onAdminToggle, onNavigate }: SidebarProps
   const setScreen = useSession((s) => s.setScreen);
   const reset = useSession((s) => s.reset);
   const logout = useAuth((s) => s.logout);
+  const email = useAuth((s) => s.email);
+  const emailVerified = useAuth((s) => s.emailVerified);
+  const isGuest = useAuth((s) => s.isGuest);
   const mobileOverride = useSettings((s) => s.mobileOverride);
+
+  // Flag the Settings tab when the account has an email that still needs
+  // confirming — the confirmation banner itself now lives in account settings.
+  const emailNeedsConfirm = email !== undefined && !emailVerified && !isGuest;
   const toggleMobileOverride = useSettings((s) => s.toggleMobileOverride);
 
   // A menu section is only "active" while sitting on the setup screen; during the
@@ -186,6 +203,7 @@ function Sidebar({ isAdmin, adminView, onAdminToggle, onNavigate }: SidebarProps
         >
           <SettingsIcon />
           <span className="sidebar__item-label">Settings</span>
+          {emailNeedsConfirm && <WarningIcon />}
         </button>
       </nav>
 

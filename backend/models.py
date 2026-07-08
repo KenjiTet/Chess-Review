@@ -213,6 +213,10 @@ class SimpleResponse(BaseModel):
     """Generic success/message response for auth side-effects (reset, confirm, etc.)."""
     success: bool
     message: str
+    # Optionally echoed back by email confirmation so the client can sync its
+    # local auth store (the confirmed address and its verified state).
+    email: str | None = None
+    email_verified: bool | None = None
 
 
 class GameHistoryEntry(BaseModel):
