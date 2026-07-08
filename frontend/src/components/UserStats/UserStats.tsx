@@ -254,36 +254,6 @@ function UserStats({ handle, platform }: UserStatsProps): JSX.Element {
           </div>
         </section>
 
-        {/* ── Section B — Training activity ── */}
-        <section className="ustat__section">
-          <h3 className="ustat__section-title">Training activity</h3>
-          <div className="ustat__tiles">
-            <StatTile value={String(training.games_analysed)} label="Games analysed" />
-            <StatTile value={String(training.total_blunders)} label="Blunders detected" />
-            <StatTile value={formatDecimal(training.avg_blunders)} label="Avg blunders / game" accent />
-            <StatTile value={formatPct(training.win_rate)} label="Win rate (analysed)" />
-            <StatTile value={String(training.clean_games)} label="Clean games" />
-            <StatTile value={String(training.most_blunders_in_game)} label="Most in one game" />
-          </div>
-
-          {/* Per-time-class analysed breakdown */}
-          {Object.keys(training.games_analysed_by_class).length > 0 && (
-            <div className="ustat__class-table">
-              {Object.entries(training.games_analysed_by_class).map(([tc, count], index) => (
-                <div className="ustat__class-row" key={`class-${tc}-${index}`}>
-                  <span className="ustat__class-tc">{tc.charAt(0).toUpperCase() + tc.slice(1)}</span>
-                  <div className="ustat__class-metrics">
-                    <span className="ustat__class-meta">{count} games</span>
-                    <span className="ustat__class-meta">
-                      {formatDecimal(training.avg_blunders_by_class[tc] ?? null)} avg
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
         {/* ── Sections D + E — Blunder repartition & move-level breakdowns,
             laid out 2-by-2 on desktop. ── */}
         <div className="ustat__cols">
@@ -317,6 +287,36 @@ function UserStats({ handle, platform }: UserStatsProps): JSX.Element {
             <Breakdown rows={SEVERITY_ROWS} counts={severity} />
           </section>
         </div>
+
+        {/* ── Section B — Training activity ── */}
+        <section className="ustat__section">
+          <h3 className="ustat__section-title">Training activity</h3>
+          <div className="ustat__tiles">
+            <StatTile value={String(training.games_analysed)} label="Games analysed" />
+            <StatTile value={String(training.total_blunders)} label="Blunders detected" />
+            <StatTile value={formatDecimal(training.avg_blunders)} label="Avg blunders / game" accent />
+            <StatTile value={formatPct(training.win_rate)} label="Win rate (analysed)" />
+            <StatTile value={String(training.clean_games)} label="Clean games" />
+            <StatTile value={String(training.most_blunders_in_game)} label="Most in one game" />
+          </div>
+
+          {/* Per-time-class analysed breakdown */}
+          {Object.keys(training.games_analysed_by_class).length > 0 && (
+            <div className="ustat__class-table">
+              {Object.entries(training.games_analysed_by_class).map(([tc, count], index) => (
+                <div className="ustat__class-row" key={`class-${tc}-${index}`}>
+                  <span className="ustat__class-tc">{tc.charAt(0).toUpperCase() + tc.slice(1)}</span>
+                  <div className="ustat__class-metrics">
+                    <span className="ustat__class-meta">{count} games</span>
+                    <span className="ustat__class-meta">
+                      {formatDecimal(training.avg_blunders_by_class[tc] ?? null)} avg
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* ── Section C — Engagement ── */}
         <section className="ustat__section">
