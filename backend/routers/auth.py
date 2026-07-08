@@ -212,6 +212,12 @@ def register(req: RegisterRequest) -> AuthResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+    # Kick the analysis queue right away so the new account's games start
+    # analysing the instant registration completes, instead of waiting up to
+    # POLL_INTERVAL seconds for the scheduler's next pass. Passing the username
+    # pre-populates the pending view so the UI shows analysing spinners at once.
+    analysis_queue.notify_streams_changed(username.lower())
+
     # Issue and email a confirmation link (no-op locally without RESEND_API_KEY).
     confirm_token: str = create_token_row(username, "confirm")
     send_confirmation(req.email.lower(), confirm_token)
