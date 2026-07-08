@@ -41,6 +41,14 @@ export default defineConfig({
         // Never let the service worker serve API or SSE responses from cache —
         // analysis and the build-stream must always hit the live backend.
         navigateFallbackDenylist: [/^\/api/],
+        // Deploy-freshness: a new worker activates and takes control of open
+        // pages immediately (no "waiting" state, no need to close every tab),
+        // and stale precaches from previous deploys are purged. Paired with the
+        // controllerchange reload in main.tsx, this makes each deploy replace
+        // the running version instead of serving the old cached build.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

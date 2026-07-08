@@ -40,9 +40,10 @@ function AppShell({ children, isMobile, isAdmin, adminView, onAdminToggle }: App
   // settings, the focused trainer/loading screens, or the admin dashboard.
   const showHeader = !adminView && screen === 'setup';
 
-  // The footer anchors the bottom of every in-app page so it forms one
-  // continuous bottom bar with the sidebar's logout row.
-  const showFooter = true;
+  // The footer anchors the menu pages, forming one continuous bottom bar with
+  // the sidebar's logout row. It's dropped on the focused trainer/loading
+  // screens and the admin dashboard.
+  const showFooter = !adminView && screen !== 'trainer' && screen !== 'loading';
 
   // ── Mobile: top bar + slide-in drawer ──
   if (isMobile) {

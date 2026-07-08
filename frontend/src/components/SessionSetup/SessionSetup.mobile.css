@@ -536,12 +536,11 @@
   padding: 0;
 }
 
-/* Section header lays the Showing tabs on the left and the Filter button on
-   the right. The Time Control / Severity controls live inside the filter
-   panel on mobile, so this row stays uncrowded. */
+/* Controls row: Recent shows Time Control (left) + Filter button (right);
+   Saved/Stats show a section title (with a layout toggle for Saved). */
 .setup__mobile-section {
   gap: 10px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 /* A labelled control column (label on top, control below) */
@@ -552,10 +551,15 @@
   min-width: 0;
 }
 
-/* Time Control and Severity each take half of the filter-panel controls row. */
-.setup__mobile-field--tc,
+/* Time Control sits on the left of the Recent controls row (natural width). */
+.setup__mobile-field--tc {
+  flex: 0 1 170px;
+}
+
+/* Severity sits on its own in the filter panel; keep it narrow rather than
+   stretching across the full width. */
 .setup__mobile-field--sev {
-  flex: 1 1 calc(50% - 5px);
+  flex: 0 1 200px;
 }
 
 /* Time Control + Severity row inside the mobile filter panel. */

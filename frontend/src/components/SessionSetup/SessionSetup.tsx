@@ -320,14 +320,10 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
     return (
       <div className={`setup__filterpanel${filterOpen ? ' setup__filterpanel--open' : ''}`}>
         <div className="setup__filterpanel-inner">
-          {/* On mobile the Time Control + Severity pickers live inside the filter
-              panel rather than the cramped section row above it. */}
+          {/* Time Control lives in the section row above; the filter panel keeps
+              the blunder-severity (threshold) picker. */}
           {mobile && (
             <div className="setup__mobile-filtercontrols">
-              <div className="setup__mobile-field setup__mobile-field--tc">
-                <span className="setup__mobile-label">Time Control</span>
-                <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
-              </div>
               <div className="setup__mobile-field setup__mobile-field--sev">
                 <span className="setup__mobile-label setup__mobile-label--row">
                   Severity
@@ -513,23 +509,25 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
         {/* Scrollable body */}
         <div className="setup__mobile-body">
           <div className="setup__mobile-games-panel">
-            {/* Section header reflects the sidebar-selected view; controls sit on the right. */}
+            {/* Controls row: Recent shows Time Control (left) + Filter (right);
+                Saved/Stats keep a section title, with a layout toggle for Saved. */}
             <div className="setup__mobile-section">
-              <span className="setup__mobile-section-title">
-                {showFavorites ? 'Saved games' : showStats ? 'Statistics' : 'Recent games'}
-              </span>
-
-              {/* Filter button (Recent) or layout toggle (Saved) */}
               {!showFavorites && !showStats && (
-                <div className="setup__mobile-field setup__mobile-field--filter">
-                  <span className="setup__mobile-label">Filter</span>
-                  {renderFilterButton('setup__filterbtn--mobile')}
-                </div>
+                <>
+                  <div className="setup__mobile-field setup__mobile-field--tc">
+                    <span className="setup__mobile-label">Time Control</span>
+                    <TimeClassSelect value={timeClass} onChange={handleTimeClassChange} />
+                  </div>
+                  <div className="setup__mobile-field setup__mobile-field--filter">
+                    <span className="setup__mobile-label">Filter</span>
+                    {renderFilterButton('setup__filterbtn--mobile')}
+                  </div>
+                </>
               )}
 
               {showFavorites && (
-                <div className="setup__mobile-field setup__mobile-field--grow">
-                  <span className="setup__mobile-label">Layout</span>
+                <>
+                  <span className="setup__mobile-section-title">Saved games</span>
                   <div className="setup__seg setup__seg--mobile setup__seg--layout">
                     <button
                       type="button"
@@ -548,7 +546,11 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
                       <img className="setup__seg-btn-ic" src={inlineIconUrl} alt="" />
                     </button>
                   </div>
-                </div>
+                </>
+              )}
+
+              {showStats && (
+                <span className="setup__mobile-section-title">Statistics</span>
               )}
             </div>
 
@@ -617,7 +619,7 @@ function SessionSetup({ isMobile = false }: SessionSetupProps): JSX.Element {
                 <ThresholdPicker value={threshold} onChange={setThreshold} />
               </div>
 
-              <div className="setup__field">
+              <div className="setup__field setup__field--filter">
                 <label className="setup__label">Filter</label>
                 {renderFilterButton()}
               </div>

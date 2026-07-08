@@ -134,7 +134,7 @@
   width: 100%;
   /* Same border-box height + border as .footer, so the two top borders align
      to the pixel (both rows are bottom-flush). */
-  height: 2.75rem;
+  height: 2.25rem;
   box-sizing: border-box;
   padding: 0 1.5rem;
   border: none;

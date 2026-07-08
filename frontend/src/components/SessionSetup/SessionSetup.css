@@ -56,6 +56,11 @@
   color: var(--muted);
 }
 
+/* Push the Filter control to the far right of the toolbar. */
+.setup__field--filter {
+  margin-left: auto;
+}
+
 /* Label that hosts an inline info icon (e.g. Blunder severity) */
 .setup__label--row {
   display: inline-flex;
