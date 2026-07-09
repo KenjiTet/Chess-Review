@@ -1,6 +1,6 @@
 /** Blunder info card — shown above the board in the trainer screen. */
 
-import type { JSX } from 'react';
+import type { JSX, ReactNode } from 'react';
 import { DEFAULT_BLUNDER_CATEGORY, getBlunderCategory } from '../../constants/blunderCategories';
 import './BlunderCard.css';
 
@@ -17,6 +17,10 @@ interface BlunderCardProps {
   compactSequenceLabel?: boolean;
   /** When true renders a compact prompt: "You played X — <category>." */
   compactPrompt?: boolean;
+  /** Overrides the full (desktop) prompt sentence — used by the daily GM puzzle. */
+  descriptionFull?: ReactNode;
+  /** Overrides the compact (mobile) prompt sentence — used by the daily GM puzzle. */
+  descriptionShort?: ReactNode;
 }
 
 function capCpLoss(cpLoss: number): string {
@@ -37,7 +41,7 @@ function bestSequenceLabel(categoryKey: string | undefined, compact: boolean): s
   return undefined;
 }
 
-function BlunderCard({ moveSan, cpLoss, category, onShowBlunderSequence, onShowBestSequence, sequenceDisabled, compactSequenceLabel = false, compactPrompt = false }: BlunderCardProps): JSX.Element {
+function BlunderCard({ moveSan, cpLoss, category, onShowBlunderSequence, onShowBestSequence, sequenceDisabled, compactSequenceLabel = false, compactPrompt = false, descriptionFull, descriptionShort }: BlunderCardProps): JSX.Element {
   // Resolve the category to its label/colour; the prompt text still falls back
   // to a generic message when there's no displayable category.
   const categoryInfo = category !== undefined ? getBlunderCategory(category) : undefined;
@@ -58,8 +62,8 @@ function BlunderCard({ moveSan, cpLoss, category, onShowBlunderSequence, onShowB
       <div className="blunder-card__body">
         <p className="blunder-card__prompt">
           {compactPrompt
-            ? <>You played <strong>{moveSan}</strong>{categoryInfo ? <> {categoryInfo.shortPrompt}</> : undefined}.</>
-            : <>In this game you played <strong>{moveSan}</strong> — {categoryInfo ? categoryInfo.prompt : 'this was a blunder'}{' '}(cp loss: {capCpLoss(cpLoss)}).</>
+            ? (descriptionShort ?? <>You played <strong>{moveSan}</strong>{categoryInfo ? <> {categoryInfo.shortPrompt}</> : undefined}.</>)
+            : (descriptionFull ?? <>In this game you played <strong>{moveSan}</strong> — {categoryInfo ? categoryInfo.prompt : 'this was a blunder'}{' '}(cp loss: {capCpLoss(cpLoss)}).</>)
           }
         </p>
         <div className="blunder-card__actions">

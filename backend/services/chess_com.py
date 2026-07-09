@@ -122,7 +122,13 @@ def get_game_by_url(username: str, game_url: str) -> dict:
     archives: list[str] = get_player_archives(username)
 
     for archive_url in archives:
-        games: list[dict] = get_games_from_url(archive_url)
+        try:
+            games: list[dict] = get_games_from_url(archive_url)
+        except requests.RequestException:
+            # A single month can 404/error transiently (e.g. an empty current
+            # month the archives index still lists). Skip it rather than abort the
+            # whole scan so the game can still be found in an older archive.
+            continue
 
         for game in reversed(games):
             if game.get("url") == game_url:
@@ -148,7 +154,13 @@ def get_recent_games_all(username: str, n: int) -> list[dict]:
         if len(collected) >= n:
             break
 
-        games: list[dict] = get_games_from_url(archive_url)
+        try:
+            games: list[dict] = get_games_from_url(archive_url)
+        except requests.RequestException:
+            # Skip a month that fails to fetch (e.g. an empty current month that
+            # still 404s) instead of aborting — otherwise one bad archive makes a
+            # player look like they have no recent games, stalling their backfill.
+            continue
 
         for game in reversed(games):
             if len(collected) >= n:
@@ -156,6 +168,50 @@ def get_recent_games_all(username: str, n: int) -> list[dict]:
             collected.append(game)
 
     return collected
+
+
+def get_top_blitz_gms(n: int) -> list[str]:
+    """Fetch the usernames of the top Grandmasters on the live blitz leaderboard.
+
+    Chess.com exposes no FIDE-rating leaderboard, so the platform's live blitz
+    leaderboard is used as the "best players" proxy. Only Grandmasters (title
+    "GM") are kept, ranked by their leaderboard score (blitz rating), highest
+    first.
+
+    Args:
+        n: Maximum number of GM usernames to return.
+
+    Returns:
+        Up to n GM usernames, strongest first. Empty list on any API error.
+    """
+    url: str = f"{BASE_URL}/leaderboards"
+
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        data: dict = response.json()
+
+    except requests.RequestException:
+        # A leaderboard fetch failure must never crash the daily worker.
+        return []
+
+    # The live_blitz array is already ordered by rank, but we sort defensively
+    # by score so ordering never depends on the API preserving rank order.
+    blitz_entries: list[dict] = data.get("live_blitz", [])
+    gm_entries: list[dict] = [
+        entry
+        for entry in blitz_entries
+        if entry.get("title") == "GM"
+    ]
+    gm_entries.sort(key=lambda entry: entry.get("score", 0), reverse=True)
+
+    usernames: list[str] = [
+        entry["username"]
+        for entry in gm_entries
+        if entry.get("username")
+    ]
+
+    return usernames[:n]
 
 
 def get_recent_games(username: str, time_class: str, n: int) -> list[dict]:

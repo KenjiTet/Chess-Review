@@ -18,7 +18,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from routers import admin, analysis, auth, games, session, user
+from routers import blunder_of_day as blunder_of_day_router
 from services import analysis_queue
+from services import blunder_of_day as blunder_of_day_service
 from services.db import init_db
 
 # Initialise SQLite tables on every startup (idempotent).
@@ -42,9 +44,11 @@ APP_VERSION = _read_app_version()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the background analysis queue on startup, stop it on shutdown."""
+    """Start the background workers on startup, stop them on shutdown."""
     analysis_queue.start()
+    blunder_of_day_service.start()
     yield
+    blunder_of_day_service.stop()
     analysis_queue.stop()
 
 
@@ -93,6 +97,7 @@ app.include_router(session.router, prefix="/api/session", tags=["session"])
 app.include_router(games.router, prefix="/api/games", tags=["games"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(user.router, prefix="/api/user", tags=["user"])
+app.include_router(blunder_of_day_router.router, prefix="/api/blunder-of-day", tags=["blunder-of-day"])
 
 
 @app.get("/api/health")

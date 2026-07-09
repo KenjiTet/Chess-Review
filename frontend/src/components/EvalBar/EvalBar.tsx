@@ -28,8 +28,8 @@ function EvalBar({ cpScore, orientation, horizontal = false }: EvalBarProps): JS
 
   if (horizontal) {
     // Horizontal strip: white fills from left when playing as white, from right when black
-    const leftColor = orientation === 'white' ? '#f0ede5' : '#1a1a1a';
-    const rightColor = orientation === 'white' ? '#1a1a1a' : '#f0ede5';
+    const leftColor = orientation === 'white' ? '#ffffff' : '#1a1a1a';
+    const rightColor = orientation === 'white' ? '#1a1a1a' : '#ffffff';
     const leftPct = orientation === 'white' ? whitePct : blackPct;
 
     return (

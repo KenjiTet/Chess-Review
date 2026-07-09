@@ -32,14 +32,29 @@ _DRAW_RESULTS: frozenset[str] = frozenset({
 })
 
 
-def player_color_in(game: dict, username_lower: str) -> str:
-    """Return which colour the given account played in the game ("white" | "black")."""
+def player_color_in(game: dict, username_lower: str) -> str | None:
+    """Return which colour the account played ("white" | "black"), or None.
+
+    Returns None when the handle matches neither side, so callers can refuse to
+    record a misattributed row rather than silently defaulting to "black" (which
+    would count the opponent's blunders as the player's — or, more often, zero the
+    player's own blunders out).
+
+    Args:
+        game: Game dict from the platform API (must include white/black usernames).
+        username_lower: Lowercased handle whose colour we are resolving.
+    """
     white: dict = game.get("white", {})
+    black: dict = game.get("black", {})
 
     if white.get("username", "").lower() == username_lower:
         return "white"
 
-    return "black"
+    if black.get("username", "").lower() == username_lower:
+        return "black"
+
+    # Handle matches neither side — caller decides how to handle it.
+    return None
 
 
 def player_result(game: dict, username_lower: str) -> str:
@@ -47,10 +62,10 @@ def player_result(game: dict, username_lower: str) -> str:
     white: dict = game.get("white", {})
     black: dict = game.get("black", {})
 
-    if white.get("username", "").lower() == username_lower:
-        side_result: str = white.get("result", "")
+    if black.get("username", "").lower() == username_lower:
+        side_result: str = black.get("result", "")
     else:
-        side_result = black.get("result", "")
+        side_result = white.get("result", "")
 
     if side_result == "win":
         return "win"
@@ -121,12 +136,24 @@ def analyse_and_store(account_username_lower: str, platform: str, handle: str, g
     pgn: str = game.get("pgn", "")
     handle_lower: str = handle.lower()
 
-    color: str = player_color_in(game, handle_lower)
+    color: str | None = player_color_in(game, handle_lower)
     result: str = player_result(game, handle_lower)
     time_class: str = game.get("time_class", "")
     end_time: int = game.get("end_time", 0)
 
+    # Guard against misattribution: if the handle plays neither side, recording a
+    # row would zero the player's own blunders (the colour filter below matches
+    # nothing). Skip rather than overwrite a previously-correct row with a 0.
+    if color is None:
+        return _existing_row_summary(account_username_lower, game_url, time_class)
+
     move_data: list[dict] = _ensure_analysis(game_url, pgn)
+
+    # An empty move_data means the analysis failed (no engine output), not that
+    # the game is blunder-free. Writing blunder_count=0 here would silently wipe a
+    # good stored average on a re-link/re-analysis, so keep the existing row.
+    if not move_data:
+        return _existing_row_summary(account_username_lower, game_url, time_class)
 
     # Only the player's own blunders count, matching the trainer's behaviour.
     blunders: list[dict] = find_blunders(move_data, min_cp_loss=CANONICAL_THRESHOLD)
@@ -151,6 +178,43 @@ def analyse_and_store(account_username_lower: str, platform: str, handle: str, g
         "blunder_count": blunder_count,
         "player_color": color,
         "result": result,
+        "time_class": time_class,
+    }
+
+
+def _existing_row_summary(username_lower: str, game_url: str, time_class: str) -> dict:
+    """Return a summary for an already-stored row, or a zero summary if none.
+
+    Used when a fresh analysis is refused (misattributed colour or failed engine
+    run) so the caller still gets a sensible summary without clobbering the stored
+    row. Reads back the preserved blunder_count/colour/result rather than fabricating
+    them.
+
+    Args:
+        username_lower: Lowercased account username the row belongs to.
+        game_url: Game URL identifying the row.
+        time_class: Time class of the game (echoed back for the summary).
+    """
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT blunder_count, player_color, result FROM user_analysed_games WHERE username_lower = ? AND game_url = ?",
+            (username_lower, game_url),
+        ).fetchone()
+
+    if row is None:
+        return {
+            "game_url": game_url,
+            "blunder_count": 0,
+            "player_color": None,
+            "result": "",
+            "time_class": time_class,
+        }
+
+    return {
+        "game_url": game_url,
+        "blunder_count": row["blunder_count"],
+        "player_color": row["player_color"],
+        "result": row["result"],
         "time_class": time_class,
     }
 

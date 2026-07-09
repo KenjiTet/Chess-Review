@@ -9,6 +9,7 @@ import { confirmEmail } from './api/client';
 import useSettings from './hooks/useSettings';
 import useAuth from './hooks/useAuth';
 import useFavorites from './hooks/useFavorites';
+import useDailySolves from './hooks/useDailySolves';
 import useReviewed from './hooks/useReviewed';
 import useIsMobile from './hooks/useIsMobile';
 import ErrorBanner from './components/ErrorBanner/ErrorBanner';
@@ -17,6 +18,7 @@ import Landing from './components/Landing/Landing';
 import SessionSetup from './components/SessionSetup/SessionSetup';
 import Loading from './components/Loading/Loading';
 import Trainer from './components/Trainer/Trainer';
+import DailyBlunder from './components/DailyBlunder/DailyBlunder';
 import Admin from './components/Admin/Admin';
 import Settings from './components/Settings/Settings';
 import AppShell from './components/AppShell/AppShell';
@@ -54,6 +56,10 @@ function renderScreen(screen: Screen, props: ScreenProps): JSX.Element {
 
   if (screen === 'trainer') {
     return <Trainer isMobile={isMobile} />;
+  }
+
+  if (screen === 'daily') {
+    return <DailyBlunder isMobile={isMobile} />;
   }
 
   // Default in-app screen is the setup menu.
@@ -140,6 +146,7 @@ function App(): JSX.Element {
       const ns = getNamespace();
       useSettings.getState().reloadForUser(ns);
       useFavorites.getState().reloadForUser(ns);
+      useDailySolves.getState().reloadForUser(ns);
       void useReviewed.getState().loadFromServer();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

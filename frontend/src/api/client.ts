@@ -511,6 +511,27 @@ export function getBlunderLine(fen: string, blunderUci: string): Promise<Blunder
   return fetchJson<BlunderLineResponse>(`${BASE_URL}/api/analysis/blunder-line?${params}`);
 }
 
+// ── Blunder of the day ───────────────────────────────────────────────────────
+
+/** Fetch today's precomputed "blunder of the day" puzzle (a top GM's own blunder).
+ *  Trailing slash matches the backend route so no 307 redirect is incurred.
+ */
+export function getBlunderOfDay(): Promise<BlunderResponse> {
+  return fetchJson<BlunderResponse>(`${BASE_URL}/api/blunder-of-day/`);
+}
+
+/** One past blunder-of-the-day, tagged with the calendar day it ran (YYYY-MM-DD). */
+export interface DailyBlunderHistoryItem {
+  day: string;
+  blunder: BlunderResponse;
+}
+
+/** Fetch the most recent daily puzzles (newest first) for the history list. */
+export function getBlunderOfDayHistory(limit: number = 30): Promise<DailyBlunderHistoryItem[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<DailyBlunderHistoryItem[]>(`${BASE_URL}/api/blunder-of-day/history?${params}`);
+}
+
 // ── User profile ───────────────────────────────────────────────────────────
 
 export interface UserProfileResponse {

@@ -1,0 +1,530 @@
+/* Blunder of the Day — dedicated hub (hero + stats + history) plus the slim
+   chrome shown above the shared TrainerBoard while drilling. Uses the shared
+   theme custom properties so it tracks light/dark automatically. */
+
+/* ── Loading / error states ── */
+
+.daily {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.daily__status {
+  margin-top: 4rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 1rem;
+}
+
+.daily__status--error {
+  color: var(--error);
+}
+
+/* ── Hub shell ── */
+
+.daily-hub {
+  width: 90%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  animation: screen-fade 0.25s ease;
+}
+
+/* ── Hero ── */
+
+.daily-hero {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "thumb body"
+    "thumb cta";
+  column-gap: 1.5rem;
+  row-gap: 1rem;
+  align-items: center;
+  padding: 1.5rem;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(226, 160, 63, 0.12), transparent 55%),
+    var(--panel-bg);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.daily-hero__body {
+  grid-area: body;
+}
+
+.daily-hero__thumb-wrap {
+  grid-area: thumb;
+  align-self: center;
+  width: 100%;
+}
+
+.daily-hero::before {
+  /* Soft gold accent bar down the left edge. */
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--gold-light), var(--gold-dark));
+}
+
+.daily-hero__thumb-wrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.daily-hero__thumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.daily-hero__thumb-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--success);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.daily-hero__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.daily-hero__eyebrow-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.daily-hero__eyebrow {
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.daily-hero__date {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.8rem;
+}
+
+.daily-hero__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+.daily-hero__desc {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.daily-hero__desc strong {
+  color: var(--text-h);
+}
+
+.daily-hero__meta {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.daily-hero__pill {
+  padding: 0.22rem 0.7rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.daily-hero__cta {
+  grid-area: cta;
+  align-self: center;
+  justify-self: start;
+  padding: 0.7rem 1.4rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: 0 4px 14px rgba(200, 134, 31, 0.32);
+}
+
+.daily-hero__cta:hover {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(200, 134, 31, 0.42);
+}
+
+/* ── Previous puzzles list ── */
+
+.daily-history__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  color: var(--text-h);
+  font-size: 1.15rem;
+}
+
+.daily-history__title::before {
+  /* Short gold rule before the section heading. */
+  content: '';
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-dark));
+}
+
+/* White panel holding the rows, with clean divider lines between them. */
+.daily-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.daily-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: background 0.14s ease;
+}
+
+.daily-list-row:last-child {
+  border-bottom: none;
+}
+
+.daily-list-row:hover {
+  background: color-mix(in srgb, var(--gold) 7%, var(--surface));
+}
+
+.daily-list-row__thumb {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.daily-list-row__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.daily-list-row__gm {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.daily-list-row__cat {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.daily-list-row__date {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.daily-list-row__status {
+  flex-shrink: 0;
+  min-width: 76px;
+  text-align: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.daily-list-row__status--solved {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--success);
+}
+
+/* ── Board view header (above the shared TrainerBoard) ── */
+
+.daily__board-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 85%;
+  margin: 0 auto 0.5rem;
+}
+
+.daily__back-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.35rem 0.8rem;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.daily__back-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.daily__board-hdr-date {
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+}
+
+/* ── Victory modal ── */
+
+.daily-victory {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: daily-victory-fade 0.2s ease;
+}
+
+@keyframes daily-victory-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.daily-victory__card {
+  width: 100%;
+  max-width: 380px;
+  padding: 2.25rem 2rem 1.75rem;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(226, 160, 63, 0.18), transparent 60%),
+    var(--surface);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  animation: daily-victory-pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+@keyframes daily-victory-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.daily-victory__burst {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 8px 24px rgba(200, 134, 31, 0.5);
+  margin-bottom: 0.35rem;
+}
+
+.daily-victory__eyebrow {
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.daily-victory__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.4rem;
+}
+
+.daily-victory__msg {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.daily-victory__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.daily-victory__btn {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.daily-victory__btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.daily-victory__btn--primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(200, 134, 31, 0.32);
+}
+
+.daily-victory__btn--primary:hover {
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ── Mobile ── */
+
+.daily-hub--mobile {
+  width: 100%;
+  padding: 1rem 0.85rem 2.5rem;
+  gap: 1.25rem;
+}
+
+/* Single-column hero: text → image → button (mobile-override prop). */
+.daily-hub--mobile .daily-hero {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "body"
+    "thumb"
+    "cta";
+  row-gap: 1.1rem;
+}
+
+.daily-hub--mobile .daily-hero__thumb-wrap {
+  width: 62%;
+  margin: 0 auto;
+}
+
+.daily-hub--mobile .daily-hero__title {
+  font-size: 1.4rem;
+}
+
+.daily-hub--mobile .daily-hero__cta {
+  justify-self: stretch;
+  text-align: center;
+}
+
+.daily-hub--mobile .daily-list-row {
+  padding: 0.6rem 0.7rem;
+  gap: 0.7rem;
+}
+
+@media (max-width: 600px) {
+  .daily-hero {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "body"
+      "thumb"
+      "cta";
+    row-gap: 1.1rem;
+  }
+
+  .daily-hero__thumb-wrap {
+    width: 62%;
+    margin: 0 auto;
+  }
+
+  .daily-hero__cta {
+    justify-self: stretch;
+    text-align: center;
+  }
+
+  .daily__board-hdr {
+    width: 100%;
+  }
+}

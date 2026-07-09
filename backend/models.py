@@ -53,6 +53,12 @@ class BlunderResponse(BaseModel):
     time_remaining_black: str | None = None
 
 
+class DailyBlunderHistoryItem(BaseModel):
+    """One past blunder-of-the-day, tagged with the calendar day it ran."""
+    day: str
+    blunder: BlunderResponse
+
+
 class AttemptRequest(BaseModel):
     """User's move attempt for the current blunder."""
     session_id: str

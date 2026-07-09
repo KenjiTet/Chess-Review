@@ -8,7 +8,7 @@ import { ApiError, getBlunder, recordSessionProgress, skipBlunder as apiSkipBlun
 import type { BlunderResponse, SessionCreateRequest } from '../api/client';
 import useReviewed from './useReviewed';
 
-export type Screen = 'login' | 'setup' | 'loading' | 'trainer' | 'settings' | 'terms' | 'privacy' | 'reset';
+export type Screen = 'login' | 'setup' | 'loading' | 'trainer' | 'daily' | 'settings' | 'terms' | 'privacy' | 'reset';
 
 interface SessionStore {
   sessionId: string | undefined;

@@ -105,6 +105,20 @@ def init_db() -> None:
             )
         """)
 
+        # One row per calendar day holding that day's "blunder of the day".
+        # Keyed by the ISO date so the background worker is idempotent: it computes
+        # a day's blunder once and no-ops on every later wake-up that same day. The
+        # full BlunderResponse-shaped payload is stored as JSON in blunder_json.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS blunder_of_day (
+                day             TEXT PRIMARY KEY,
+                game_url        TEXT NOT NULL,
+                player_username TEXT NOT NULL,
+                blunder_json    TEXT NOT NULL,
+                computed_at     TEXT NOT NULL
+            )
+        """)
+
         # Forward migration: link columns were added after the users table shipped.
         # CREATE TABLE IF NOT EXISTS won't alter an existing table, so add them here.
         _add_users_link_columns(conn)
