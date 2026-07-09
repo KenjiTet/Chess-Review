@@ -10,7 +10,7 @@
  * at a day's blunder position marks that day solved.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { getBlunderOfDayHistory } from '../../api/client';
 import type { BlunderResponse, DailyBlunderHistoryItem } from '../../api/client';
@@ -60,7 +60,8 @@ function formatDay(day: string): string {
   }
 
   const parsed = new Date(year, month - 1, date);
-  return parsed.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  // Force en-US so the date reads in English regardless of the user's locale.
+  return parsed.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 /** Build the display view model for one day's puzzle. */
@@ -96,6 +97,24 @@ function DailyBlunder({ isMobile = false }: DailyBlunderProps): JSX.Element {
   const [activeDay, setActiveDay] = useState<string | undefined>(undefined);
   // Shows the victory modal after the active puzzle is solved.
   const [showVictory, setShowVictory] = useState<boolean>(false);
+  // Pending timer that pops the victory modal a beat after the puzzle is solved,
+  // so the winning move is visible on the board before the modal covers it.
+  const victoryTimerRef = useRef<number | undefined>(undefined);
+
+  // Cancel any pending victory timer (leaving a puzzle, resetting, or unmounting).
+  function clearVictoryTimer(): void {
+    if (victoryTimerRef.current !== undefined) {
+      window.clearTimeout(victoryTimerRef.current);
+      victoryTimerRef.current = undefined;
+    }
+  }
+
+  // Clear the pending victory timer when the component unmounts.
+  useEffect(() => {
+    return () => {
+      clearVictoryTimer();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,12 +177,14 @@ function DailyBlunder({ isMobile = false }: DailyBlunderProps): JSX.Element {
 
   // Open a puzzle in the board view, clearing any stale victory modal.
   function openPuzzle(day: string): void {
+    clearVictoryTimer();
     setShowVictory(false);
     setActiveDay(day);
   }
 
   // Return to the hub from the board view.
   function backToHub(): void {
+    clearVictoryTimer();
     setShowVictory(false);
     setActiveDay(undefined);
   }
@@ -191,9 +212,14 @@ function DailyBlunder({ isMobile = false }: DailyBlunderProps): JSX.Element {
     );
 
     // Mark solved and celebrate on the first best move at the blunder position.
+    // The modal is delayed briefly so the winning move is seen on the board
+    // before the celebration takes over the screen.
     function handleSolved(): void {
       markSolved(activeView!.day);
-      setShowVictory(true);
+      clearVictoryTimer();
+      victoryTimerRef.current = window.setTimeout(() => {
+        setShowVictory(true);
+      }, 900);
     }
 
     return (

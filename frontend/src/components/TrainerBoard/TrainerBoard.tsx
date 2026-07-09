@@ -354,10 +354,13 @@ function TrainerBoard({
       if (firstMove === null) {
         setFirstMove(uci);
 
-        // The first attempt at the blunder position counts as "solved" when it
-        // matches one of the engine's best moves (the same rule the daily puzzle
-        // uses). Only the very first move at the exact blunder position qualifies.
-        if (capturedFen === blunder.fen_before && (blunder.best_moves ?? []).includes(uci)) {
+        // The first attempt at the blunder position counts as "solved" only when
+        // it is the single best move (best_moves[0]) — near-equal alternatives do
+        // not count, so the puzzle has one exact solution. Only the very first
+        // move at the exact blunder position qualifies.
+        const topBestMove = (blunder.best_moves ?? [])[0];
+
+        if (capturedFen === blunder.fen_before && uci === topBestMove) {
           onSolved?.();
         }
       }
